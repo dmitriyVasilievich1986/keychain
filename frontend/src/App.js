@@ -19,7 +19,16 @@ function App() {
     <div>
       <ul>
         {passwords.map((p) => (
-          <li key={p.id}>{p.name}</li>
+          <li key={p.id}>
+            {p.name}
+            <ul>
+              {p.fields.map((f) => (
+                <li key={f.name}>
+                  {f.name}: {f.value} - {f.created_at}
+                </li>
+              ))}
+            </ul>
+          </li>
         ))}
       </ul>
     </div>
