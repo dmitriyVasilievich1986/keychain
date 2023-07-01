@@ -1,5 +1,5 @@
 from sqlalchemy.orm import relationship, mapped_column, Mapped
-from flask import Flask, request, Response
+from flask import Flask, request, Response, render_template
 from flask_sqlalchemy import SQLAlchemy
 from cryptography.fernet import Fernet
 from dotenv import load_dotenv
@@ -14,7 +14,12 @@ import json
 BASE_DIR = Path(__file__).parent
 DB_PATH = BASE_DIR / "passwords.sqlite"
 
-app = Flask(__name__)
+app = Flask(
+    import_name=__name__,
+    static_url_path="/static",
+    template_folder=BASE_DIR / "templates",
+    static_folder=BASE_DIR.parent / "static",
+)
 app.config["SQLALCHEMY_DATABASE_URI"] = f"sqlite:///{DB_PATH}"
 db = SQLAlchemy(app)
 
@@ -66,7 +71,7 @@ class Field(db.Model):
 
 @app.route("/")
 def index_view():
-    return "<p>Hello, World!</p>"
+    return render_template("index.html")
 
 
 @app.route("/api", methods=["GET", "POST"])
