@@ -1,4 +1,12 @@
+**/static/js/*.txt
+**/static/js/*.js
+package-lock.json
+postgres_data
+node_modules
 __pycache__
+*.sqlite
+.vscode
 *.pyc
+venv*
+dist
 .env
-venv
