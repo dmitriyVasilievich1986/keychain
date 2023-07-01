@@ -76,7 +76,7 @@ def passwords_view():
             name=request.json["name"],
             fields=[Field(name=k, value=v) for k, v in request.json["fields"].items()],
         )
-        db.session.add(p)
+        db.session.add(password)
         db.session.commit()
         return Response(response=repr(password), status=200)
     passwords = db.session.execute(db.select(Password)).scalars()
