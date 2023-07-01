@@ -65,7 +65,9 @@ class Field(db.Model):
 
     def json(self):
         return {
-            self.name: f.decrypt(self.value).decode(),
+            "name": self.name,
+            "value": f.decrypt(self.value).decode(),
+            "created_at": str(self.created_at.replace(microsecond=0)),
         }
 
 
@@ -105,6 +107,6 @@ def password_view(pk):
 if __name__ == "__main__":
     app.run(
         host="0.0.0.0",
-        port="5000",
+        port="3000",
         debug=True,
     )
