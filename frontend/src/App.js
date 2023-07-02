@@ -1,7 +1,9 @@
+import CreateNewPassword from "./createNewPasswordWindow/CreateNewPassword";
 import React from "react";
 import axios from "axios";
 
 function App() {
+  const [newPasswordWindow, setNewPasswordWindow] = React.useState(false);
   const [passwords, setPasswords] = React.useState([]);
 
   React.useEffect(() => {
@@ -16,7 +18,13 @@ function App() {
   }, []);
 
   return (
-    <div>
+    <div style={{ padding: "0", margin: "0" }}>
+      {newPasswordWindow && (
+        <CreateNewPassword
+          setOpen={setNewPasswordWindow}
+          setPasswords={setPasswords}
+        />
+      )}
       <ul>
         {passwords.map((p) => (
           <li key={p.id}>
@@ -31,6 +39,7 @@ function App() {
           </li>
         ))}
       </ul>
+      <button onClick={() => setNewPasswordWindow(true)}>New</button>
     </div>
   );
 }
