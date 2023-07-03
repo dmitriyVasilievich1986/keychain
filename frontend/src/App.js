@@ -8,6 +8,7 @@ function App() {
   const [passwordsToUpdate, setPasswordsToUpdate] = React.useState(null);
   const [openBlock, setOpenBlock] = React.useState(null);
   const [passwords, setPasswords] = React.useState([]);
+  const [secret, setSecret] = React.useState("");
 
   React.useEffect(() => {
     axios
@@ -24,6 +25,15 @@ function App() {
     if (!newPasswordWindow) setPasswordsToUpdate(null);
   }, [newPasswordWindow]);
 
+  if (secret !== process.env.SECRET) {
+    return (
+      <input
+        type="text"
+        value={secret}
+        onChange={(e) => setSecret(e.target.value)}
+      />
+    );
+  }
   return (
     <div style={{ padding: "0", margin: "0" }}>
       {newPasswordWindow && (
