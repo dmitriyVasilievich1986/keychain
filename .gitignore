@@ -1,5 +1,8 @@
+**/static/js/*.sass
 **/static/js/*.txt
 **/static/js/*.map
+**/static/js/*.png
+**/static/js/*.css
 **/static/js/*.js
 package-lock.json
 postgres_data
