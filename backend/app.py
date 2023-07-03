@@ -23,7 +23,7 @@ app = Flask(
 app.config["SQLALCHEMY_DATABASE_URI"] = f"sqlite:///{DB_PATH}"
 db = SQLAlchemy(app)
 
-load_dotenv()
+load_dotenv(BASE_DIR.parent / ".env")
 SECRET_KEY = environ["SECRET_KEY"]
 f = Fernet(SECRET_KEY)
 
