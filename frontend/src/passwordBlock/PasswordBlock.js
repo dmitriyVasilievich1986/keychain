@@ -1,3 +1,5 @@
+import updateIcon from "../assets/pen.png";
+import Icon from "../components/Icon";
 import Field from "./Field";
 import React from "react";
 
@@ -13,7 +15,7 @@ function PasswordBlock(props) {
         <div style={{ flex: "1" }}></div>
         <div style={{ flex: "3" }}>{props.password.name}</div>
         <div style={{ flex: "1" }}>
-          <button
+          <Icon
             onClick={() => {
               props.setNewPasswordWindow(true);
               props.setPasswordsToUpdate({
@@ -21,9 +23,8 @@ function PasswordBlock(props) {
                 fields: props.password.fields.filter((pf) => !pf.is_deleted),
               });
             }}
-          >
-            update
-          </button>
+            src={updateIcon}
+          />
         </div>
       </div>
       <ul style={{ display: props.open ? "block" : "none" }}>

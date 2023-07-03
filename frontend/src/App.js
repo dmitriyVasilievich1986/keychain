@@ -1,5 +1,7 @@
 import CreateNewPassword from "./createNewPasswordWindow/CreateNewPassword";
 import PasswordBlock from "./passwordBlock/PasswordBlock";
+import addIcon from "./assets/add.png";
+import Icon from "./components/Icon";
 import React from "react";
 import axios from "axios";
 
@@ -57,7 +59,16 @@ function App() {
               setPasswordsToUpdate={setPasswordsToUpdate}
             />
           ))}
-          <button onClick={() => setNewPasswordWindow(true)}>New</button>
+          <div
+            style={{
+              justifyContent: "end",
+              paddingRight: "2rem",
+              marginTop: "1rem",
+              display: "flex",
+            }}
+          >
+            <Icon src={addIcon} onClick={() => setNewPasswordWindow(true)} />
+          </div>
         </div>
       </div>
     </div>

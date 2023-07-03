@@ -1,4 +1,6 @@
 import React from "react";
+import binIcon from "../assets/bin.png";
+import Icon from "../components/Icon";
 
 function NewField(props) {
   function updateField(name, value) {
@@ -38,22 +40,7 @@ function NewField(props) {
           width: "25px",
         }}
       >
-        <button
-          style={{
-            width: "25px",
-            height: "25px",
-            borderRadius: "50%",
-            border: "none",
-            backgroundColor: "#ccc",
-            fontSize: "20px",
-            cursor: "pointer",
-            fontWeight: "bolder",
-            display: props.index > 0 ? "block" : "none",
-          }}
-          onClick={deleteField}
-        >
-          -
-        </button>
+        <Icon src={binIcon} onClick={deleteField} disabled={!props.index} />
       </div>
     </div>
   );

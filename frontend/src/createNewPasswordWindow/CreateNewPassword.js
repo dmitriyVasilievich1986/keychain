@@ -1,3 +1,5 @@
+import addIcon from "../assets/add.png";
+import Icon from "../components/Icon";
 import NewField from "./NewField";
 import React from "react";
 import axios from "axios";
@@ -124,24 +126,10 @@ function CreateNewPassword(props) {
           style={{
             display: "flex",
             justifyContent: "end",
-            margin: "10px 2rem",
+            margin: "10px 3rem",
           }}
         >
-          <button
-            style={{
-              borderRadius: "50%",
-              height: "25px",
-              width: "25px",
-              border: "none",
-              backgroundColor: "#ccc",
-              fontWeight: "bolder",
-              cursor: "pointer",
-              fontSize: "20px",
-            }}
-            onClick={addField}
-          >
-            +
-          </button>
+          <Icon src={addIcon} onClick={addField} />
         </div>
         <div
           style={{
