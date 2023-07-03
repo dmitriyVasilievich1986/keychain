@@ -6,8 +6,10 @@ const emptyField = { name: "", value: "" };
 
 function CreateNewPassword(props) {
   const modealWindowRef = React.useRef();
-  const [newName, setNewName] = React.useState("");
-  const [newFieldsList, setNewFieldsList] = React.useState([emptyField]);
+  const [newName, setNewName] = React.useState(props.password?.name || "");
+  const [newFieldsList, setNewFieldsList] = React.useState(
+    props.password?.fields || [emptyField]
+  );
 
   React.useEffect(() => {
     function handleClickOutside(event) {
@@ -24,7 +26,7 @@ function CreateNewPassword(props) {
     };
   }, [modealWindowRef]);
 
-  function sendPost(e) {
+  function sendRequest(e) {
     if (
       newName === "" ||
       newFieldsList.map((f) => f.name === "" || f.value === "").includes(true)
@@ -40,6 +42,31 @@ function CreateNewPassword(props) {
       name: newName,
       fields,
     };
+
+    if (props.password?.id) {
+      sendPut(newPassword);
+    } else {
+      sendPost(newPassword);
+    }
+  }
+
+  function sendPut(newPassword) {
+    const ID = props.password.id;
+    axios
+      .put(`/api/${ID}`, newPassword)
+      .then((data) => {
+        console.log(data.data);
+        props.setPasswords((passwords) =>
+          passwords.map((p) => (p.id === ID ? data.data : p))
+        );
+        props.setOpen(false);
+      })
+      .catch((e) => {
+        console.log(e);
+      });
+  }
+
+  function sendPost(newPassword) {
     axios
       .post("/api", newPassword)
       .then((data) => {
@@ -123,7 +150,9 @@ function CreateNewPassword(props) {
             margin: "10px 0",
           }}
         >
-          <button onClick={sendPost}>send</button>
+          <button onClick={sendRequest}>
+            {props.password?.id ? "update" : "send"}
+          </button>
         </div>
       </div>
     </div>

@@ -40,10 +40,13 @@ class Password(db.Model):
         return json.dumps(self.json())
 
     def json(self):
+        fields = sorted(
+            [x.json() for x in self.fields], key=lambda x: x["created_at"], reverse=True
+        )
         return {
             "id": self.id,
+            "fields": fields,
             "name": self.name,
-            "fields": [x.json() for x in self.fields],
         }
 
 
@@ -63,10 +66,18 @@ class Field(db.Model):
     def __repr__(self):
         return json.dumps(self.json())
 
+    @property
+    def get_value(self):
+        return f.decrypt(self.value).decode()
+
+    def check(self, value):
+        return self.get_value == value
+
     def json(self):
         return {
             "name": self.name,
-            "value": f.decrypt(self.value).decode(),
+            "value": self.get_value,
+            "is_deleted": self.is_deleted,
             "created_at": str(self.created_at.replace(microsecond=0)),
         }
 
@@ -90,10 +101,39 @@ def passwords_view():
     return Response(response=json.dumps([x.json() for x in passwords]), status=200)
 
 
-@app.route("/api/<int:pk>", methods=["GET", "DELETE"])
+@app.route("/api/<int:pk>", methods=["GET", "PUT"])
 def password_view(pk):
     password = db.get_or_404(Password, pk)
     if request.method == "GET":
+        return Response(response=repr(password), status=200)
+    elif request.method == "PUT":
+        password.name = request.json["name"]
+        new_fields = list()
+        names = [x.name for x in password.fields]
+        for f in password.fields:
+            if f.is_deleted:
+                print("0.5. deleted")
+                pass
+            elif f.name in request.json["fields"] and not f.check(
+                request.json["fields"][f.name]
+            ):
+                new_fields.append(
+                    Field(name=f.name, value=request.json["fields"][f.name])
+                )
+                f.is_deleted = True
+                print("1. add new field and set to deleted")
+            elif f.name not in request.json["fields"]:
+                print("2. set to deleted")
+                f.is_deleted = True
+            else:
+                print("3. nothing changed")
+        for k, v in request.json["fields"].items():
+            if k not in names:
+                print("4. add new field")
+                new_fields.append(Field(name=k, value=v))
+        for f in new_fields:
+            password.fields.append(f)
+        db.session.commit()
         return Response(response=repr(password), status=200)
     elif request.method == "DELETE":
         db.session.delete(password)
