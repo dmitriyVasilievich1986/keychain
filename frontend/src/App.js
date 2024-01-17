@@ -17,6 +17,7 @@ function App() {
       .get("/api")
       .then((data) => {
         setPasswords(data.data);
+        setOpenBlock(data.data[0].id);
       })
       .catch((e) => {
         console.log(e);
@@ -45,31 +46,44 @@ function App() {
           setPasswords={setPasswords}
         />
       )}
-      <div
-        style={{ display: "flex", justifyContent: "center", marginTop: "2rem" }}
-      >
-        <div style={{ width: "90%", maxWidth: "450px" }}>
-          {passwords.map((p, i) => (
-            <PasswordBlock
-              onClick={() => setOpenBlock(i === openBlock ? null : i)}
-              password={p}
-              key={p.id}
-              open={i === openBlock}
-              setNewPasswordWindow={setNewPasswordWindow}
-              setPasswordsToUpdate={setPasswordsToUpdate}
-            />
-          ))}
-          <div
-            style={{
-              justifyContent: "end",
-              paddingRight: "2rem",
-              marginTop: "1rem",
-              display: "flex",
-            }}
+      <div style={{ display: "flex", flexWrap: "wrap" }}>
+        <div
+          style={{
+            flex: "1 300px",
+            padding: "1rem",
+            flexDirection: "column",
+            flexWrap: "nowrap",
+          }}
+        >
+          <select
+            style={{ marginBottom: "1rem" }}
+            value={openBlock}
+            onChange={(e) => setOpenBlock(e.target.value)}
           >
+            {passwords.map((p) => (
+              <option key={p.id} value={p.id}>
+                {p.name}
+              </option>
+            ))}
+          </select>
+          <div>
             <Icon src={addIcon} onClick={() => setNewPasswordWindow(true)} />
           </div>
         </div>
+        <div style={{ flex: "2 700px" }}>
+          <div>
+            {openBlock && (
+              <PasswordBlock
+                onClick={() => setOpenBlock(i === openBlock ? null : i)}
+                password={passwords.find((p) => p.id == openBlock)}
+                open={true}
+                setNewPasswordWindow={setNewPasswordWindow}
+                setPasswordsToUpdate={setPasswordsToUpdate}
+              />
+            )}
+          </div>
+        </div>
+        <div style={{ flex: "1 300px" }}>right</div>
       </div>
     </div>
   );

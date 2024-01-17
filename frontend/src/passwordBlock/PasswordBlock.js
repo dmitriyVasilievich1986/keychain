@@ -9,12 +9,12 @@ function PasswordBlock(props) {
       <div
         style={{
           display: "flex",
+          padding: "0.5rem 1rem",
+          borderBottom: "1px solid black",
         }}
         onClick={props.onClick}
       >
-        <div style={{ flex: "1" }}></div>
-        <div style={{ flex: "3" }}>{props.password.name}</div>
-        <div style={{ flex: "1" }}>
+        <div style={{ flex: "1 2rem" }}>
           <Icon
             onClick={() => {
               props.setNewPasswordWindow(true);
@@ -26,6 +26,10 @@ function PasswordBlock(props) {
             src={updateIcon}
           />
         </div>
+        <div style={{ flex: "3", textAlign: "center" }}>
+          {props.password.name}
+        </div>
+        <div style={{ flex: "1 2rem" }}></div>
       </div>
       <ul style={{ display: props.open ? "block" : "none" }}>
         <div style={{ margin: "10px 0" }}>
