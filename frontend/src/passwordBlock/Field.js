@@ -9,15 +9,22 @@ function Field(props) {
       }}
     >
       [{props.created_at}] {props.name}:
-      <div
+      <input
+        disabled={false}
+        type="text"
+        value={props.value}
         style={{
           marginLeft: "10px",
           border: "1px solid black",
           padding: "0 10px",
+          cursor: "pointer",
         }}
-      >
-        {props.value}
-      </div>
+        onChange={(e) => e.preventDefault()}
+        onClick={(e) => {
+          e.target.select();
+          document.execCommand("copy");
+        }}
+      />
     </li>
   );
 }
