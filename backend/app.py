@@ -34,6 +34,7 @@ class Password(db.Model):
     id = sa.Column(sa.Integer, primary_key=True)
     name = sa.Column(sa.String, unique=True, nullable=False)
     created_at = sa.Column(sa.DateTime, nullable=False, default=datetime.now)
+    image_url = sa.Column(sa.String(256), nullable=True, default="/static/i/no-photo.png")
     fields: Mapped[List["Field"]] = relationship(cascade="all, delete-orphan")
 
     def __repr__(self):
@@ -47,6 +48,7 @@ class Password(db.Model):
             "id": self.id,
             "fields": fields,
             "name": self.name,
+            "image_url": self.image_url,
         }
 
 
