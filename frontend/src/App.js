@@ -1,4 +1,5 @@
 import CreateNewPassword from "./createNewPasswordWindow/CreateNewPassword";
+import PasswordSelect from "./passwordSelect/PasswordSelect";
 import PasswordBlock from "./passwordBlock/PasswordBlock";
 import addIcon from "./assets/add.png";
 import Icon from "./components/Icon";
@@ -55,17 +56,11 @@ function App() {
             flexWrap: "nowrap",
           }}
         >
-          <select
-            style={{ marginBottom: "1rem" }}
+          <PasswordSelect
+            onChange={setOpenBlock}
+            passwords={passwords}
             value={openBlock}
-            onChange={(e) => setOpenBlock(e.target.value)}
-          >
-            {passwords.map((p) => (
-              <option key={p.id} value={p.id}>
-                {p.name}
-              </option>
-            ))}
-          </select>
+          />
           <div>
             <Icon src={addIcon} onClick={() => setNewPasswordWindow(true)} />
           </div>
