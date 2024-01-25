@@ -3,6 +3,7 @@ import PasswordSelect from "./passwordSelect/PasswordSelect";
 import PasswordBlock from "./passwordBlock/PasswordBlock";
 import addIcon from "./assets/add.png";
 import Icon from "./components/Icon";
+import classNames from "classnames";
 import React from "react";
 import axios from "axios";
 
@@ -39,23 +40,20 @@ function App() {
     );
   }
   return (
-    <div style={{ padding: "0", margin: "0" }}>
+    <div>
+      {process.env.NODE_ENV === "development" && (
+        <div className={classNames("nodeEnvLabel")}>{process.env.NODE_ENV}</div>
+      )}
       {newPasswordWindow && (
         <CreateNewPassword
+          newPasswordWindow={newPasswordWindow}
           setOpen={setNewPasswordWindow}
           password={passwordsToUpdate}
           setPasswords={setPasswords}
         />
       )}
-      <div style={{ display: "flex", flexWrap: "wrap" }}>
-        <div
-          style={{
-            flex: "1 300px",
-            padding: "1rem",
-            flexDirection: "column",
-            flexWrap: "nowrap",
-          }}
-        >
+      <div className={classNames("main")}>
+        <div className={classNames("left")}>
           <PasswordSelect
             onChange={setOpenBlock}
             passwords={passwords}
@@ -65,20 +63,20 @@ function App() {
             <Icon src={addIcon} onClick={() => setNewPasswordWindow(true)} />
           </div>
         </div>
-        <div style={{ flex: "2 700px" }}>
+        <div className={classNames("center")}>
           <div>
             {openBlock && (
               <PasswordBlock
                 onClick={() => setOpenBlock(i === openBlock ? null : i)}
                 password={passwords.find((p) => p.id == openBlock)}
-                open={true}
                 setNewPasswordWindow={setNewPasswordWindow}
                 setPasswordsToUpdate={setPasswordsToUpdate}
+                open={true}
               />
             )}
           </div>
         </div>
-        <div style={{ flex: "1 300px" }}>right</div>
+        <div className={classNames("right")} />
       </div>
     </div>
   );

@@ -8,6 +8,43 @@ img {
     width: 25px;
 }
 
+.main {
+    flex-wrap: wrap;
+    display: flex;
+
+    &>.left {
+        flex-direction: column;
+        flex-wrap: nowrap;
+        flex: 1 300px;
+        padding: 1rem;
+    }
+
+    &>.center {
+        justify-content: center;
+        flex: 2 700px;
+        display: flex;
+
+        & > div {
+            max-width: 500px;
+            width: 100%;
+        }
+    }
+    
+    &>.right {
+        flex: 1 300px;
+    }
+}
+
+.nodeEnvLabel {
+    background-color: #e63946;
+    border-radius: 13px;
+    position: absolute;
+    padding: 2px 9px;
+    color: #a8dadc;
+    left: 10px;
+    top: 10px;
+}
+
 .passwordSelectField {
     align-items: center;
     cursor: pointer;
