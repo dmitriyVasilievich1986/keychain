@@ -1,32 +1,22 @@
 import classNames from "classnames";
 import React from "react";
-
-function Item(props) {
-  return (
-    <div className={classNames("passwordSelectField")}>
-      <img src={props.image_url} style={{ marginRight: "5px" }} />
-      <div className={classNames({ show: props.id === props.value })}>
-        {props.name}
-      </div>
-    </div>
-  );
-}
+import Item from "./Item";
 
 function PasswordSelect(props) {
-  const clickHandler = (newID) => {
-    props?.onChange && props.onChange(newID);
-  };
-
   return (
     <div className={classNames("passwordSelectBlock")}>
       <div>
-        <ul>
-          {props.passwords.map((p) => (
-            <li onClick={() => clickHandler(p.id)} key={p.id}>
-              <Item {...p} value={props.value} />
-            </li>
-          ))}
-        </ul>
+        <Item
+          {...props.passwords.find((p) => p.id === props.value)}
+          selectedPassword={true}
+        />
+        <div className={classNames("list")}>
+          {props.passwords
+            .filter((p) => p.id !== props.value)
+            .map((p) => (
+              <Item onClick={props.onChange} key={p.id} {...p} />
+            ))}
+        </div>
       </div>
     </div>
   );

@@ -1,6 +1,6 @@
 import CreateNewPassword from "./createNewPasswordWindow/CreateNewPassword";
-import PasswordSelect from "./passwordSelect/PasswordSelect";
 import PasswordBlock from "./passwordBlock/PasswordBlock";
+import { PasswordSelect } from "./passwordSelect";
 import addIcon from "./assets/add.png";
 import Icon from "./components/Icon";
 import classNames from "classnames";
