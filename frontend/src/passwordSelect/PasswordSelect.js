@@ -1,4 +1,16 @@
+import classNames from "classnames";
 import React from "react";
+
+function Item(props) {
+  return (
+    <div className={classNames("passwordSelectField")}>
+      <img src={props.image_url} style={{ marginRight: "5px" }} />
+      <div className={classNames({ show: props.id === props.value })}>
+        {props.name}
+      </div>
+    </div>
+  );
+}
 
 function PasswordSelect(props) {
   const clickHandler = (newID) => {
@@ -6,27 +18,16 @@ function PasswordSelect(props) {
   };
 
   return (
-    <div>
-      <ul>
-        {props.passwords.map((p) => (
-          <li
-            style={{
-              backgroundColor: p.id === props.value ? "red" : "inherit",
-              alignItems: "center",
-              cursor: "pointer",
-              display: "flex",
-            }}
-            onClick={() => clickHandler(p.id)}
-            key={p.id}
-          >
-            <img
-              src={p.image_url}
-              style={{ height: "25px", width: "25px", marginRight: "5px" }}
-            />
-            {p.name}
-          </li>
-        ))}
-      </ul>
+    <div className={classNames("passwordSelectBlock")}>
+      <div>
+        <ul>
+          {props.passwords.map((p) => (
+            <li onClick={() => clickHandler(p.id)} key={p.id}>
+              <Item {...p} value={props.value} />
+            </li>
+          ))}
+        </ul>
+      </div>
     </div>
   );
 }
