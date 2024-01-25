@@ -44,14 +44,12 @@ function App() {
       {process.env.NODE_ENV === "development" && (
         <div className={classNames("nodeEnvLabel")}>{process.env.NODE_ENV}</div>
       )}
-      {newPasswordWindow && (
-        <CreateNewPassword
-          newPasswordWindow={newPasswordWindow}
-          setOpen={setNewPasswordWindow}
-          password={passwordsToUpdate}
-          setPasswords={setPasswords}
-        />
-      )}
+      <CreateNewPassword
+        newPasswordWindow={newPasswordWindow}
+        setOpen={setNewPasswordWindow}
+        password={passwordsToUpdate}
+        setPasswords={setPasswords}
+      />
       <div className={classNames("main")}>
         <div className={classNames("left")}>
           <PasswordSelect

@@ -84,6 +84,7 @@ function CreateNewPassword(props) {
     setNewFieldsList([...newFieldsList, emptyField]);
   }
 
+  if (!props.newPasswordWindow) return null;
   return (
     <div
       style={{
