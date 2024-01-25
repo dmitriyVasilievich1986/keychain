@@ -30,7 +30,7 @@ function App() {
     if (!newPasswordWindow) setPasswordsToUpdate(null);
   }, [newPasswordWindow]);
 
-  if (secret !== process.env.SECRET) {
+  if (secret !== process.env.SECRET && process.env.NODE_ENV !== "development") {
     return (
       <input
         type="text"
