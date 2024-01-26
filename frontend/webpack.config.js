@@ -14,6 +14,7 @@ module.exports = (env, argv) => {
     },
     resolve: {
       alias: {
+        Images: path.resolve(__dirname, "src/assets/"),
         Styles: path.resolve(__dirname, "styles/"),
       },
     },
