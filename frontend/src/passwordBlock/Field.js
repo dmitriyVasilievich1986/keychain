@@ -11,7 +11,7 @@ function Field(props) {
       [{props.created_at}] {props.name}:
       <input
         disabled={false}
-        type="text"
+        type={process.env.NODE_ENV === "development" ? "password" : "text"}
         value={props.value}
         style={{
           marginLeft: "10px",
