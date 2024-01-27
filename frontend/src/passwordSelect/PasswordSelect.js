@@ -13,6 +13,13 @@ function PasswordSelect(props) {
     props?.onChange && props.onChange(newID);
   };
 
+  const updateHandler = () => {
+    props?.updateHandler && props.updateHandler();
+  };
+  const createHandler = () => {
+    props?.createHandler && props.createHandler();
+  };
+
   return (
     <div className={classNames("passwordSelectBlock")}>
       <ClickOutsideRef
@@ -26,8 +33,8 @@ function PasswordSelect(props) {
             selectedPassword={true}
           />
           <div className={classNames("selectButtons")}>
-            <img src={update} />
-            <img src={createIcon} onClick={props.createHandler} />
+            <img src={update} onClick={updateHandler} />
+            <img src={createIcon} onClick={createHandler} />
           </div>
         </div>
         <div className={classNames("list", { hide })}>
