@@ -1,6 +1,7 @@
 import CreateNewPassword from "./createNewPasswordWindow/CreateNewPassword";
 import PasswordSelect from "./passwordSelect";
 import PasswordBlock from "./passwordBlock";
+import { Message } from "./components";
 import classNames from "classnames";
 import React from "react";
 import axios from "axios";
@@ -15,6 +16,7 @@ function App() {
   const [createPassword, setCreatePassword] = React.useState(null);
   const [openBlock, setOpenBlock] = React.useState(null);
   const [passwords, setPasswords] = React.useState([]);
+  const [message, setMessage] = React.useState({});
   const [secret, setSecret] = React.useState("");
 
   React.useEffect(() => {
@@ -23,9 +25,11 @@ function App() {
       .then((data) => {
         setPasswords(data.data);
         setOpenBlock(data.data[0].id);
+        setMessage({ message: "Data was loaded", type: "success" });
       })
       .catch((e) => {
         console.log(e);
+        setMessage({ message: "Data was not loaded", type: "error" });
       });
   }, []);
 
@@ -58,6 +62,7 @@ function App() {
         password={createPassword}
         createHandler={createHandler}
       />
+      <Message {...message} />
       <div className={classNames("main")}>
         <div className={classNames("left")}>
           <PasswordSelect

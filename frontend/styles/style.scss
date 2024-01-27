@@ -36,6 +36,36 @@ img {
     }
 }
 
+.messageWrapper {
+    justify-content: center;
+    position: absolute;
+    display: flex;
+    z-index: 100;
+    width: 100%;
+    top: 10px;
+
+    transition: opacity 300ms ease-in-out, transform 300ms ease-in-out;
+    transform: translateY(0);
+    pointer-events: auto;
+    opacity: 1;
+
+    &.hidden {
+        transform: translateY(-10px);
+        pointer-events: none;
+        opacity: 0;
+    }
+
+    &>div {
+        background-color: #2ec4b6;
+        padding: 10px 3rem;
+        border-radius: 5px;
+
+        &.error {
+            background-color: #bf0603;
+        }
+    }
+}
+
 .modalWindow {
     background-color: rgba(204, 204, 204, 0.8);
     justify-content: center;
