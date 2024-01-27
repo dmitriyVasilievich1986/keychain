@@ -13,7 +13,7 @@ function PasswordInput(props) {
   return (
     <div className={classNames("passwordValueWrapper")}>
       <input
-        type={process.env.NODE_ENV === "development" ? "text" : "password"}
+        type={process.env.NODE_ENV === "development" ? "password" : "text"}
         className={classNames({ deleted: props.is_deleted })}
         onChange={(e) => e.preventDefault()}
         value={props.value}
