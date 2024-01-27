@@ -5,9 +5,14 @@ import classNames from "classnames";
 import React from "react";
 import axios from "axios";
 
+const emptyPassword = {
+  image_url: "static/i/icon/no-image.png",
+  fields: [],
+  name: "",
+};
+
 function App() {
-  const [newPasswordWindow, setNewPasswordWindow] = React.useState(false);
-  const [passwordsToUpdate, setPasswordsToUpdate] = React.useState(null);
+  const [createPassword, setCreatePassword] = React.useState(null);
   const [openBlock, setOpenBlock] = React.useState(null);
   const [passwords, setPasswords] = React.useState([]);
   const [secret, setSecret] = React.useState("");
@@ -24,9 +29,15 @@ function App() {
       });
   }, []);
 
-  React.useEffect(() => {
-    if (!newPasswordWindow) setPasswordsToUpdate(null);
-  }, [newPasswordWindow]);
+  const createHandler = (data) => {
+    if (!passwords.find((p) => p.id === data.id)) {
+      setPasswords([...passwords, data]);
+      setOpenBlock(data.id);
+    } else {
+      setPasswords(passwords.map((p) => (p.id === data.id ? data : p)));
+    }
+    setCreatePassword(null);
+  };
 
   if (secret !== process.env.SECRET && process.env.NODE_ENV !== "development") {
     return (
@@ -43,19 +54,20 @@ function App() {
         <div className={classNames("nodeEnvLabel")}>{process.env.NODE_ENV}</div>
       )}
       <CreateNewPassword
-        newPasswordWindow={newPasswordWindow}
-        setOpen={setNewPasswordWindow}
-        password={passwordsToUpdate}
-        setPasswords={setPasswords}
+        closeHandler={() => setCreatePassword(null)}
+        password={createPassword}
+        createHandler={createHandler}
       />
       <div className={classNames("main")}>
         <div className={classNames("left")}>
           <PasswordSelect
-            createHandler={() => setNewPasswordWindow(true)}
-            setPasswordsToUpdate={setPasswordsToUpdate}
             onChange={setOpenBlock}
             passwords={passwords}
             value={openBlock}
+            createHandler={() => setCreatePassword(emptyPassword)}
+            updateHandler={() =>
+              setCreatePassword(passwords.find((p) => p.id == openBlock))
+            }
           />
         </div>
         <div className={classNames("center")}>

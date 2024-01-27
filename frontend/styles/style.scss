@@ -35,6 +35,97 @@ img {
     }
 }
 
+.modalWindow {
+    background-color: rgba(204, 204, 204, 0.8);
+    justify-content: center;
+    position: absolute;
+    display: flex;
+    height: 100vh;
+    width: 100vw;
+    z-index: 90;
+    left: 0;
+    top: 0;
+
+    
+    &>.createPasswordWrapper {
+        max-width: 500px;
+        width: 90%;
+
+        &>.cross {
+            background-color: inherit;
+            justify-content: end;
+            margin: 2rem 0 1rem;
+            display: flex;
+
+            &>div {
+                background-color: #fff;
+                justify-content: center;
+                align-items: center;
+                border-radius: 20px;
+                display: flex;
+                height: 40px;
+                width: 40px;
+            }
+        }
+    }
+}
+
+.formWrapper {
+    background-color: #fff;
+    border-radius: 15px;
+    width: 100%;
+    
+    justify-content: center;
+    align-items: center;
+    display: flex;
+
+    &>form {
+        margin: 2rem 0;
+        width: 90%;
+
+        &>.sendButtonWrapper {
+            justify-content: center;
+            margin-top: 2rem;
+            display: flex;
+
+            &>button {
+                border-radius: 15px;
+                padding: 8px 3rem;
+                cursor: pointer;
+                border: none;
+
+                background-color: #0d1b2a;
+                font-weight: bolder;
+                color: #e0e1dd;
+                font-size: 16px;
+            }
+        }
+
+        &>.fieldsList>div {
+            align-items: center;
+            display: flex;
+
+            &>.item {
+                background-color: #fdf0d5;
+                padding: 5px 10px 10px;
+                border-radius: 15px;
+                margin-top: 10px;
+                width: 100%;
+            }
+        }
+
+        &>.addItem {
+            justify-content: end;
+            margin-top: 10px;
+            display: flex;
+
+            &>img {
+                margin-right: 1rem;
+            }
+        }
+    }
+}
+
 .nodeEnvLabel {
     background-color: #e63946;
     border-radius: 13px;
@@ -42,6 +133,7 @@ img {
     padding: 2px 9px;
     color: #a8dadc;
     bottom: 10px;
+    z-index: 99;
     left: 10px;
 }
 
@@ -178,6 +270,49 @@ img {
                     margin-left: 4px;
                 }
             }
+        }
+    }
+}
+
+.inputRow {
+    justify-content: space-between;
+    align-items: center;
+    margin-top: 5px;
+    display: flex;
+
+    &>.inputName {
+        width: 30%;
+        
+        &>div {
+            text-overflow: ellipsis;
+            text-wrap: nowrap;
+            overflow: hidden;
+        }
+    }
+
+    &>.inputField {
+        align-items: center;
+        display: flex;
+        width: 60%;
+
+        &>input {
+            background-color: inherit;
+            -webkit-appearance: none;
+            text-overflow: ellipsis;
+            border-radius: 0;
+            outline: none;
+            border: none;
+            width: 100%;
+
+            border-bottom: 1px solid #000;
+
+            &.deleted {
+                text-decoration: line-through;
+            }
+        }
+
+        &>img {
+            margin-left: 4px;
         }
     }
 }
