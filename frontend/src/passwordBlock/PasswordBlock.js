@@ -1,4 +1,4 @@
-import PasswordRow from "./PasswordRow";
+import { InputRow } from "../components";
 import classNames from "classnames";
 import React from "react";
 
@@ -7,25 +7,22 @@ function PasswordBlock(props) {
 
   const currentValues = props.password.fields.filter((p) => !p.is_deleted);
   const deletedValues = props.password.fields.filter((p) => p.is_deleted);
+  const secret = process.env.NODE_ENV === "development";
 
   return (
     <div className={classNames("passwordsBlock")}>
       <div>
         <h4>Current values:</h4>
-        {currentValues
-          .filter((p) => !p.is_deleted)
-          .map((p, i) => (
-            <PasswordRow key={`${p.name}_cur_${i}`} {...p} />
-          ))}
+        {currentValues.map((p, i) => (
+          <InputRow secret={secret} key={`${i}_current`} copy={true} {...p} />
+        ))}
 
         {deletedValues.length > 0 && (
           <h4 style={{ marginTop: "1rem" }}>Deleted values:</h4>
         )}
-        {deletedValues
-          .filter((p) => p.is_deleted)
-          .map((p, i) => (
-            <PasswordRow key={`${p.name}_hist_${i}`} {...p} />
-          ))}
+        {deletedValues.map((p, i) => (
+          <InputRow secret={secret} key={`${i}_old`} copy={true} {...p} />
+        ))}
       </div>
     </div>
   );
