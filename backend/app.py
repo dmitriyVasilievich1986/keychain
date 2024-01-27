@@ -99,7 +99,7 @@ def passwords_view():
         db.session.add(password)
         db.session.commit()
         return Response(response=repr(password), status=200)
-    passwords = db.session.execute(db.select(Password)).scalars()
+    passwords = db.session.execute(db.select(Password).order_by(Password.created_at)).scalars()
     return Response(response=json.dumps([x.json() for x in passwords]), status=200)
 
 
