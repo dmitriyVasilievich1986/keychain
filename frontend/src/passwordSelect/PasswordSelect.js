@@ -1,3 +1,4 @@
+import { ClickOutsideRef } from "../components";
 import createIcon from "Images/add.png";
 import update from "Images/pen.png";
 import classNames from "classnames";
@@ -6,22 +7,6 @@ import Item from "./Item";
 
 function PasswordSelect(props) {
   const [hide, setHide] = React.useState(true);
-  const selectWindowRef = React.useRef();
-
-  React.useEffect(() => {
-    function handleClickOutside(event) {
-      if (
-        selectWindowRef.current &&
-        !selectWindowRef.current.contains(event.target)
-      ) {
-        setHide(true);
-      }
-    }
-    document.addEventListener("mousedown", handleClickOutside);
-    return () => {
-      document.removeEventListener("mousedown", handleClickOutside);
-    };
-  }, [selectWindowRef]);
 
   const clickHandler = (newID) => {
     setHide(true);
@@ -30,7 +15,10 @@ function PasswordSelect(props) {
 
   return (
     <div className={classNames("passwordSelectBlock")}>
-      <div className={classNames("selectWrapper")} ref={selectWindowRef}>
+      <ClickOutsideRef
+        className={classNames("selectWrapper")}
+        clickHandler={() => setHide(true)}
+      >
         <div className={classNames("selectHead")}>
           <Item
             {...props.passwords.find((p) => p.id === props.value)}
@@ -49,7 +37,7 @@ function PasswordSelect(props) {
               <Item onClick={clickHandler} key={p.id} {...p} />
             ))}
         </div>
-      </div>
+      </ClickOutsideRef>
     </div>
   );
 }
