@@ -110,6 +110,7 @@ def password_view(pk):
         return Response(response=repr(password), status=200)
     elif request.method == "PUT":
         password.name = request.json["name"]
+        password.image_url = request.json["image_url"]
         new_fields = list()
         names = [x.name for x in password.fields]
         for f in password.fields:
