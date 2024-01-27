@@ -1,6 +1,6 @@
 import CreateNewPassword from "./createNewPasswordWindow/CreateNewPassword";
 import PasswordBlock from "./passwordBlock/PasswordBlock";
-import { PasswordSelect } from "./passwordSelect";
+import PasswordSelect from "./passwordSelect";
 import classNames from "classnames";
 import React from "react";
 import axios from "axios";

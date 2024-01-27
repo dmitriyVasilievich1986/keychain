@@ -1,3 +1,3 @@
 import PasswordSelect from "./PasswordSelect";
 
-export { PasswordSelect };
+export default PasswordSelect;
