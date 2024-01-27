@@ -1,6 +1,6 @@
 import CreateNewPassword from "./createNewPasswordWindow/CreateNewPassword";
-import PasswordBlock from "./passwordBlock/PasswordBlock";
 import PasswordSelect from "./passwordSelect";
+import PasswordBlock from "./passwordBlock";
 import classNames from "classnames";
 import React from "react";
 import axios from "axios";
@@ -59,17 +59,7 @@ function App() {
           />
         </div>
         <div className={classNames("center")}>
-          <div>
-            {openBlock && (
-              <PasswordBlock
-                onClick={() => setOpenBlock(i === openBlock ? null : i)}
-                password={passwords.find((p) => p.id == openBlock)}
-                setNewPasswordWindow={setNewPasswordWindow}
-                setPasswordsToUpdate={setPasswordsToUpdate}
-                open={true}
-              />
-            )}
-          </div>
+          <PasswordBlock password={passwords.find((p) => p.id == openBlock)} />
         </div>
         <div className={classNames("right")} />
       </div>

@@ -1,54 +1,32 @@
-import updateIcon from "../assets/pen.png";
-import Icon from "../components/Icon";
-import Field from "./Field";
+import PasswordRow from "./PasswordRow";
+import classNames from "classnames";
 import React from "react";
 
 function PasswordBlock(props) {
+  if (!props.password?.fields) return null;
+
+  const currentValues = props.password.fields.filter((p) => !p.is_deleted);
+  const deletedValues = props.password.fields.filter((p) => p.is_deleted);
+
   return (
-    <div>
-      <div
-        style={{
-          display: "flex",
-          padding: "0.5rem 1rem",
-          borderBottom: "1px solid black",
-        }}
-        onClick={props.onClick}
-      >
-        <div style={{ flex: "1 2rem" }}>
-          <Icon
-            onClick={() => {
-              props.setNewPasswordWindow(true);
-              props.setPasswordsToUpdate({
-                ...props.password,
-                fields: props.password.fields.filter((pf) => !pf.is_deleted),
-              });
-            }}
-            src={updateIcon}
-          />
-        </div>
-        <div style={{ flex: "3", textAlign: "center" }}>
-          {props.password.name}
-        </div>
-        <div style={{ flex: "1 2rem" }}></div>
+    <div className={classNames("passwordsBlock")}>
+      <div>
+        <h4>Current values:</h4>
+        {currentValues
+          .filter((p) => !p.is_deleted)
+          .map((p, i) => (
+            <PasswordRow key={`${p.name}_cur_${i}`} {...p} />
+          ))}
+
+        {deletedValues.length > 0 && (
+          <h4 style={{ marginTop: "1rem" }}>Deleted values:</h4>
+        )}
+        {deletedValues
+          .filter((p) => p.is_deleted)
+          .map((p, i) => (
+            <PasswordRow key={`${p.name}_hist_${i}`} {...p} />
+          ))}
       </div>
-      <ul style={{ display: props.open ? "block" : "none" }}>
-        <div style={{ margin: "10px 0" }}>
-          passwords:
-          {props.password.fields
-            .filter((f) => !f.is_deleted)
-            .map((f, i) => (
-              <Field {...f} key={`${f.name}_${i}`} />
-            ))}
-        </div>
-        <div style={{ margin: "10px 0" }}>
-          history:
-          {props.password.fields
-            .filter((f) => f.is_deleted)
-            .map((f, i) => (
-              <Field {...f} key={`${f.name}_${i}`} />
-            ))}
-        </div>
-      </ul>
     </div>
   );
 }

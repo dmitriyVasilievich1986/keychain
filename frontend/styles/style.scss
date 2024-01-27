@@ -122,3 +122,62 @@ img {
         }
     }
 }
+
+.passwordsBlock {
+    justify-content: center;
+    margin-top: 2rem;
+    display: flex;
+    width: 100%;
+
+
+    &>div {
+        background-color: #fdf0d5;
+        color: #003049;
+
+        padding: 1rem 1rem 2rem 1rem;
+        border-radius: 15px;
+        width: 90%;
+
+        &>.passwordRow {
+            justify-content: space-between;
+            align-items: center;
+            display: flex;
+
+            &>.passwordNameWrapper {
+                width: 30%;
+                
+                &>div {
+                    text-overflow: ellipsis;
+                    text-wrap: nowrap;
+                    overflow: hidden;
+                }
+            }
+
+            &>.passwordValueWrapper {
+                align-items: center;
+                display: flex;
+                width: 60%;
+
+                &>input {
+                    background-color: inherit;
+                    -webkit-appearance: none;
+                    text-overflow: ellipsis;
+                    border-radius: 0;
+                    outline: none;
+                    border: none;
+                    width: 100%;
+
+                    border-bottom: 1px solid #000;
+
+                    &.deleted {
+                        text-decoration: line-through;
+                    }
+                }
+
+                &>img {
+                    margin-left: 4px;
+                }
+            }
+        }
+    }
+}
