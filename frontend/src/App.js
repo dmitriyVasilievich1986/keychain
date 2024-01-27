@@ -1,8 +1,6 @@
 import CreateNewPassword from "./createNewPasswordWindow/CreateNewPassword";
 import PasswordBlock from "./passwordBlock/PasswordBlock";
 import { PasswordSelect } from "./passwordSelect";
-import addIcon from "./assets/add.png";
-import Icon from "./components/Icon";
 import classNames from "classnames";
 import React from "react";
 import axios from "axios";
@@ -53,13 +51,12 @@ function App() {
       <div className={classNames("main")}>
         <div className={classNames("left")}>
           <PasswordSelect
+            createHandler={() => setNewPasswordWindow(true)}
+            setPasswordsToUpdate={setPasswordsToUpdate}
             onChange={setOpenBlock}
             passwords={passwords}
             value={openBlock}
           />
-          <div>
-            <Icon src={addIcon} onClick={() => setNewPasswordWindow(true)} />
-          </div>
         </div>
         <div className={classNames("center")}>
           <div>
