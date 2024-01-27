@@ -24,6 +24,22 @@ function CreateNewPassword(props) {
 
   const sendHandler = (e) => {
     e.preventDefault();
+    if (name === "") {
+      props.setMessage({
+        message: "Name field can not be empty",
+        type: "error",
+      });
+      return;
+    } else if (
+      fields.map((f) => f.name === "" || f.value === "").includes(true)
+    ) {
+      props.setMessage({
+        message: "All fields in Secrets should be filled",
+        type: "error",
+      });
+      return;
+    }
+
     const data = {
       url: props.password?.id ? `/api/${props.password.id}` : "/api",
       method: props.password?.id ? "put" : "post",
