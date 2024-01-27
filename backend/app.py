@@ -89,8 +89,25 @@ def index_view():
     return render_template("index.html")
 
 
+@app.route("/check_password", methods=["GET"])
+def check_password():
+    if request.authorization.password != environ["SECRET"]:
+        return Response("Forbidden", status=403)
+    return Response(
+        response=json.dumps(
+            {
+                "password": request.authorization.password,
+                "message": "password is correct",
+            }
+        ),
+        status=200,
+    )
+
+
 @app.route("/api", methods=["GET", "POST"])
 def passwords_view():
+    if request.authorization.password != environ["SECRET"]:
+        return Response("Forbidden", status=403)
     if request.method == "POST":
         password = Password(
             name=request.json["name"],
@@ -105,6 +122,8 @@ def passwords_view():
 
 @app.route("/api/<int:pk>", methods=["GET", "PUT"])
 def password_view(pk):
+    if request.authorization.password != environ["SECRET"]:
+        return Response("Forbidden", status=403)
     password = db.get_or_404(Password, pk)
     if request.method == "GET":
         return Response(response=repr(password), status=200)

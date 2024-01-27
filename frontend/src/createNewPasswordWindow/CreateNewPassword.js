@@ -32,6 +32,9 @@ function CreateNewPassword(props) {
         image_url: imageSrc,
         name,
       },
+      auth: {
+        password: props.secret,
+      },
     };
 
     axios(data)
@@ -40,6 +43,12 @@ function CreateNewPassword(props) {
       })
       .catch((e) => {
         console.log(e);
+        props.setMessage({
+          message: !props.password?.id
+            ? "Password was not created"
+            : "Password was not updated",
+          type: "error",
+        });
       });
   };
 

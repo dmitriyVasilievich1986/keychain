@@ -3,25 +3,47 @@ import PasswordSelect from "./passwordSelect";
 import PasswordBlock from "./passwordBlock";
 import { Message } from "./components";
 import classNames from "classnames";
+import AuthPage from "./AuthPage";
 import React from "react";
 import axios from "axios";
 
 const emptyPassword = {
-  image_url: "static/i/icon/no-image.png",
+  image_url: "static/i/no-photo.png",
   fields: [],
   name: "",
 };
 
+const basicPasswords = [
+  {
+    image_url: "static/i/no-photo.png",
+    name: "password1",
+    id: 1,
+    fields: [
+      { name: "login", value: "login" },
+      { name: "password", value: "password" },
+    ],
+  },
+  {
+    image_url: "static/i/no-photo.png",
+    name: "password2",
+    id: 2,
+    fields: [
+      { name: "login", value: "login" },
+      { name: "password", value: "password" },
+    ],
+  },
+];
+
 function App() {
   const [createPassword, setCreatePassword] = React.useState(null);
-  const [openBlock, setOpenBlock] = React.useState(null);
-  const [passwords, setPasswords] = React.useState([]);
+  const [passwords, setPasswords] = React.useState(basicPasswords);
+  const [openBlock, setOpenBlock] = React.useState(1);
   const [message, setMessage] = React.useState({});
-  const [secret, setSecret] = React.useState("");
+  const [secret, setSecret] = React.useState(null);
 
   React.useEffect(() => {
     axios
-      .get("/api")
+      .get("/api", { auth: { password: secret } })
       .then((data) => {
         setPasswords(data.data);
         setOpenBlock(data.data[0].id);
@@ -31,7 +53,7 @@ function App() {
         console.log(e);
         setMessage({ message: "Data was not loaded", type: "error" });
       });
-  }, []);
+  }, [secret]);
 
   const createHandler = (data) => {
     if (!passwords.find((p) => p.id === data.id)) {
@@ -43,14 +65,8 @@ function App() {
     setCreatePassword(null);
   };
 
-  if (secret !== process.env.SECRET && process.env.NODE_ENV !== "development") {
-    return (
-      <input
-        type="text"
-        value={secret}
-        onChange={(e) => setSecret(e.target.value)}
-      />
-    );
+  if (process.env.NODE_ENV !== "development" && secret === null) {
+    return <AuthPage onChange={setSecret} />;
   }
   return (
     <div>
@@ -59,8 +75,10 @@ function App() {
       )}
       <CreateNewPassword
         closeHandler={() => setCreatePassword(null)}
-        password={createPassword}
         createHandler={createHandler}
+        password={createPassword}
+        setMessage={setMessage}
+        secret={secret}
       />
       <Message {...message} />
       <div className={classNames("main")}>
