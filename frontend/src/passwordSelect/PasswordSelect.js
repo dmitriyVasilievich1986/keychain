@@ -14,9 +14,11 @@ function PasswordSelect(props) {
   };
 
   const updateHandler = () => {
+    setHide(true);
     props?.updateHandler && props.updateHandler();
   };
   const createHandler = () => {
+    setHide(true);
     props?.createHandler && props.createHandler();
   };
 
