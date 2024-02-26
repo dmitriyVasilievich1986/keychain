@@ -5,19 +5,26 @@ import axios from "axios";
 function AuthPage(props) {
   const [value, setValue] = React.useState("");
 
-  const check = (e) => {
-    setValue(e.target.value);
+  const submitHandler = (e) => {
+    e.preventDefault();
+
     axios
-      .get("/check_password", { auth: { password: e.target.value } })
+      .get("/check_password", { auth: { password: value } })
       .then((data) => {
-        props.onChange(data.data.password);
+        props.onChange(data.data.token);
       })
       .catch((e) => {});
   };
 
   return (
     <div className={classNames("authPage")}>
-      <input type="text" value={value} onChange={check} />
+      <form onSubmit={submitHandler}>
+        <input
+          type="text"
+          value={value}
+          onChange={(e) => setValue(e.target.value)}
+        />
+      </form>
     </div>
   );
 }

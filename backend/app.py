@@ -2,17 +2,20 @@ from sqlalchemy.orm import relationship, mapped_column, Mapped
 from flask import Flask, request, Response, render_template
 from flask_sqlalchemy import SQLAlchemy
 from cryptography.fernet import Fernet
+from base64 import urlsafe_b64encode
 from dotenv import load_dotenv
 from datetime import datetime
 from pathlib import Path
 from typing import List
 import sqlalchemy as sa
 from os import environ
+from uuid import uuid4
 import json
 
 
 BASE_DIR = Path(__file__).parent
 DB_PATH = BASE_DIR / "passwords.sqlite"
+TOKEN = urlsafe_b64encode(str(uuid4()).encode()).decode()
 
 app = Flask(
     import_name=__name__,
@@ -96,8 +99,8 @@ def check_password():
     return Response(
         response=json.dumps(
             {
-                "password": request.authorization.password,
                 "message": "password is correct",
+                "token": TOKEN,
             }
         ),
         status=200,
@@ -106,7 +109,7 @@ def check_password():
 
 @app.route("/api", methods=["GET", "POST"])
 def passwords_view():
-    if request.authorization.password != environ["SECRET"]:
+    if request.authorization.password != TOKEN:
         return Response("Forbidden", status=403)
     if request.method == "POST":
         password = Password(
@@ -122,7 +125,7 @@ def passwords_view():
 
 @app.route("/api/<int:pk>", methods=["GET", "PUT"])
 def password_view(pk):
-    if request.authorization.password != environ["SECRET"]:
+    if request.authorization.password != TOKEN:
         return Response("Forbidden", status=403)
     password = db.get_or_404(Password, pk)
     if request.method == "GET":
