@@ -20,9 +20,10 @@ function AuthPage(props) {
     <div className={classNames("authPage")}>
       <form onSubmit={submitHandler}>
         <input
+          autoFocus
           type="text"
           value={value}
-          onChange={(e) => setValue(e.target.value)}
+          onChange={(e) => setValue(e.target.value.toLowerCase())}
         />
       </form>
     </div>
