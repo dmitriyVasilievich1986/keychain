@@ -2,33 +2,24 @@ from sqlalchemy.orm import relationship, mapped_column, Mapped
 from flask import Flask, request, Response, render_template
 from flask_sqlalchemy import SQLAlchemy
 from cryptography.fernet import Fernet
-from base64 import urlsafe_b64encode
-from dotenv import load_dotenv
 from datetime import datetime
-from pathlib import Path
 from typing import List
 import sqlalchemy as sa
 from os import environ
-from uuid import uuid4
 import json
 
 
-BASE_DIR = Path(__file__).parent
-DB_PATH = BASE_DIR / "passwords.sqlite"
-TOKEN = urlsafe_b64encode(str(uuid4()).encode()).decode()
 
-app = Flask(
-    import_name=__name__,
-    static_url_path="/static",
-    template_folder=BASE_DIR / "templates",
-    static_folder=BASE_DIR.parent / "static",
-)
-app.config["SQLALCHEMY_DATABASE_URI"] = f"sqlite:///{DB_PATH}"
+app = Flask(__name__)
+
+app.config.from_object("config")
+app.static_url_path = app.config["STATIC_URL_PATH"]
+app.template_folder = app.config["TEMPLATE_FOLDER"]
+app.static_folder = app.config["STATIC_FOLDER"]
+
 db = SQLAlchemy(app)
 
-load_dotenv(BASE_DIR.parent / ".env")
-SECRET_KEY = environ["SECRET_KEY"]
-f = Fernet(SECRET_KEY)
+f = Fernet(app.config["SECRET_KEY"])
 
 
 class Password(db.Model):
@@ -100,7 +91,7 @@ def check_password():
         response=json.dumps(
             {
                 "message": "password is correct",
-                "token": TOKEN,
+                "token": app.config["TOKEN"],
             }
         ),
         status=200,
@@ -109,7 +100,7 @@ def check_password():
 
 @app.route("/api", methods=["GET", "POST"])
 def passwords_view():
-    if request.authorization.password != TOKEN:
+    if request.authorization.password != app.config["TOKEN"]:
         return Response("Forbidden", status=403)
     if request.method == "POST":
         password = Password(
@@ -125,7 +116,7 @@ def passwords_view():
 
 @app.route("/api/<int:pk>", methods=["GET", "PUT"])
 def password_view(pk):
-    if request.authorization.password != TOKEN:
+    if request.authorization.password != app.config["TOKEN"]:
         return Response("Forbidden", status=403)
     password = db.get_or_404(Password, pk)
     if request.method == "GET":
@@ -171,7 +162,6 @@ def password_view(pk):
 
 if __name__ == "__main__":
     app.run(
-        host="0.0.0.0",
-        port="3000",
-        debug=True,
+        host=app.config["APP_HOST"],
+        port=app.config["APP_PORT"],
     )
