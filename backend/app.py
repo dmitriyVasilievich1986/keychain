@@ -1,81 +1,23 @@
-from sqlalchemy.orm import relationship, mapped_column, Mapped
 from flask import Flask, request, Response, render_template
-from flask_sqlalchemy import SQLAlchemy
 from cryptography.fernet import Fernet
-from datetime import datetime
-from typing import List
-import sqlalchemy as sa
 from os import environ
 import json
 
 
 
-app = Flask(__name__)
+class PasswordApp(Flask):
+    fernet: Fernet
+
+    def init_fernet(self):
+        self.fernet = Fernet(self.config["SECRET_KEY"])
+
+app = PasswordApp(__name__)
 
 app.config.from_object("config")
 app.static_url_path = app.config["STATIC_URL_PATH"]
 app.template_folder = app.config["TEMPLATE_FOLDER"]
 app.static_folder = app.config["STATIC_FOLDER"]
-
-db = SQLAlchemy(app)
-
-f = Fernet(app.config["SECRET_KEY"])
-
-
-class Password(db.Model):
-    __tablename__ = "password"
-
-    id = sa.Column(sa.Integer, primary_key=True)
-    name = sa.Column(sa.String, unique=True, nullable=False)
-    created_at = sa.Column(sa.DateTime, nullable=False, default=datetime.now)
-    image_url = sa.Column(sa.String(256), nullable=True, default="/static/i/no-photo.png")
-    fields: Mapped[List["Field"]] = relationship(cascade="all, delete-orphan")
-
-    def __repr__(self):
-        return json.dumps(self.json())
-
-    def json(self):
-        fields = sorted(
-            [x.json() for x in self.fields], key=lambda x: x["created_at"], reverse=True
-        )
-        return {
-            "id": self.id,
-            "fields": fields,
-            "name": self.name,
-            "image_url": self.image_url,
-        }
-
-
-class Field(db.Model):
-    __tablename__ = "field"
-
-    name = sa.Column(sa.String, nullable=False)
-    value = sa.Column(sa.BINARY, nullable=False)
-    id = sa.Column(sa.Integer, primary_key=True)
-    is_deleted = sa.Column(sa.Boolean, default=False)
-    password_id = mapped_column(sa.ForeignKey("password.id"))
-    created_at = sa.Column(sa.DateTime, nullable=False, default=datetime.now)
-
-    def __init__(self, value: str, *args, **kwargs: dict):
-        super().__init__(value=f.encrypt(str(value).encode()), **kwargs)
-
-    def __repr__(self):
-        return json.dumps(self.json())
-
-    @property
-    def get_value(self):
-        return f.decrypt(self.value).decode()
-
-    def check(self, value):
-        return self.get_value == value
-
-    def json(self):
-        return {
-            "name": self.name,
-            "value": self.get_value,
-            "is_deleted": self.is_deleted,
-            "created_at": str(self.created_at.replace(microsecond=0)),
-        }
+app.init_fernet()
 
 
 @app.route("/")
@@ -96,6 +38,9 @@ def check_password():
         ),
         status=200,
     )
+
+from database.db import db
+from database.models import Password, Field
 
 
 @app.route("/api", methods=["GET", "POST"])
