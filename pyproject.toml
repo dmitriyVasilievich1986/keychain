@@ -35,5 +35,8 @@ path = "keychain/__init__.py"
 [tool.hatch.build.targets.wheel]
 packages = ["keychain"]
 
+[project.scripts]
+keychain = "keychain.__main__:main"
+
 [project.urls]
 Homepage = "https://github.com/dmitriyVasilievich1986/keychain"
