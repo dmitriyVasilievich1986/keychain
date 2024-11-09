@@ -1,5 +1,6 @@
+-e .
+
 cryptography
 flask
-Flask-SQLAlchemy
 python-dotenv
 sqlalchemy
