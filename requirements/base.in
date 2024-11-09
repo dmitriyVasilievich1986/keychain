@@ -1,5 +1,6 @@
 -e .
 
+alembic
 cryptography
 flask
 Flask-SQLAlchemy
