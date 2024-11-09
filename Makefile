@@ -1,8 +1,18 @@
 build_run: build run
 
+isort:
+	python -m isort keychain
+black:
+	python -m black keychain
+flake:
+	python -m flake8 keychain
+pylint:
+	python -m pylint keychain
+format: isort black flake pylint
+
 build:
 	cd frontend; npm run build
 shell:
-	./venv/bin/flask --app backend/app.py shell
+	flask --app keychain/app.py shell
 run:
-	./venv/bin/python backend/app.py
+	python keychain/app.py

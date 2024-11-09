@@ -1,0 +1,43 @@
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[project]
+name = "keychain"
+dynamic = ["version"]
+keywords = ["password", "encryption", "keychain"]
+classifiers = [
+    "Intended Audience :: Developers",
+    "License :: OSI Approved :: MIT License",
+    "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3.12",
+]
+
+authors = [{ email = "dmitriyvasil@gmail.com" }]
+maintainers = [{ email = "dmitriyvasil@gmail.com" }]
+description = "Simple keychain service to store and retrieve secrets"
+
+readme = "Readme.md"
+license = { file = "LICENSE" }
+
+requires-python = ">=3.12"
+dependencies = [
+    "alembic==1.14.0",
+    "cryptography==43.0.3",
+    "flask==3.0.3",
+    "flask-sqlalchemy==3.1.1",
+    "python-dotenv==1.0.1",
+    "sqlalchemy==2.0.36",
+]
+
+[tool.hatch.version]
+path = "keychain/__init__.py"
+
+[tool.hatch.build.targets.wheel]
+packages = ["keychain"]
+
+[project.scripts]
+keychain = "keychain.__main__:main"
+
+[project.urls]
+Homepage = "https://github.com/dmitriyVasilievich1986/keychain"

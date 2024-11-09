@@ -23,4 +23,4 @@ TEMPLATE_FOLDER = BASE_DIR / "templates"
 STATIC_FOLDER = BASE_DIR.parent / "static"
 
 APP_HOST = getenv("APP_HOST", "0.0.0.0")
-APP_PORT = getenv("APP_PORT", 3000)
+APP_PORT = getenv("APP_PORT", "3000")

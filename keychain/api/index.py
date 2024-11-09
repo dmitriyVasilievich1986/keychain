@@ -2,9 +2,10 @@ import json
 from os import environ
 from pathlib import Path
 
-from database.db import db
-from database.models import Field, Password
 from flask import Blueprint, Response, current_app, render_template, request
+
+from keychain.database.db import db
+from keychain.database.models import Field, Password
 
 base_view = Blueprint(
     "base_view", __name__, template_folder=Path(__file__).parent / "templates"
@@ -46,7 +47,10 @@ def passwords_view():
     passwords = db.session.execute(
         db.select(Password).order_by(Password.created_at)
     ).scalars()
-    return Response(response=json.dumps([x.json() for x in passwords]), status=200)
+    return Response(
+        response=json.dumps([x.json() for x in passwords]),
+        status=200,
+    )
 
 
 @base_view.route("/api/<int:pk>", methods=["GET", "PUT"])
@@ -56,15 +60,14 @@ def password_view(pk):
     password = db.get_or_404(Password, pk)
     if request.method == "GET":
         return Response(response=repr(password), status=200)
-    elif request.method == "PUT":
+    if request.method == "PUT":
         password.name = request.json["name"]
         password.image_url = request.json["image_url"]
-        new_fields = list()
+        new_fields = []
         names = [x.name for x in password.fields]
         for f in password.fields:
             if f.is_deleted:
                 print("0.5. deleted")
-                pass
             elif f.name in request.json["fields"] and not f.check(
                 request.json["fields"][f.name]
             ):
@@ -86,7 +89,7 @@ def password_view(pk):
             password.fields.append(f)
         db.session.commit()
         return Response(response=repr(password), status=200)
-    elif request.method == "DELETE":
+    if request.method == "DELETE":
         db.session.delete(password)
         db.session.commit()
         return Response(

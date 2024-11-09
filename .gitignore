@@ -5,6 +5,7 @@
 **/static/js/*.css
 **/static/js/*.js
 package-lock.json
+keychain.egg-info
 postgres_data
 node_modules
 __pycache__
