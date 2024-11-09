@@ -8,7 +8,7 @@ flake:
 	python -m flake8 keychain
 pylint:
 	python -m pylint keychain
-format: isort black flake
+format: isort black flake pylint
 
 build:
 	cd frontend; npm run build
