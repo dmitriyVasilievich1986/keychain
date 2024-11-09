@@ -6,11 +6,24 @@ from flask import Flask
 class PasswordApp(Flask):
     fernet: Fernet
 
-    def init_fernet(self):
+    def init_fernet(self) -> None:
+        """
+        Initializes the Fernet encryption object.
+        This method initializes the Fernet encryption object
+        using the secret key specified in the configuration.
+        """
+
         self.fernet = Fernet(self.config["SECRET_KEY"])
 
 
-def create_app():
+def create_app() -> PasswordApp:
+    """
+    Creates and configures the Flask application.
+
+    Returns:
+        PasswordApp: The configured Flask application.
+    """
+
     app = PasswordApp(__name__)
 
     app.config.from_object("config")
@@ -24,5 +37,5 @@ def create_app():
 
 
 if __name__ == "__main__":
-    app = create_app()
-    app.run(host=app.config["APP_HOST"], port=app.config["APP_PORT"])
+    flask_app = create_app()
+    flask_app.run(host=flask_app.config["APP_HOST"], port=flask_app.config["APP_PORT"])
