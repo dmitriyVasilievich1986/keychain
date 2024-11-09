@@ -1,6 +1,7 @@
-from api.index import base_view
 from cryptography.fernet import Fernet
 from flask import Flask
+
+from .api.index import base_view
 
 
 class PasswordApp(Flask):
@@ -34,8 +35,3 @@ def create_app() -> PasswordApp:
     app.init_fernet()
 
     return app
-
-
-if __name__ == "__main__":
-    flask_app = create_app()
-    flask_app.run(host=flask_app.config["APP_HOST"], port=flask_app.config["APP_PORT"])

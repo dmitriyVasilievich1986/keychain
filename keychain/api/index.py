@@ -2,9 +2,10 @@ import json
 from os import environ
 from pathlib import Path
 
-from database.db import db
-from database.models import Field, Password
 from flask import Blueprint, Response, current_app, render_template, request
+
+from keychain.database.db import db
+from keychain.database.models import Field, Password
 
 base_view = Blueprint(
     "base_view", __name__, template_folder=Path(__file__).parent / "templates"
