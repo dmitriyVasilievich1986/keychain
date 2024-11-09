@@ -2,6 +2,7 @@ from cryptography.fernet import Fernet
 from flask import Flask
 
 from .api.index import base_view
+from .logging_config import setup_logging
 
 
 class PasswordApp(Flask):
@@ -27,6 +28,8 @@ def create_app() -> PasswordApp:
 
     app = PasswordApp(__name__)
 
+    setup_logging()
+    
     app.config.from_object("keychain.config")
     app.static_url_path = app.config["STATIC_URL_PATH"]
     app.static_folder = app.config["STATIC_FOLDER"]
