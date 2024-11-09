@@ -29,7 +29,7 @@ def create_app() -> PasswordApp:
     app = PasswordApp(__name__)
 
     setup_logging()
-    
+
     app.config.from_object("keychain.config")
     app.static_url_path = app.config["STATIC_URL_PATH"]
     app.static_folder = app.config["STATIC_FOLDER"]
