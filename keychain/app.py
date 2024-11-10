@@ -1,6 +1,8 @@
 from cryptography.fernet import Fernet
 from flask import Flask
 
+from keychain.database.db import db
+
 from .api.index import base_view
 from .logging_config import setup_logging
 
@@ -34,6 +36,7 @@ def create_app() -> PasswordApp:
     app.static_url_path = app.config["STATIC_URL_PATH"]
     app.static_folder = app.config["STATIC_FOLDER"]
 
+    db.init_app(app)
     app.register_blueprint(base_view)
     app.init_fernet()
 
