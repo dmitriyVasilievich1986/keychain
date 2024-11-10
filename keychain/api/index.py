@@ -1,5 +1,4 @@
 import json
-from os import environ
 from pathlib import Path
 
 from flask import Blueprint, Response, current_app, render_template, request
@@ -19,7 +18,7 @@ def index_view():
 
 @base_view.route("/check_password", methods=["GET"])
 def check_password():
-    if request.authorization.password != environ["SECRET"]:
+    if request.authorization.password != current_app.config["PASSWORD"]:
         return Response("Forbidden", status=403)
     return Response(
         response=json.dumps(

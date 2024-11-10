@@ -12,6 +12,7 @@ ENV_FILE = BASE_DIR / ".env"
 if ENV_FILE.exists():
     load_dotenv(ENV_FILE)
 
+PASSWORD = getenv("PASSWORD", "secret")
 SECRET_KEY = getenv("SECRET_KEY", "secret")
 SQLALCHEMY_DATABASE_URI = f"sqlite:///{DB_PATH}"
 DEBUG = getenv("DEBUG", "False").lower() == "true"
