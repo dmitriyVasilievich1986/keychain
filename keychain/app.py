@@ -1,9 +1,10 @@
 from cryptography.fernet import Fernet
 from flask import Flask
+from flask_appbuilder import AppBuilder
 
 from keychain.database.db import db
 
-from .api.index import base_view
+from .api.index import KeychainIndexView, base_view
 from .logging_config import setup_logging
 
 
@@ -39,5 +40,10 @@ def create_app() -> PasswordApp:
     db.init_app(app)
     app.register_blueprint(base_view)
     app.init_fernet()
+
+    with app.app_context():
+        appbuilder = AppBuilder(
+            update_perms=False, app=app, session=db.session, indexview=KeychainIndexView
+        )
 
     return app
