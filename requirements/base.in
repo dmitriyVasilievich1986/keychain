@@ -1,8 +1,1 @@
--e .
-
-alembic
-cryptography
-flask
-Flask-SQLAlchemy
-python-dotenv
-sqlalchemy
+-e file:.
