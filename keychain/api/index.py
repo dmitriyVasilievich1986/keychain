@@ -1,7 +1,8 @@
 import json
 from pathlib import Path
 
-from flask import Blueprint, Response, current_app, render_template, request
+from flask import Blueprint, Response, current_app, request
+from flask_appbuilder import IndexView
 
 from keychain.database.db import db
 from keychain.database.models import Field, Password
@@ -11,9 +12,8 @@ base_view = Blueprint(
 )
 
 
-@base_view.route("/")
-def index_view():
-    return render_template("index.html")
+class KeychainIndexView(IndexView):
+    index_template = "index.html"
 
 
 @base_view.route("/check_password", methods=["GET"])
