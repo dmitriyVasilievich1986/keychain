@@ -1,97 +1,171 @@
-import json
-from pathlib import Path
+from __future__ import annotations
 
-from flask import Blueprint, Response, current_app, request
+from logging import getLogger
+
+from flask import Response, request
 from flask_appbuilder import IndexView
+from flask_appbuilder._compat import as_unicode
+from flask_appbuilder.api import ModelRestApi
+from flask_appbuilder.const import API_RESULT_RES_KEY, LOGMSG_WAR_DBI_EDIT_INTEGRITY
+from flask_appbuilder.models.sqla.interface import SQLAInterface
+from marshmallow import ValidationError
+from sqlalchemy.exc import IntegrityError
 
-from keychain.database.db import db
 from keychain.database.models import Field, Password
 
-base_view = Blueprint(
-    "base_view", __name__, template_folder=Path(__file__).parent / "templates"
-)
+logger = getLogger(__name__)
 
 
 class KeychainIndexView(IndexView):
     index_template = "index.html"
 
 
-@base_view.route("/check_password", methods=["GET"])
-def check_password():
-    if request.authorization.password != current_app.config["PASSWORD"]:
-        return Response("Forbidden", status=403)
-    return Response(
-        response=json.dumps(
-            {
-                "message": "password is correct",
-                "token": current_app.config["TOKEN"],
+class PasswordModelApi(ModelRestApi):
+    resource_name = "password"
+    datamodel = SQLAInterface(Password)
+    allow_browser_login = True
+    exclude_route_methods = {"delete"}
+    edit_columns = [
+        "name",
+    ]
+
+
+class FieldSQLAInterface(SQLAInterface):
+    def add_and_edit(
+        self,
+        *,
+        to_edit: Field,
+        raise_exception: bool = False,
+        to_add: Field | None = None,
+    ) -> bool:
+        """
+        Add and edit a field in the database.
+
+        Args:
+            to_edit (Field): The field to edit.
+            raise_exception (bool, optional): Whether to raise an exception
+                if an IntegrityError occurs. Defaults to False.
+            to_add (Optional[Field], optional): The field to add.
+                Defaults to None.
+
+        Returns:
+            bool: True if the operation is successful, False otherwise.
+        """
+
+        try:
+            if to_add is not None:
+                self.session.add(to_add)
+            self.session.merge(to_edit)
+            self.session.commit()
+            self.message = (as_unicode(self.edit_row_message), "success")
+            return True
+        except IntegrityError as e:
+            self.message = (as_unicode(self.edit_integrity_error_message), "warning")
+            logger.warning(LOGMSG_WAR_DBI_EDIT_INTEGRITY, e)
+            self.session.rollback()
+            if raise_exception:
+                raise e
+            return False
+        except Exception as e:  # pylint: disable=broad-except
+            self.message = (as_unicode(self.database_error_message), "danger")
+            logger.exception("Database error")
+            self.session.rollback()
+            if raise_exception:
+                raise e
+            return False
+
+
+class FieldModelApi(ModelRestApi):
+    resource_name = "field"
+    datamodel: FieldSQLAInterface = FieldSQLAInterface(Field)
+    allow_browser_login = True
+    edit_columns = [
+        "value",
+        "is_deleted",
+    ]
+    show_columns = [
+        "name",
+        "id",
+        "value",
+        "is_deleted",
+        "created_at",
+        "password",
+        "get_value",
+    ]
+
+    def put_headless(self, pk: str | int) -> Response:  # noqa: C901
+        """
+        Update an item in the keychain API.
+
+        Args:
+            pk (str | int): The primary key of the item to be updated.
+
+        Returns:
+            Response: The response object containing the result of the update operation.
+        """
+
+        item: Field = self.datamodel.get(pk, self._base_filters)
+        if not request.is_json:
+            return self.response(400, **{"message": "Request is not JSON"})
+        if not item:
+            return self.response_404()
+
+        value = request.json.get("value")
+        if value is not None and not item.check(value):
+            json_data = {"is_deleted": True, "value": item.get_value}
+            new_data = {
+                "value": value,
+                "name": item.name,
+                "password": item.password_id,
             }
-        ),
-        status=200,
-    )
+        else:
+            json_data = {
+                "value": item.get_value,
+                "is_deleted": request.json.get("is_deleted", item.is_deleted),
+            }
+            new_data = None
 
-
-@base_view.route("/api", methods=["GET", "POST"])
-def passwords_view():
-    if request.authorization.password != current_app.config["TOKEN"]:
-        return Response("Forbidden", status=403)
-    if request.method == "POST":
-        password = Password(
-            name=request.json["name"],
-            fields=[Field(name=k, value=v) for k, v in request.json["fields"].items()],
-        )
-        db.session.add(password)
-        db.session.commit()
-        return Response(response=repr(password), status=200)
-    passwords = db.session.execute(
-        db.select(Password).order_by(Password.created_at)
-    ).scalars()
-    return Response(
-        response=json.dumps([x.json() for x in passwords]),
-        status=200,
-    )
-
-
-@base_view.route("/api/<int:pk>", methods=["GET", "PUT"])
-def password_view(pk):
-    if request.authorization.password != current_app.config["TOKEN"]:
-        return Response("Forbidden", status=403)
-    password = db.get_or_404(Password, pk)
-    if request.method == "GET":
-        return Response(response=repr(password), status=200)
-    if request.method == "PUT":
-        password.name = request.json["name"]
-        password.image_url = request.json["image_url"]
-        new_fields = []
-        names = [x.name for x in password.fields]
-        for f in password.fields:
-            if f.is_deleted:
-                print("0.5. deleted")
-            elif f.name in request.json["fields"] and not f.check(
-                request.json["fields"][f.name]
-            ):
-                new_fields.append(
-                    Field(name=f.name, value=request.json["fields"][f.name])
+        try:
+            data = self._merge_update_item(item, json_data)
+            item = self.edit_model_schema.load(data, instance=item)
+            new_item = new_data and self.add_model_schema.load(new_data)
+        except ValidationError as err:
+            return self.response_422(message=err.messages)
+        self.pre_update(item)
+        if new_item is not None:
+            self.pre_add(new_item)
+        try:
+            self.datamodel.add_and_edit(
+                to_add=new_item, to_edit=item, raise_exception=True
+            )
+            self.post_update(item)
+            if new_item:
+                self.post_add(new_item)
+                return self.response(
+                    201,
+                    **{
+                        API_RESULT_RES_KEY: self.list_model_schema.dump(
+                            [item, new_item], many=True
+                        )
+                    },
                 )
-                f.is_deleted = True
-                print("1. add new field and set to deleted")
-            elif f.name not in request.json["fields"]:
-                print("2. set to deleted")
-                f.is_deleted = True
-            else:
-                print("3. nothing changed")
-        for k, v in request.json["fields"].items():
-            if k not in names:
-                print("4. add new field")
-                new_fields.append(Field(name=k, value=v))
-        for f in new_fields:
-            password.fields.append(f)
-        db.session.commit()
-        return Response(response=repr(password), status=200)
-    if request.method == "DELETE":
-        db.session.delete(password)
-        db.session.commit()
-        return Response(
-            response=json.dumps({"message": "Password deleted successfuly"}),
-            status=200,
-        )
+            return self.response(
+                200,
+                **{API_RESULT_RES_KEY: self.edit_model_schema.dump(item, many=False)},
+            )
+        except IntegrityError as e:
+            return self.response_422(message=str(e.orig))
+
+    def delete_headless(self, pk: str | int) -> Response:
+        """
+        Deletes a resource without returning a response body.
+
+        Args:
+            pk (str | int): The primary key of the resource to delete.
+
+        Returns:
+            Response: The response object.
+        """
+
+        request.json = {"is_deleted": True}
+        return self.put_headless(pk)

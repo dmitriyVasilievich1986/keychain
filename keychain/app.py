@@ -5,7 +5,7 @@ from flask_migrate import Migrate
 
 from keychain.database.db import db
 
-from .api.index import KeychainIndexView, base_view
+from .api.index import FieldModelApi, KeychainIndexView, PasswordModelApi
 from .logging_config import setup_logging
 
 
@@ -39,13 +39,15 @@ def create_app() -> PasswordApp:
     app.static_folder = app.config["STATIC_FOLDER"]
 
     db.init_app(app)
-    app.register_blueprint(base_view)
     app.init_fernet()
 
     with app.app_context():
         appbuilder = AppBuilder(
             update_perms=False, app=app, session=db.session, indexview=KeychainIndexView
         )
+        appbuilder.add_api(PasswordModelApi)
+        appbuilder.add_api(FieldModelApi)
+        appbuilder.add_permissions(update_perms=True)
 
         Migrate(app, db, directory=app.config["MIGRATIONS_DIR"])
 
