@@ -1,65 +1,32 @@
 import json
 from datetime import datetime
+from typing import TYPE_CHECKING
 
 import sqlalchemy as sa
 from flask import current_app
+from flask_appbuilder import Model
 from sqlalchemy.orm import Mapped, relationship
 
-from .db import db
+if TYPE_CHECKING:
+    from keychain.app import PasswordApp
+
+    current_app: PasswordApp
 
 
-class Password(db.Model):
-    __tablename__ = "password"
-
-    id = sa.Column(sa.Integer, primary_key=True)
-    name = sa.Column(sa.String, unique=True, nullable=False)
-    created_at = sa.Column(sa.DateTime, nullable=False, default=datetime.now)
-    image_url = sa.Column(
-        sa.String(256), nullable=True, default="/static/i/no-photo.png"
-    )
-    fields: Mapped[list["Field"]] = relationship(
-        cascade="all, delete-orphan", backref="password"
-    )
-
-    def __repr__(self) -> str:
-        """
-        Returns a string representation of the object.
-        """
-
-        return json.dumps(self.json())
-
-    def json(self) -> dict:
-        """
-        Generate a JSON representation of the model.
-
-        Returns:
-            dict: A dictionary representing the model in JSON format.
-        """
-
-        fields = sorted(
-            [x.json() for x in self.fields], key=lambda x: x["created_at"], reverse=True
-        )
-        return {
-            "id": self.id,
-            "fields": fields,
-            "name": self.name,
-            "image_url": self.image_url,
-        }
-
-
-class Field(db.Model):
+class Field(Model):
     __tablename__ = "field"
 
     name = sa.Column(sa.String, nullable=False)
-    value = sa.Column(sa.BINARY, nullable=False)
     id = sa.Column(sa.Integer, primary_key=True)
+    value = sa.Column(sa.String, nullable=False)
     is_deleted = sa.Column(sa.Boolean, default=False)
-    password_id = sa.Column(sa.Integer, sa.ForeignKey("password.id"))
     created_at = sa.Column(sa.DateTime, nullable=False, default=datetime.now)
+    password_id = sa.Column(sa.Integer, sa.ForeignKey("password.id"), nullable=False)
 
-    def __init__(self, *, value: str, **kwargs) -> None:
-        value = current_app.fernet.encrypt(str(value).encode())
-        super().__init__(value=value, **kwargs)
+    def __setattr__(self, name, value):
+        if name == "value":
+            value = current_app.fernet.encrypt(str(value).encode()).decode()
+        super().__setattr__(name, value)
 
     def __repr__(self) -> str:
         """Returns a string representation of the object.
@@ -79,7 +46,7 @@ class Field(db.Model):
             str: The decrypted and decoded value.
         """
 
-        return current_app.fernet.decrypt(self.value).decode()
+        return current_app.fernet.decrypt(self.value.encode()).decode()
 
     def check(self, value: str) -> bool:
         """
@@ -109,4 +76,43 @@ class Field(db.Model):
             "value": self.get_value,
             "is_deleted": self.is_deleted,
             "created_at": str(self.created_at.replace(microsecond=0)),
+        }
+
+
+class Password(Model):
+    __tablename__ = "password"
+
+    id = sa.Column(sa.Integer, primary_key=True)
+    name = sa.Column(sa.String, unique=True, nullable=False)
+    created_at = sa.Column(sa.DateTime, nullable=False, default=datetime.now)
+    image_url = sa.Column(
+        sa.String(256), nullable=True, default="/static/i/no-photo.png"
+    )
+    fields: Mapped[list[Field]] = relationship(
+        Field, cascade="all, delete-orphan", backref="password"
+    )
+
+    def __repr__(self) -> str:
+        """
+        Returns a string representation of the object.
+        """
+
+        return json.dumps(self.json())
+
+    def json(self) -> dict:
+        """
+        Generate a JSON representation of the model.
+
+        Returns:
+            dict: A dictionary representing the model in JSON format.
+        """
+
+        fields = sorted(
+            [x.json() for x in self.fields], key=lambda x: x["created_at"], reverse=True
+        )
+        return {
+            "id": self.id,
+            "fields": fields,
+            "name": self.name,
+            "image_url": self.image_url,
         }

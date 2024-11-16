@@ -1,3 +1,3 @@
-from flask_sqlalchemy import SQLAlchemy
+from flask_appbuilder import SQLA
 
-db = SQLAlchemy()
+db = SQLA()
