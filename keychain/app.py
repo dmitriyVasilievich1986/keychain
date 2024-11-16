@@ -1,6 +1,7 @@
 from cryptography.fernet import Fernet
 from flask import Flask
 from flask_appbuilder import AppBuilder
+from flask_migrate import Migrate
 
 from keychain.database.db import db
 
@@ -45,5 +46,7 @@ def create_app() -> PasswordApp:
         appbuilder = AppBuilder(
             update_perms=False, app=app, session=db.session, indexview=KeychainIndexView
         )
+
+        Migrate(app, db, directory=app.config["MIGRATIONS_DIR"])
 
     return app
