@@ -1,25 +1,32 @@
 import json
 from datetime import datetime
+from typing import TYPE_CHECKING
 
 import sqlalchemy as sa
 from flask import current_app
 from flask_appbuilder import Model
 from sqlalchemy.orm import Mapped, relationship
 
+if TYPE_CHECKING:
+    from keychain.app import PasswordApp
+
+    current_app: PasswordApp
+
 
 class Field(Model):
     __tablename__ = "field"
 
     name = sa.Column(sa.String, nullable=False)
-    value = sa.Column(sa.BINARY, nullable=False)
     id = sa.Column(sa.Integer, primary_key=True)
+    value = sa.Column(sa.String, nullable=False)
     is_deleted = sa.Column(sa.Boolean, default=False)
-    password_id = sa.Column(sa.Integer, sa.ForeignKey("password.id"))
     created_at = sa.Column(sa.DateTime, nullable=False, default=datetime.now)
+    password_id = sa.Column(sa.Integer, sa.ForeignKey("password.id"), nullable=False)
 
-    def __init__(self, *, value: str, **kwargs) -> None:
-        value = current_app.fernet.encrypt(str(value).encode())
-        super().__init__(value=value, **kwargs)
+    def __setattr__(self, name, value):
+        if name == "value":
+            value = current_app.fernet.encrypt(str(value).encode()).decode()
+        super().__setattr__(name, value)
 
     def __repr__(self) -> str:
         """Returns a string representation of the object.
@@ -39,7 +46,7 @@ class Field(Model):
             str: The decrypted and decoded value.
         """
 
-        return current_app.fernet.decrypt(self.value).decode()
+        return current_app.fernet.decrypt(self.value.encode()).decode()
 
     def check(self, value: str) -> bool:
         """
