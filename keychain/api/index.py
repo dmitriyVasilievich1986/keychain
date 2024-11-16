@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 from logging import getLogger
+from typing import override
 
 from flask import Response, request
 from flask_appbuilder import IndexView
@@ -93,6 +94,7 @@ class FieldModelApi(ModelRestApi):
         "get_value",
     ]
 
+    @override
     def put_headless(self, pk: str | int) -> Response:  # noqa: C901
         """
         Update an item in the keychain API.
@@ -156,6 +158,7 @@ class FieldModelApi(ModelRestApi):
         except IntegrityError as e:
             return self.response_422(message=str(e.orig))
 
+    @override
     def delete_headless(self, pk: str | int) -> Response:
         """
         Deletes a resource without returning a response body.
