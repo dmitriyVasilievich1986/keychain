@@ -146,14 +146,14 @@ class FieldModelApi(ModelRestApi):
                 return self.response(
                     201,
                     **{
-                        API_RESULT_RES_KEY: self.list_model_schema.dump(
+                        API_RESULT_RES_KEY: self.show_model_schema.dump(
                             [item, new_item], many=True
                         )
                     },
                 )
             return self.response(
                 200,
-                **{API_RESULT_RES_KEY: self.edit_model_schema.dump(item, many=False)},
+                **{API_RESULT_RES_KEY: self.show_model_schema.dump(item, many=False)},
             )
         except IntegrityError as e:
             return self.response_422(message=str(e.orig))
