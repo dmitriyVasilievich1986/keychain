@@ -27,7 +27,7 @@ class PasswordModelApi(ModelRestApi):
     allow_browser_login = True
     exclude_route_methods = {"delete"}
     edit_columns = [
-        "name",
+        Password.name.key,
     ]
 
 
@@ -81,16 +81,16 @@ class FieldModelApi(ModelRestApi):
     datamodel: FieldSQLAInterface = FieldSQLAInterface(Field)
     allow_browser_login = True
     edit_columns = [
-        "value",
-        "is_deleted",
+        Field.value.key,
+        Field.is_deleted.key,
     ]
     show_columns = [
-        "name",
-        "id",
-        "value",
-        "is_deleted",
-        "created_at",
-        "password",
+        Field.name.key,
+        Field.id.key,
+        Field.value.key,
+        Field.is_deleted.key,
+        Field.created_at.key,
+        Field.password.key,  # pylint: disable=no-member
         "get_value",
     ]
 
@@ -112,18 +112,20 @@ class FieldModelApi(ModelRestApi):
         if not item:
             return self.response_404()
 
-        value = request.json.get("value")
+        value = request.json.get(Field.value.key)
         if value is not None and not item.check(value):
-            json_data = {"is_deleted": True, "value": item.get_value}
+            json_data = {Field.is_deleted.key: True, Field.value.key: item.get_value}
             new_data = {
-                "value": value,
-                "name": item.name,
-                "password": item.password_id,
+                Field.value.key: value,
+                Field.name.key: item.name,
+                Field.password_id.key: item.password_id,
             }
         else:
             json_data = {
-                "value": item.get_value,
-                "is_deleted": request.json.get("is_deleted", item.is_deleted),
+                Field.value.key: item.get_value,
+                Field.is_deleted.key: request.json.get(
+                    Field.is_deleted.key, item.is_deleted
+                ),
             }
             new_data = None
 
@@ -170,5 +172,5 @@ class FieldModelApi(ModelRestApi):
             Response: The response object.
         """
 
-        request.json = {"is_deleted": True}
+        request.json = {Field.is_deleted.key: True}
         return self.put_headless(pk)
