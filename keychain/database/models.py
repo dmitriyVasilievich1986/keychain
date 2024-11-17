@@ -5,6 +5,7 @@ from typing import TYPE_CHECKING
 import sqlalchemy as sa
 from flask import current_app
 from flask_appbuilder import Model
+from flask_appbuilder.security.sqla.models import User
 from sqlalchemy.orm import Mapped, relationship
 
 if TYPE_CHECKING:
@@ -91,6 +92,7 @@ class Password(Model):
     fields: Mapped[list[Field]] = relationship(
         Field, cascade="all, delete-orphan", backref="password"
     )
+    user_id = sa.Column(sa.Integer, sa.ForeignKey(User.id), nullable=False)
 
     def __repr__(self) -> str:
         """
