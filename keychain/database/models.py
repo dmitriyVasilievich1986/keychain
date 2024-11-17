@@ -3,8 +3,9 @@ from datetime import datetime
 from typing import TYPE_CHECKING
 
 import sqlalchemy as sa
-from flask import current_app
+from flask import current_app, g
 from flask_appbuilder import Model
+from flask_appbuilder.security.sqla.models import User
 from sqlalchemy.orm import Mapped, relationship
 
 if TYPE_CHECKING:
@@ -23,10 +24,9 @@ class Field(Model):
     created_at = sa.Column(sa.DateTime, nullable=False, default=datetime.now)
     password_id = sa.Column(sa.Integer, sa.ForeignKey("password.id"), nullable=False)
 
-    def __setattr__(self, name, value):
-        if name == "value":
-            value = current_app.fernet.encrypt(str(value).encode()).decode()
-        super().__setattr__(name, value)
+    def __init__(self, *, value: str, **kwargs) -> None:
+        value = current_app.fernet.encrypt(str(value).encode()).decode()
+        super().__init__(value=value, **kwargs)
 
     def __repr__(self) -> str:
         """Returns a string representation of the object.
@@ -91,6 +91,11 @@ class Password(Model):
     fields: Mapped[list[Field]] = relationship(
         Field, cascade="all, delete-orphan", backref="password"
     )
+    user_id = sa.Column(sa.Integer, sa.ForeignKey(User.id), nullable=False)
+
+    def __init__(self, **kwargs) -> None:
+        kwargs["user_id"] = g.user.id
+        super().__init__(**kwargs)
 
     def __repr__(self) -> str:
         """

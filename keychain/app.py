@@ -1,9 +1,7 @@
 from cryptography.fernet import Fernet
 from flask import Flask
-from flask_appbuilder import AppBuilder
-from flask_migrate import Migrate
 
-from keychain.database.db import db
+from keychain import appbuilder, db, migrate
 
 from .api.index import FieldModelApi, KeychainIndexView, PasswordModelApi
 from .logging_config import setup_logging
@@ -32,23 +30,23 @@ def create_app() -> PasswordApp:
 
     app = PasswordApp(__name__)
 
-    setup_logging()
-
     app.config.from_object("keychain.config")
     app.static_url_path = app.config["STATIC_URL_PATH"]
     app.static_folder = app.config["STATIC_FOLDER"]
 
+    setup_logging(app.config)
     db.init_app(app)
     app.init_fernet()
 
     with app.app_context():
-        appbuilder = AppBuilder(
-            update_perms=False, app=app, session=db.session, indexview=KeychainIndexView
-        )
+        appbuilder.indexview = KeychainIndexView
+        appbuilder.init_app(app, db.session)
         appbuilder.add_api(PasswordModelApi)
         appbuilder.add_api(FieldModelApi)
         appbuilder.add_permissions(update_perms=True)
+        appbuilder.sm.lm.login_view = "AuthDBView.login"
 
-        Migrate(app, db, directory=app.config["MIGRATIONS_DIR"])
+        migrate.directory = app.config["MIGRATIONS_DIR"]
+        migrate.init_app(app, db)
 
     return app
