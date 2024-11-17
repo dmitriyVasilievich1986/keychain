@@ -3,6 +3,7 @@ from __future__ import annotations
 from logging import getLogger
 from typing import override
 
+import sqlalchemy as sa
 from flask import Response, g, request
 from flask_appbuilder import IndexView
 from flask_appbuilder._compat import as_unicode
@@ -13,8 +14,10 @@ from flask_appbuilder.models.sqla.filters import FilterEqualFunction
 from flask_appbuilder.models.sqla.interface import SQLAInterface
 from flask_login import login_required
 from marshmallow import ValidationError
+from marshmallow.validate import Validator
 from sqlalchemy.exc import IntegrityError
 
+from keychain import db
 from keychain.database.models import Field, Password
 
 logger = getLogger(__name__)
@@ -48,6 +51,10 @@ class PasswordModelApi(ModelRestApi):
     allow_browser_login = True
     exclude_route_methods = {"delete"}
     base_filters = [["user_id", FilterEqualFunction, get_user_id]]
+    add_columns = [
+        Password.name.key,
+        Password.image_url.key,
+    ]
     edit_columns = [
         Password.name.key,
     ]
@@ -98,6 +105,27 @@ class FieldSQLAInterface(SQLAInterface):
             return False
 
 
+class PasswordValidator(Validator):  # pylint: disable=too-few-public-methods
+    def __call__(self, value: str) -> None:
+        """
+        Validates the given value.
+
+        Args:
+            value (str): The value to validate.
+
+        Raises:
+            ValidationError: If the value is not valid.
+        """
+
+        password = (
+            db.session.query(Password)  # pylint: disable=no-member
+            .filter(sa.and_(Password.id == value, Password.user_id == get_user_id()))
+            .one_or_none()
+        )
+        if password is None:
+            raise ValidationError("Password not found")
+
+
 class FieldModelApi(ModelRestApi):
     resource_name = "field"
     datamodel: FieldSQLAInterface = FieldSQLAInterface(Field)
@@ -115,6 +143,14 @@ class FieldModelApi(ModelRestApi):
         Field.password.key,  # pylint: disable=no-member
         "get_value",
     ]
+    add_columns = [
+        Field.name.key,
+        Field.value.key,
+        Field.password_id.key,
+    ]
+    validators_columns = {
+        Field.password_id.key: PasswordValidator(),
+    }
 
     @override
     def put_headless(self, pk: str | int) -> Response:
