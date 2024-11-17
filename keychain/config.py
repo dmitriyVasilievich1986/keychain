@@ -1,4 +1,5 @@
 from base64 import urlsafe_b64encode
+from datetime import timedelta
 from os import getenv
 from pathlib import Path
 from uuid import uuid4
@@ -22,6 +23,7 @@ SQLALCHEMY_DATABASE_URI = f"sqlite:///{DB_PATH}"
 DEBUG = getenv("DEBUG", "False").lower() == "true"
 
 TOKEN = urlsafe_b64encode(str(uuid4()).encode()).decode()
+PERMANENT_SESSION_LIFETIME = timedelta(minutes=30)
 
 STATIC_URL_PATH = "/static"
 TEMPLATE_FOLDER = BASE_DIR / "templates"
