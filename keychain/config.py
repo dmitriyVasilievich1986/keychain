@@ -17,17 +17,17 @@ if ENV_FILE.exists():
 
 SQLALCHEMY_TRACK_MODIFICATIONS = False
 
-PASSWORD = getenv("PASSWORD", "secret")
-SECRET_KEY = getenv("SECRET_KEY", "secret")
-SQLALCHEMY_DATABASE_URI = f"sqlite:///{DB_PATH}"
 DEBUG = getenv("DEBUG", "False").lower() == "true"
+SQLALCHEMY_DATABASE_URI = f"sqlite:///{DB_PATH}"
+SECRET_KEY = getenv("SECRET_KEY", "secret")
+LOG_LEVEL = getenv("LOG_LEVEL", "INFO")
 
 TOKEN = urlsafe_b64encode(str(uuid4()).encode()).decode()
 PERMANENT_SESSION_LIFETIME = timedelta(minutes=30)
 
-STATIC_URL_PATH = "/static"
-TEMPLATE_FOLDER = BASE_DIR / "templates"
 STATIC_FOLDER = BASE_DIR.parent / "static"
+TEMPLATE_FOLDER = BASE_DIR / "templates"
+STATIC_URL_PATH = "/static"
 AUTH_TYPE = AUTH_DB
 
 APP_HOST = getenv("APP_HOST", "0.0.0.0")
