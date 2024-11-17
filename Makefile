@@ -1,5 +1,3 @@
-build_run: build run
-
 isort:
 	python -m isort keychain
 black:
@@ -13,6 +11,7 @@ format: isort black flake pylint
 build:
 	cd frontend; npm run build
 shell:
-	flask --app keychain/app.py shell
+	flask --app keychain.app:create_app shell
 run:
-	python keychain/app.py
+	flask --app keychain.app:create_app run
+build_run: build run
