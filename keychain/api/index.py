@@ -82,7 +82,6 @@ class FieldModelApi(ModelRestApi):
     allow_browser_login = True
     edit_columns = [
         Field.value.key,
-        Field.is_deleted.key,
     ]
     show_columns = [
         Field.name.key,
@@ -95,7 +94,7 @@ class FieldModelApi(ModelRestApi):
     ]
 
     @override
-    def put_headless(self, pk: str | int) -> Response:  # noqa: C901
+    def put_headless(self, pk: str | int) -> Response:
         """
         Update an item in the keychain API.
 
@@ -112,50 +111,30 @@ class FieldModelApi(ModelRestApi):
         if not item:
             return self.response_404()
 
-        value = request.json.get(Field.value.key)
-        if value is not None and not item.check(value):
-            json_data = {Field.is_deleted.key: True, Field.value.key: item.get_value}
-            new_data = {
-                Field.value.key: value,
-                Field.name.key: item.name,
-                Field.password_id.key: item.password_id,
-            }
-        else:
-            json_data = {
-                Field.value.key: item.get_value,
-                Field.is_deleted.key: request.json.get(
-                    Field.is_deleted.key, item.is_deleted
-                ),
-            }
-            new_data = None
-
         try:
-            data = self._merge_update_item(item, json_data)
-            item = self.edit_model_schema.load(data, instance=item)
-            new_item = new_data and self.add_model_schema.load(new_data)
+            new_data = self._merge_update_item(item, request.json)
+            new_data[Field.value.key] = item.get_value()
+            new_item = self.add_model_schema.load(new_data)
+            item = self.edit_model_schema.load(
+                {Field.is_deleted.key: True}, instance=item
+            )
         except ValidationError as err:
             return self.response_422(message=err.messages)
         self.pre_update(item)
-        if new_item is not None:
-            self.pre_add(new_item)
+        self.pre_add(new_item)
         try:
             self.datamodel.add_and_edit(
                 to_add=new_item, to_edit=item, raise_exception=True
             )
             self.post_update(item)
-            if new_item:
-                self.post_add(new_item)
-                return self.response(
-                    201,
-                    **{
-                        API_RESULT_RES_KEY: self.show_model_schema.dump(
-                            [item, new_item], many=True
-                        )
-                    },
-                )
+            self.post_add(new_item)
             return self.response(
-                200,
-                **{API_RESULT_RES_KEY: self.show_model_schema.dump(item, many=False)},
+                201,
+                **{
+                    API_RESULT_RES_KEY: self.show_model_schema.dump(
+                        [item, new_item], many=True
+                    )
+                },
             )
         except IntegrityError as e:
             return self.response_422(message=str(e.orig))
@@ -172,5 +151,22 @@ class FieldModelApi(ModelRestApi):
             Response: The response object.
         """
 
-        request.json = {Field.is_deleted.key: True}
-        return self.put_headless(pk)
+        item = self.datamodel.get(pk, self._base_filters)
+        if not item:
+            return self.response_404()
+        try:
+            item = self.edit_model_schema.load(
+                {Field.is_deleted.key: True}, instance=item
+            )
+        except ValidationError as err:
+            return self.response_422(message=err.messages)
+        self.pre_delete(item)
+        try:
+            self.datamodel.edit(item, raise_exception=True)
+            self.post_delete(item)
+            return self.response(
+                200,
+                **{API_RESULT_RES_KEY: self.edit_model_schema.dump(item, many=False)},
+            )
+        except IntegrityError as e:
+            return self.response_422(message=str(e.orig))
