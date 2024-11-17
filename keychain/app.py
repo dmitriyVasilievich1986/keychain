@@ -44,6 +44,7 @@ def create_app() -> PasswordApp:
         appbuilder.add_api(PasswordModelApi)
         appbuilder.add_api(FieldModelApi)
         appbuilder.add_permissions(update_perms=True)
+        appbuilder.sm.lm.login_view = "AuthDBView.login"
 
         migrate.directory = app.config["MIGRATIONS_DIR"]
         migrate.init_app(app, db)
