@@ -3,11 +3,12 @@ from __future__ import annotations
 from logging import getLogger
 from typing import override
 
-from flask import Response, request
+from flask import Response, g, request
 from flask_appbuilder import IndexView
 from flask_appbuilder._compat import as_unicode
 from flask_appbuilder.api import ModelRestApi
 from flask_appbuilder.const import API_RESULT_RES_KEY, LOGMSG_WAR_DBI_EDIT_INTEGRITY
+from flask_appbuilder.models.sqla.filters import FilterEqualFunction
 from flask_appbuilder.models.sqla.interface import SQLAInterface
 from marshmallow import ValidationError
 from sqlalchemy.exc import IntegrityError
@@ -15,6 +16,17 @@ from sqlalchemy.exc import IntegrityError
 from keychain.database.models import Field, Password
 
 logger = getLogger(__name__)
+
+
+def get_user_id() -> int | None:
+    """
+    Retrieves the user ID from the current user object.
+
+    Returns:
+        int | None: The user ID if available, otherwise None.
+    """
+
+    return getattr(g.user, "id", None)
 
 
 class KeychainIndexView(IndexView):
@@ -26,6 +38,7 @@ class PasswordModelApi(ModelRestApi):
     datamodel = SQLAInterface(Password)
     allow_browser_login = True
     exclude_route_methods = {"delete"}
+    base_filters = [["user_id", FilterEqualFunction, get_user_id]]
     edit_columns = [
         Password.name.key,
     ]
@@ -80,6 +93,7 @@ class FieldModelApi(ModelRestApi):
     resource_name = "field"
     datamodel: FieldSQLAInterface = FieldSQLAInterface(Field)
     allow_browser_login = True
+    base_filters = [["password.user_id", FilterEqualFunction, get_user_id]]
     edit_columns = [
         Field.value.key,
     ]
