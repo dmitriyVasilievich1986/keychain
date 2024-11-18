@@ -3,7 +3,6 @@ import PasswordSelect from "./passwordSelect";
 import PasswordBlock from "./passwordBlock";
 import { Message } from "./components";
 import classNames from "classnames";
-import AuthPage from "./AuthPage";
 import React from "react";
 import axios from "axios";
 
@@ -65,9 +64,6 @@ function App() {
     setCreatePassword(null);
   };
 
-  if (process.env.NODE_ENV !== "development" && secret === null) {
-    return <AuthPage onChange={setSecret} />;
-  }
   return (
     <div>
       {process.env.NODE_ENV === "development" && (
