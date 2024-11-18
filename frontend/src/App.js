@@ -1,7 +1,7 @@
 import CreateNewPassword from "./createNewPasswordWindow/CreateNewPassword";
+import { Message, FloatingChip } from "./components";
 import PasswordSelect from "./passwordSelect";
 import PasswordBlock from "./passwordBlock";
-import { Message } from "./components";
 import classNames from "classnames";
 import React from "react";
 import axios from "axios";
@@ -66,9 +66,7 @@ function App() {
 
   return (
     <div>
-      {process.env.NODE_ENV === "development" && (
-        <div className={classNames("nodeEnvLabel")}>{process.env.NODE_ENV}</div>
-      )}
+      <FloatingChip />
       <CreateNewPassword
         closeHandler={() => setCreatePassword(null)}
         createHandler={createHandler}
