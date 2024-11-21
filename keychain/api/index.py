@@ -141,6 +141,10 @@ class PasswordValidator(Validator):  # pylint: disable=too-few-public-methods
             raise ValidationError("Password not found")
 
 
+class FieldDeleteSchema(Schema):
+    is_deleted = fields.Bool()
+
+
 class FieldModelApi(ModelRestApi):
     resource_name = "field"
     datamodel: FieldSQLAInterface = FieldSQLAInterface(Field)
@@ -167,6 +171,28 @@ class FieldModelApi(ModelRestApi):
         Field.password_id.key: PasswordValidator(),
     }
 
+    def post_headless(self) -> Response:
+        if not request.is_json:
+            return self.response_400(message="Request is not JSON")
+        try:
+            item = self.add_model_schema.load(request.json)
+        except ValidationError as err:
+            return self.response_422(message=err.messages)
+        self.pre_add(item)
+        try:
+            self.datamodel.add(item, raise_exception=True)
+            self.post_add(item)
+            pk = self.datamodel.get_pk_value(item)
+            response_item = self.datamodel.get(pk, self._base_filters)
+            return self.response(
+                201,
+                **{
+                    API_RESULT_RES_KEY: self.show_model_schema.dump(response_item),
+                },
+            )
+        except IntegrityError as e:
+            return self.response_422(message=str(e.orig))
+
     @override
     def put_headless(self, pk: str | int) -> Response:
         """
@@ -185,15 +211,16 @@ class FieldModelApi(ModelRestApi):
         if not item:
             return self.response_404()
 
+        new_data = {
+            Field.password_id.key: item.password_id,
+            Field.value.key: request.json["value"],
+            Field.name.key: item.name,
+        }
         try:
-            new_data = self._merge_update_item(item, request.json)
-            new_data[Field.value.key] = item.get_value()
             new_item = self.add_model_schema.load(new_data)
-            item = self.edit_model_schema.load(
-                {Field.is_deleted.key: True}, instance=item
-            )
         except ValidationError as err:
             return self.response_422(message=err.messages)
+        item.is_deleted = True
         self.pre_update(item)
         self.pre_add(new_item)
         try:
@@ -202,11 +229,13 @@ class FieldModelApi(ModelRestApi):
             )
             self.post_update(item)
             self.post_add(new_item)
+            pk = self.datamodel.get_pk_value(new_item)
+            response_item = self.datamodel.get(pk, self._base_filters)
             return self.response(
                 201,
                 **{
                     API_RESULT_RES_KEY: self.show_model_schema.dump(
-                        [item, new_item], many=True
+                        response_item, many=False
                     )
                 },
             )
@@ -225,22 +254,14 @@ class FieldModelApi(ModelRestApi):
             Response: The response object.
         """
 
-        item = self.datamodel.get(pk, self._base_filters)
+        item: Field = self.datamodel.get(pk, self._base_filters)
         if not item:
             return self.response_404()
-        try:
-            item = self.edit_model_schema.load(
-                {Field.is_deleted.key: True}, instance=item
-            )
-        except ValidationError as err:
-            return self.response_422(message=err.messages)
+        item.is_deleted = True
         self.pre_delete(item)
         try:
             self.datamodel.edit(item, raise_exception=True)
             self.post_delete(item)
-            return self.response(
-                200,
-                **{API_RESULT_RES_KEY: self.edit_model_schema.dump(item, many=False)},
-            )
+            return self.response(200, message="OK")
         except IntegrityError as e:
             return self.response_422(message=str(e.orig))
