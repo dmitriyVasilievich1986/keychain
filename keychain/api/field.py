@@ -118,6 +118,7 @@ class FieldModelApi(ModelRestApi):
         Field.password_id.key: PasswordValidator(),
     }
 
+    @override
     def post_headless(self) -> Response:
         if not request.is_json:
             return self.response_400(message="Request is not JSON")
