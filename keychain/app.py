@@ -4,7 +4,8 @@ from flask import Flask
 from keychain import appbuilder, db, migrate
 from keychain.views.views import KeychainIndexView, PasswordView
 
-from .api.index import FieldModelApi, PasswordModelApi
+from .api.field import FieldModelApi
+from .api.password import PasswordModelApi
 from .logging_config import setup_logging
 
 
