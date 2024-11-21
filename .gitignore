@@ -2,6 +2,7 @@
 **/static/js/*.txt
 **/static/js/*.map
 **/static/js/*.png
+**/static/js/*.svg
 **/static/js/*.css
 **/static/js/*.js
 package-lock.json
