@@ -27,12 +27,16 @@ module.exports = (env, argv) => {
           use: ["babel-loader"],
         },
         {
-          test: /\.(png|svg|jpg|jpeg|gif)$/i,
+          test: /\.(png|jpg|jpeg|gif)$/i,
           type: "asset/resource",
         },
         {
           test: /\.s[ac]ss$/i,
           use: ["style-loader", "css-loader", "sass-loader"],
+        },
+        {
+          test: /\.svg$/,
+          use: ["@svgr/webpack"],
         },
       ],
     },
