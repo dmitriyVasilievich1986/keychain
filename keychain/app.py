@@ -2,8 +2,10 @@ from cryptography.fernet import Fernet
 from flask import Flask
 
 from keychain import appbuilder, db, migrate
+from keychain.views.views import KeychainIndexView, PasswordView
 
-from .api.index import FieldModelApi, KeychainIndexView, PasswordModelApi
+from .api.field import FieldModelApi
+from .api.password import PasswordModelApi
 from .logging_config import setup_logging
 
 
@@ -43,6 +45,7 @@ def create_app() -> PasswordApp:
         appbuilder.init_app(app, db.session)
         appbuilder.add_api(PasswordModelApi)
         appbuilder.add_api(FieldModelApi)
+        appbuilder.add_view(PasswordView, "Password", icon="fa-key")
         appbuilder.add_permissions(update_perms=True)
         appbuilder.sm.lm.login_view = "AuthDBView.login"
 

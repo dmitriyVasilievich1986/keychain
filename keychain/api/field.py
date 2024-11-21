@@ -4,60 +4,22 @@ from logging import getLogger
 from typing import override
 
 import sqlalchemy as sa
-from flask import Response, g, request
-from flask_appbuilder import IndexView
+from flask import Response, request
 from flask_appbuilder._compat import as_unicode
 from flask_appbuilder.api import ModelRestApi
-from flask_appbuilder.baseviews import expose
 from flask_appbuilder.const import API_RESULT_RES_KEY, LOGMSG_WAR_DBI_EDIT_INTEGRITY
 from flask_appbuilder.models.sqla.filters import FilterEqualFunction
 from flask_appbuilder.models.sqla.interface import SQLAInterface
-from flask_login import login_required
-from marshmallow import ValidationError
+from marshmallow import Schema, ValidationError, fields
 from marshmallow.validate import Validator
 from sqlalchemy.exc import IntegrityError
 
 from keychain import db
 from keychain.database.models import Field, Password
 
+from .get_user_id import get_user_id
+
 logger = getLogger(__name__)
-
-
-def get_user_id() -> int | None:
-    """
-    Retrieves the user ID from the current user object.
-
-    Returns:
-        int | None: The user ID if available, otherwise None.
-    """
-
-    return getattr(g.user, "id", None)
-
-
-class KeychainIndexView(IndexView):
-    index_template = "index.html"
-
-    @expose("/")
-    @login_required
-    @override
-    def index(self):
-        self.update_redirect()
-        return self.render_template(self.index_template, appbuilder=self.appbuilder)
-
-
-class PasswordModelApi(ModelRestApi):
-    resource_name = "password"
-    datamodel = SQLAInterface(Password)
-    allow_browser_login = True
-    exclude_route_methods = {"delete"}
-    base_filters = [["user_id", FilterEqualFunction, get_user_id]]
-    add_columns = [
-        Password.name.key,
-        Password.image_url.key,
-    ]
-    edit_columns = [
-        Password.name.key,
-    ]
 
 
 class FieldSQLAInterface(SQLAInterface):
@@ -126,6 +88,10 @@ class PasswordValidator(Validator):  # pylint: disable=too-few-public-methods
             raise ValidationError("Password not found")
 
 
+class FieldDeleteSchema(Schema):
+    is_deleted = fields.Bool()
+
+
 class FieldModelApi(ModelRestApi):
     resource_name = "field"
     datamodel: FieldSQLAInterface = FieldSQLAInterface(Field)
@@ -153,6 +119,29 @@ class FieldModelApi(ModelRestApi):
     }
 
     @override
+    def post_headless(self) -> Response:
+        if not request.is_json:
+            return self.response_400(message="Request is not JSON")
+        try:
+            item = self.add_model_schema.load(request.json)
+        except ValidationError as err:
+            return self.response_422(message=err.messages)
+        self.pre_add(item)
+        try:
+            self.datamodel.add(item, raise_exception=True)
+            self.post_add(item)
+            pk = self.datamodel.get_pk_value(item)
+            response_item = self.datamodel.get(pk, self._base_filters)
+            return self.response(
+                201,
+                **{
+                    API_RESULT_RES_KEY: self.show_model_schema.dump(response_item),
+                },
+            )
+        except IntegrityError as e:
+            return self.response_422(message=str(e.orig))
+
+    @override
     def put_headless(self, pk: str | int) -> Response:
         """
         Update an item in the keychain API.
@@ -170,15 +159,16 @@ class FieldModelApi(ModelRestApi):
         if not item:
             return self.response_404()
 
+        new_data = {
+            Field.password_id.key: item.password_id,
+            Field.value.key: request.json["value"],
+            Field.name.key: item.name,
+        }
         try:
-            new_data = self._merge_update_item(item, request.json)
-            new_data[Field.value.key] = item.get_value()
             new_item = self.add_model_schema.load(new_data)
-            item = self.edit_model_schema.load(
-                {Field.is_deleted.key: True}, instance=item
-            )
         except ValidationError as err:
             return self.response_422(message=err.messages)
+        item.is_deleted = True
         self.pre_update(item)
         self.pre_add(new_item)
         try:
@@ -187,11 +177,13 @@ class FieldModelApi(ModelRestApi):
             )
             self.post_update(item)
             self.post_add(new_item)
+            pk = self.datamodel.get_pk_value(new_item)
+            response_item = self.datamodel.get(pk, self._base_filters)
             return self.response(
                 201,
                 **{
                     API_RESULT_RES_KEY: self.show_model_schema.dump(
-                        [item, new_item], many=True
+                        response_item, many=False
                     )
                 },
             )
@@ -210,22 +202,14 @@ class FieldModelApi(ModelRestApi):
             Response: The response object.
         """
 
-        item = self.datamodel.get(pk, self._base_filters)
+        item: Field = self.datamodel.get(pk, self._base_filters)
         if not item:
             return self.response_404()
-        try:
-            item = self.edit_model_schema.load(
-                {Field.is_deleted.key: True}, instance=item
-            )
-        except ValidationError as err:
-            return self.response_422(message=err.messages)
+        item.is_deleted = True
         self.pre_delete(item)
         try:
             self.datamodel.edit(item, raise_exception=True)
             self.post_delete(item)
-            return self.response(
-                200,
-                **{API_RESULT_RES_KEY: self.edit_model_schema.dump(item, many=False)},
-            )
+            return self.response(200, message="OK")
         except IntegrityError as e:
             return self.response_422(message=str(e.orig))

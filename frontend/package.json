@@ -11,6 +11,7 @@
   "author": "",
   "license": "ISC",
   "devDependencies": {
+    "@svgr/webpack": "^8.1.0",
     "dotenv-webpack": "^8.0.1",
     "webpack": "^5.88.1",
     "webpack-cli": "^5.1.4"
@@ -19,12 +20,18 @@
     "@babel/core": "^7.22.5",
     "@babel/preset-env": "^7.22.5",
     "@babel/preset-react": "^7.22.5",
+    "@emotion/react": "^11.13.3",
+    "@emotion/styled": "^11.13.0",
+    "@mui/icons-material": "^6.1.7",
+    "@mui/material": "^6.1.7",
     "axios": "^1.4.0",
     "babel-loader": "^9.1.2",
     "classnames": "^2.5.1",
     "css-loader": "^6.9.1",
+    "lodash": "^4.17.21",
     "react": "^18.2.0",
     "react-dom": "^18.2.0",
+    "react-router-dom": "^6.28.0",
     "sass": "^1.70.0",
     "sass-loader": "^14.0.0",
     "style-loader": "^3.3.4"

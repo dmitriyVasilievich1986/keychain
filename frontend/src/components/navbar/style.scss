@@ -1,0 +1,15 @@
+.navbar-inner {
+    justify-content: space-between;
+    display: flex;
+    width: 100%;
+}
+
+.navbar-brand {
+    align-items: center;
+    display: flex;
+}
+
+.navbar-link {
+    text-decoration: none;
+    color: inherit;
+}
