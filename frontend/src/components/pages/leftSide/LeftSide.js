@@ -3,13 +3,9 @@ import Autocomplete from "@mui/material/Autocomplete";
 import TextField from "@mui/material/TextField";
 import Container from "@mui/material/Container";
 import { AddPassword } from "./AddPassword";
-import classnames from "classnames/bind";
-import * as style from "./style.scss";
 import React from "react";
 import axios from "axios";
 import _ from "lodash";
-
-const cx = classnames.bind(style);
 
 export function LeftSide() {
   const [passwords, setPasswords] = React.useState([]);
@@ -59,14 +55,16 @@ export function LeftSide() {
         renderInput={(params) => <TextField {...params} label="Passwords" />}
         renderOption={(props, option) => {
           return (
-            <a
-              href={`/password/${option.id}/`}
-              {...props}
-              className={cx("autocomplete-option")}
-            >
-              <img src={option.image_url} />
-              {option.label}
-            </a>
+            <div key={props.key}>
+              <a
+                href={`/password/${option.id}/`}
+                {...props}
+                style={{ color: "#000", textDecoration: "none" }}
+              >
+                <img src={option.image_url} style={{ marginRight: "10px" }} />
+                {option.label}
+              </a>
+            </div>
           );
         }}
       />
