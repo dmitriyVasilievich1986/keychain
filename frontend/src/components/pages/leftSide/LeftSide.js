@@ -7,7 +7,7 @@ import React from "react";
 import axios from "axios";
 import _ from "lodash";
 
-export function LeftSide() {
+export function LeftSide(props) {
   const [passwords, setPasswords] = React.useState([]);
   const [value, setValue] = React.useState(null);
   const location = useLocation();
@@ -20,7 +20,7 @@ export function LeftSide() {
         setPasswords(data.data.result.map((d) => ({ ...d, label: d.name })));
       })
       .catch((e) => {
-        console.log(e);
+        props.setMessage({ message: e.message, severity: "error" });
       });
   }, []);
 
@@ -36,13 +36,17 @@ export function LeftSide() {
     axios
       .post("/api/v1/password/", { name, image_url: image_url || null })
       .then((data) => {
+        props.setMessage({
+          message: "Password was created successfully",
+          severity: "success",
+        });
         setPasswords((prev) => [
           ...prev,
           { ...data.data.result, id: data.data.id, label: name },
         ]);
       })
       .catch((e) => {
-        console.log(e);
+        props.setMessage({ message: e.message, severity: "error" });
       });
   };
 

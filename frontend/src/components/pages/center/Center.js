@@ -15,7 +15,7 @@ import React from "react";
 import axios from "axios";
 import _ from "lodash";
 
-export function Center() {
+export function Center(props) {
   const [password, setPassword] = React.useState(null);
   const location = useLocation();
   const params = useParams();
@@ -28,7 +28,7 @@ export function Center() {
         setPassword(data.data);
       })
       .catch((e) => {
-        console.log(e);
+        props.setMessage({ message: e.message, severity: "error" });
       });
   }, [location.pathname]);
 
@@ -36,6 +36,10 @@ export function Center() {
     axios
       .put(`/api/v1/field/${id}`, { password_id: params.pk, value })
       .then((data) => {
+        props.setMessage({
+          message: "Field was updated successfully",
+          severity: "success",
+        });
         setPassword((prev) => {
           const fields = [
             ...prev.result.fields.map((f) =>
@@ -47,7 +51,7 @@ export function Center() {
         });
       })
       .catch((e) => {
-        console.log(e);
+        props.setMessage({ message: e.message, severity: "error" });
       });
   };
 
@@ -59,13 +63,17 @@ export function Center() {
         name,
       })
       .then((data) => {
+        props.setMessage({
+          message: "New field was created successfully",
+          severity: "success",
+        });
         setPassword((prev) => {
           const fields = [...prev.result.fields, data.data.result];
           return { ...prev, result: { ...prev.result, fields } };
         });
       })
       .catch((e) => {
-        console.log(e);
+        props.setMessage({ message: e.message, severity: "error" });
       });
   };
 
@@ -73,6 +81,10 @@ export function Center() {
     axios
       .delete(`/api/v1/field/${id}`)
       .then(() => {
+        props.setMessage({
+          message: "Field was deleted successfully",
+          severity: "success",
+        });
         setPassword((prev) => {
           const fields = prev.result.fields.map((f) =>
             f.id === id ? { ...f, is_deleted: true } : f
@@ -81,7 +93,7 @@ export function Center() {
         });
       })
       .catch((e) => {
-        console.log(e);
+        props.setMessage({ message: e.message, severity: "error" });
       });
   };
 
