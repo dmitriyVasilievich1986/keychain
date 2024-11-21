@@ -5,10 +5,8 @@ from typing import override
 
 import sqlalchemy as sa
 from flask import Response, g, request
-from flask_appbuilder import IndexView
 from flask_appbuilder._compat import as_unicode
 from flask_appbuilder.api import ModelRestApi
-from flask_appbuilder.baseviews import expose
 from flask_appbuilder.const import API_RESULT_RES_KEY, LOGMSG_WAR_DBI_EDIT_INTEGRITY
 from flask_appbuilder.models.sqla.filters import FilterEqualFunction
 from flask_appbuilder.models.sqla.interface import SQLAInterface
@@ -33,16 +31,6 @@ def get_user_id() -> int | None:
 
     return getattr(g.user, "id", None)
 
-
-class KeychainIndexView(IndexView):
-    index_template = "index.html"
-
-    @expose("/")
-    @login_required
-    @override
-    def index(self):
-        self.update_redirect()
-        return self.render_template(self.index_template, appbuilder=self.appbuilder)
 
 
 class PasswordModelApi(ModelRestApi):

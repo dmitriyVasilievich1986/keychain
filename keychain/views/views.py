@@ -1,7 +1,27 @@
 from __future__ import annotations
 
-from flask_appbuilder import BaseView, expose
+from typing import override
+
+from flask_appbuilder import BaseView, IndexView, expose
 from flask_appbuilder.security.decorators import has_access
+
+
+class KeychainIndexView(IndexView):
+    index_template = "index.html"
+
+    @expose("/")
+    @override
+    @has_access
+    def index(self) -> str:
+        """
+        Renders the index page of the views module.
+
+        Returns:
+            str: The rendered template of the index page.
+        """
+
+        self.update_redirect()
+        return self.render_template(self.index_template, appbuilder=self.appbuilder)
 
 
 class PasswordView(BaseView):
