@@ -17,8 +17,9 @@ export function PasswordPage() {
       {message !== null && (
         <Snackbar
           open={true}
-          autoHideDuration={3000}
           onClose={() => setMessage(null)}
+          autoHideDuration={message?.timeout || 3000}
+          ClickAwayListenerProps={{ onClickAway: () => null }}
           anchorOrigin={{ vertical: "bottom", horizontal: "right" }}
         >
           <Alert
