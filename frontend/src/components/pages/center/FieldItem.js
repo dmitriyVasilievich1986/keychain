@@ -55,6 +55,11 @@ export function FieldItem(props) {
               onFocus={(e) => {
                 e.target.select();
                 document.execCommand("copy");
+                props.setMessage({
+                  message: "Copied",
+                  severity: "info",
+                  timeout: 1000,
+                });
               }}
             />
             <Grid container spacing={2}>

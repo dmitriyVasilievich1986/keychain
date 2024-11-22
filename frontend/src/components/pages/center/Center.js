@@ -121,6 +121,7 @@ export function Center(props) {
                   putHandler={putFieldHandler}
                   key={field.id}
                   field={field}
+                  {...props}
                 />
               ))}
             <AddField postHandler={postFieldHandler} />
@@ -138,7 +139,7 @@ export function Center(props) {
               <AccordionDetails>
                 <List>
                   {deletedArray.map((field) => (
-                    <FieldItem key={field.id} field={field} />
+                    <FieldItem key={field.id} field={field} {...props} />
                   ))}
                 </List>
               </AccordionDetails>
