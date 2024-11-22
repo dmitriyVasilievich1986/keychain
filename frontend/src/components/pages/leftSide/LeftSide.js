@@ -44,6 +44,7 @@ export function LeftSide(props) {
           ...prev,
           { ...data.data.result, id: data.data.id, label: name },
         ]);
+        window.location.replace(`/password/${data.data.id}/`);
       })
       .catch((e) => {
         props.setMessage({ message: e.message, severity: "error" });
