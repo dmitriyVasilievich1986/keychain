@@ -37,8 +37,7 @@ path = "keychain/__init__.py"
 packages = ["keychain"]
 
 [project.scripts]
-keychain = "keychain.__main__:main"
-keychain_cli = "keychain.cli.main:main"
+keychain = "keychain.cli.main:main"
 
 [project.urls]
 Homepage = "https://github.com/dmitriyVasilievich1986/keychain"

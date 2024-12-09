@@ -1,22 +1,18 @@
 import logging
 
 import click
-from flask.cli import FlaskGroup, with_appcontext
+from flask.cli import FlaskGroup
 from flask_appbuilder.security.sqla.models import PermissionView
 from sqlalchemy.orm import eagerload
 from werkzeug.security import generate_password_hash
 
 from keychain import appbuilder, db
+from keychain.app import create_app
 
 logger = logging.getLogger(__name__)
 
 
-@click.group(cls=FlaskGroup)
-@with_appcontext
-def main() -> None:
-    """
-    This is the main function of the keychain CLI.
-    """
+main = FlaskGroup(create_app=create_app)
 
 
 BASIC_PERMISSIONS = {
@@ -42,7 +38,6 @@ BASIC_PERMISSIONS = {
 
 
 @main.command()
-@with_appcontext
 def sync_roles() -> None:
     """
     Synchronizes the permissions of the 'Basic' role.
@@ -78,7 +73,6 @@ def sync_roles() -> None:
 @main.command()
 @click.option("-U", "--username", required=True, type=str)
 @click.option("-P", "--password", prompt=True, hide_input=True, required=True, type=str)
-@with_appcontext
 def create_user(username: str, password: str) -> None:
     """
     Create a new user with the given username and password.
