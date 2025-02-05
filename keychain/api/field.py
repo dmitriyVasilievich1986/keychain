@@ -1,23 +1,20 @@
-from __future__ import annotations
-
 from logging import getLogger
 from typing import override
 
 import sqlalchemy as sa
-from flask import Response, request
+from flask import request, Response
 from flask_appbuilder._compat import as_unicode
 from flask_appbuilder.api import ModelRestApi
 from flask_appbuilder.const import API_RESULT_RES_KEY, LOGMSG_WAR_DBI_EDIT_INTEGRITY
 from flask_appbuilder.models.sqla.filters import FilterEqualFunction
 from flask_appbuilder.models.sqla.interface import SQLAInterface
-from marshmallow import Schema, ValidationError, fields
+from marshmallow import fields, Schema, ValidationError
 from marshmallow.validate import Validator
 from sqlalchemy.exc import IntegrityError
 
 from keychain import db
+from keychain.api.get_user_id import get_user_id
 from keychain.database.models import Field, Password
-
-from .get_user_id import get_user_id
 
 logger = getLogger(__name__)
 
@@ -119,7 +116,7 @@ class FieldModelApi(ModelRestApi):
     }
 
     @override
-    def post_headless(self) -> Response:
+    def post_headless(self) -> Response:  # type: ignore[misc]
         if not request.is_json:
             return self.response_400(message="Request is not JSON")
         try:
@@ -142,7 +139,7 @@ class FieldModelApi(ModelRestApi):
             return self.response_422(message=str(e.orig))
 
     @override
-    def put_headless(self, pk: str | int) -> Response:
+    def put_headless(self, pk: str | int) -> Response:  # type: ignore[misc]
         """
         Update an item in the keychain API.
 
@@ -191,7 +188,7 @@ class FieldModelApi(ModelRestApi):
             return self.response_422(message=str(e.orig))
 
     @override
-    def delete_headless(self, pk: str | int) -> Response:
+    def delete_headless(self, pk: str | int) -> Response:  # type: ignore[misc]
         """
         Deletes a resource without returning a response body.
 

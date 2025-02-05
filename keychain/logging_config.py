@@ -2,7 +2,7 @@ import logging
 import sys
 
 
-def setup_logging(config: dict) -> None:
+def setup_logging(config: dict[str, str | int]) -> None:
     """
     Set up logging configuration.
     This function configures the root logger to log messages with a level of INFO.

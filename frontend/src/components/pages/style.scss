@@ -1,12 +1,13 @@
 .main-container {
-    flex-wrap: wrap;
-    display: flex;
+  flex-wrap: wrap;
+  display: flex;
 
-    &>.left, &>.right {
-        flex: 1 300px;
-    }
+  & > .left,
+  & > .right {
+    flex: 1 300px;
+  }
 
-    &>.center {
-        flex: 2 600px;
-    }
+  & > .center {
+    flex: 2 600px;
+  }
 }

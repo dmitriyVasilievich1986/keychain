@@ -43,7 +43,7 @@ export function Center(props) {
         setPassword((prev) => {
           const fields = [
             ...prev.result.fields.map((f) =>
-              f.id === id ? { ...f, is_deleted: true } : f
+              f.id === id ? { ...f, is_deleted: true } : f,
             ),
             data.data.result,
           ];
@@ -87,7 +87,7 @@ export function Center(props) {
         });
         setPassword((prev) => {
           const fields = prev.result.fields.map((f) =>
-            f.id === id ? { ...f, is_deleted: true } : f
+            f.id === id ? { ...f, is_deleted: true } : f,
           );
           return { ...prev, result: { ...prev.result, fields } };
         });

@@ -1,358 +1,359 @@
-html, * {
-    padding: 0;
-    margin: 0;
+html,
+* {
+  padding: 0;
+  margin: 0;
 }
 
 img {
-    cursor: pointer;
-    height: 25px;
-    width: 25px;
+  cursor: pointer;
+  height: 25px;
+  width: 25px;
 }
 
 .main {
-    flex-wrap: wrap;
+  flex-wrap: wrap;
+  display: flex;
+
+  & > .left {
+    flex-direction: column;
+    flex-wrap: nowrap;
+    margin-top: 1rem;
+    flex: 1 300px;
+  }
+
+  & > .center {
+    justify-content: center;
+    flex: 2 700px;
     display: flex;
 
-    & > .left {
-        flex-direction: column;
-        flex-wrap: nowrap;
-        margin-top: 1rem;
-        flex: 1 300px;
+    & > div {
+      max-width: 500px;
+      width: 100%;
     }
+  }
 
-    & > .center {
-        justify-content: center;
-        flex: 2 700px;
-        display: flex;
-
-        & > div {
-            max-width: 500px;
-            width: 100%;
-        }
-    }
-    
-    & > .right {
-        flex: 1 300px;
-    }
+  & > .right {
+    flex: 1 300px;
+  }
 }
 
 .messageWrapper {
-    justify-content: center;
-    position: absolute;
-    display: flex;
-    z-index: 100;
-    width: 100%;
-    top: 10px;
+  justify-content: center;
+  position: absolute;
+  display: flex;
+  z-index: 100;
+  width: 100%;
+  top: 10px;
 
-    transition: opacity 300ms ease-in-out, transform 300ms ease-in-out;
-    transform: translateY(0);
-    pointer-events: auto;
-    opacity: 1;
+  transition:
+    opacity 300ms ease-in-out,
+    transform 300ms ease-in-out;
+  transform: translateY(0);
+  pointer-events: auto;
+  opacity: 1;
 
-    &.hidden {
-        transform: translateY(-10px);
-        pointer-events: none;
-        opacity: 0;
+  &.hidden {
+    transform: translateY(-10px);
+    pointer-events: none;
+    opacity: 0;
+  }
+
+  & > div {
+    background-color: #2ec4b6;
+    padding: 10px 3rem;
+    border-radius: 5px;
+
+    &.error {
+      background-color: #bf0603;
     }
-
-    &>div {
-        background-color: #2ec4b6;
-        padding: 10px 3rem;
-        border-radius: 5px;
-
-        &.error {
-            background-color: #bf0603;
-        }
-    }
+  }
 }
 
 .authPage {
-    background-color: #000;
-    justify-content: center;
-    align-items: center;
-    display: flex;
-    height: 100vh;
-    width: 100vw;
+  background-color: #000;
+  justify-content: center;
+  align-items: center;
+  display: flex;
+  height: 100vh;
+  width: 100vw;
 }
 
 .modalWindow {
-    background-color: rgba(204, 204, 204, 0.8);
-    justify-content: center;
-    position: absolute;
-    display: flex;
-    height: 100vh;
-    width: 100vw;
-    z-index: 90;
-    left: 0;
-    top: 0;
+  background-color: rgba(204, 204, 204, 0.8);
+  justify-content: center;
+  position: absolute;
+  display: flex;
+  height: 100vh;
+  width: 100vw;
+  z-index: 90;
+  left: 0;
+  top: 0;
 
-    
-    &>.createPasswordWrapper {
-        max-width: 500px;
-        width: 90%;
+  & > .createPasswordWrapper {
+    max-width: 500px;
+    width: 90%;
 
-        &>.cross {
-            background-color: inherit;
-            justify-content: end;
-            margin: 2rem 0 1rem;
-            display: flex;
+    & > .cross {
+      background-color: inherit;
+      justify-content: end;
+      margin: 2rem 0 1rem;
+      display: flex;
 
-            &>div {
-                background-color: #fff;
-                justify-content: center;
-                align-items: center;
-                border-radius: 20px;
-                display: flex;
-                height: 40px;
-                width: 40px;
-            }
-        }
+      & > div {
+        background-color: #fff;
+        justify-content: center;
+        align-items: center;
+        border-radius: 20px;
+        display: flex;
+        height: 40px;
+        width: 40px;
+      }
     }
+  }
 }
 
 .formWrapper {
-    background-color: #fff;
-    border-radius: 15px;
-    width: 100%;
-    
-    justify-content: center;
-    align-items: center;
-    display: flex;
+  background-color: #fff;
+  border-radius: 15px;
+  width: 100%;
 
-    &>form {
-        margin: 2rem 0;
-        width: 90%;
+  justify-content: center;
+  align-items: center;
+  display: flex;
 
-        &>.sendButtonWrapper {
-            justify-content: center;
-            margin-top: 2rem;
-            display: flex;
+  & > form {
+    margin: 2rem 0;
+    width: 90%;
 
-            &>button {
-                border-radius: 15px;
-                padding: 8px 3rem;
-                cursor: pointer;
-                border: none;
+    & > .sendButtonWrapper {
+      justify-content: center;
+      margin-top: 2rem;
+      display: flex;
 
-                background-color: #0d1b2a;
-                font-weight: bolder;
-                color: #e0e1dd;
-                font-size: 16px;
-            }
-        }
+      & > button {
+        border-radius: 15px;
+        padding: 8px 3rem;
+        cursor: pointer;
+        border: none;
 
-        &>.fieldsList>div {
-            align-items: center;
-            display: flex;
-
-            &>.item {
-                background-color: #fdf0d5;
-                padding: 5px 10px 10px;
-                border-radius: 15px;
-                margin-top: 10px;
-                width: 100%;
-            }
-        }
-
-        &>.addItem {
-            justify-content: end;
-            margin-top: 10px;
-            display: flex;
-
-            &>img {
-                margin-right: 1rem;
-            }
-        }
+        background-color: #0d1b2a;
+        font-weight: bolder;
+        color: #e0e1dd;
+        font-size: 16px;
+      }
     }
+
+    & > .fieldsList > div {
+      align-items: center;
+      display: flex;
+
+      & > .item {
+        background-color: #fdf0d5;
+        padding: 5px 10px 10px;
+        border-radius: 15px;
+        margin-top: 10px;
+        width: 100%;
+      }
+    }
+
+    & > .addItem {
+      justify-content: end;
+      margin-top: 10px;
+      display: flex;
+
+      & > img {
+        margin-right: 1rem;
+      }
+    }
+  }
 }
 
 .nodeEnvLabel {
-    background-color: #e63946;
-    border-radius: 13px;
-    position: absolute;
-    padding: 2px 9px;
-    color: #a8dadc;
-    bottom: 10px;
-    z-index: 99;
-    left: 10px;
+  background-color: #e63946;
+  border-radius: 13px;
+  position: absolute;
+  padding: 2px 9px;
+  color: #a8dadc;
+  bottom: 10px;
+  z-index: 99;
+  left: 10px;
 }
 
 .passwordSelectBlock {
-    justify-content: center;
-    align-items: center;
-    display: flex;
-    width: 100%;
+  justify-content: center;
+  align-items: center;
+  display: flex;
+  width: 100%;
 
-    & > .selectWrapper {
-        position: relative;
-        max-width: 500px;
-        width: 90%;
+  & > .selectWrapper {
+    position: relative;
+    max-width: 500px;
+    width: 90%;
 
-        & > .selectHead {
-            justify-content: space-between;
-            align-items: center;
-            display: flex;
+    & > .selectHead {
+      justify-content: space-between;
+      align-items: center;
+      display: flex;
 
-            &>.selectButtons {
-                display: flex;
+      & > .selectButtons {
+        display: flex;
 
-                &>img {
-                    margin-left: 3px;
-                }
-            }
+        & > img {
+          margin-left: 3px;
         }
-        
-        &>.list {
-            transition: opacity 200ms ease-in-out, transform 200ms ease-in-out;
-            box-shadow: 0 2px 5px 0 #ccc;
-            border: .05em solid #777;
-            background-color: #fff;
-            transform: translateY(0);
-            pointer-events: auto;
-            border-radius: .25em;
-            visibility: visible;
-            position: absolute;
-            max-height: 240px;
-            padding: 5px 10px;
-            overflow-y: auto;
-            top: calc(100%);
-            height: 500px;
-            z-index: 99;
-            width: 100%;
-            opacity: 1;
-            
-
-            
-            & > div:hover > div {
-                background-color: #ccc;
-                color: #0d1b2a;
-            }
-
-            &.hide {
-                transform: translateY(-10px);
-                pointer-events: none;
-                opacity: 0;
-            }
-        }
-
-        & .passwordSelectField {
-            align-items: center;
-            cursor: pointer;
-            display: flex;
-
-            & > div {
-                border-radius: 15px;
-                padding: 4px 15px;
-                color: #0d1b2a;
-                margin: 5px 0;
-                
-                &.selectedPassword {
-                    background-color: #0d1b2a;
-                    color: #e0e1dd;
-                }
-            }
-        }
+      }
     }
+
+    & > .list {
+      transition:
+        opacity 200ms ease-in-out,
+        transform 200ms ease-in-out;
+      box-shadow: 0 2px 5px 0 #ccc;
+      border: 0.05em solid #777;
+      background-color: #fff;
+      transform: translateY(0);
+      pointer-events: auto;
+      border-radius: 0.25em;
+      visibility: visible;
+      position: absolute;
+      max-height: 240px;
+      padding: 5px 10px;
+      overflow-y: auto;
+      top: calc(100%);
+      height: 500px;
+      z-index: 99;
+      width: 100%;
+      opacity: 1;
+
+      & > div:hover > div {
+        background-color: #ccc;
+        color: #0d1b2a;
+      }
+
+      &.hide {
+        transform: translateY(-10px);
+        pointer-events: none;
+        opacity: 0;
+      }
+    }
+
+    & .passwordSelectField {
+      align-items: center;
+      cursor: pointer;
+      display: flex;
+
+      & > div {
+        border-radius: 15px;
+        padding: 4px 15px;
+        color: #0d1b2a;
+        margin: 5px 0;
+
+        &.selectedPassword {
+          background-color: #0d1b2a;
+          color: #e0e1dd;
+        }
+      }
+    }
+  }
 }
 
 .passwordsBlock {
-    justify-content: center;
-    margin-top: 2rem;
-    display: flex;
-    width: 100%;
+  justify-content: center;
+  margin-top: 2rem;
+  display: flex;
+  width: 100%;
 
+  & > div {
+    background-color: #fdf0d5;
+    color: #003049;
 
-    &>div {
-        background-color: #fdf0d5;
-        color: #003049;
+    padding: 1rem 1rem 2rem 1rem;
+    border-radius: 15px;
+    width: 90%;
 
-        padding: 1rem 1rem 2rem 1rem;
-        border-radius: 15px;
-        width: 90%;
+    & > .passwordRow {
+      justify-content: space-between;
+      align-items: center;
+      display: flex;
 
-        &>.passwordRow {
-            justify-content: space-between;
-            align-items: center;
-            display: flex;
-
-            &>.passwordNameWrapper {
-                width: 30%;
-                
-                &>div {
-                    text-overflow: ellipsis;
-                    text-wrap: nowrap;
-                    overflow: hidden;
-                }
-            }
-
-            &>.passwordValueWrapper {
-                align-items: center;
-                display: flex;
-                width: 60%;
-
-                &>input {
-                    background-color: inherit;
-                    -webkit-appearance: none;
-                    text-overflow: ellipsis;
-                    border-radius: 0;
-                    outline: none;
-                    border: none;
-                    width: 100%;
-
-                    border-bottom: 1px solid #000;
-
-                    &.deleted {
-                        text-decoration: line-through;
-                    }
-                }
-
-                &>img {
-                    margin-left: 4px;
-                }
-            }
-        }
-    }
-}
-
-.inputRow {
-    justify-content: space-between;
-    align-items: center;
-    margin-top: 5px;
-    display: flex;
-
-    &>.inputName {
+      & > .passwordNameWrapper {
         width: 30%;
-        
-        &>div {
-            text-overflow: ellipsis;
-            text-wrap: nowrap;
-            overflow: hidden;
-        }
-    }
 
-    &>.inputField {
+        & > div {
+          text-overflow: ellipsis;
+          text-wrap: nowrap;
+          overflow: hidden;
+        }
+      }
+
+      & > .passwordValueWrapper {
         align-items: center;
         display: flex;
         width: 60%;
 
-        &>input {
-            background-color: inherit;
-            -webkit-appearance: none;
-            text-overflow: ellipsis;
-            border-radius: 0;
-            outline: none;
-            border: none;
-            width: 100%;
+        & > input {
+          background-color: inherit;
+          -webkit-appearance: none;
+          text-overflow: ellipsis;
+          border-radius: 0;
+          outline: none;
+          border: none;
+          width: 100%;
 
-            border-bottom: 1px solid #000;
+          border-bottom: 1px solid #000;
 
-            &.deleted {
-                text-decoration: line-through;
-            }
+          &.deleted {
+            text-decoration: line-through;
+          }
         }
 
-        &>img {
-            margin-left: 4px;
+        & > img {
+          margin-left: 4px;
         }
+      }
     }
+  }
+}
+
+.inputRow {
+  justify-content: space-between;
+  align-items: center;
+  margin-top: 5px;
+  display: flex;
+
+  & > .inputName {
+    width: 30%;
+
+    & > div {
+      text-overflow: ellipsis;
+      text-wrap: nowrap;
+      overflow: hidden;
+    }
+  }
+
+  & > .inputField {
+    align-items: center;
+    display: flex;
+    width: 60%;
+
+    & > input {
+      background-color: inherit;
+      -webkit-appearance: none;
+      text-overflow: ellipsis;
+      border-radius: 0;
+      outline: none;
+      border: none;
+      width: 100%;
+
+      border-bottom: 1px solid #000;
+
+      &.deleted {
+        text-decoration: line-through;
+      }
+    }
+
+    & > img {
+      margin-left: 4px;
+    }
+  }
 }

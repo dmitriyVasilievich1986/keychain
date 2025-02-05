@@ -27,7 +27,7 @@ export function LeftSide(props) {
   React.useEffect(() => {
     if (params.pk) {
       setValue(
-        passwords.find((password) => password.id === parseInt(params.pk))
+        passwords.find((password) => password.id === parseInt(params.pk)),
       );
     }
   }, [location.pathname, passwords]);

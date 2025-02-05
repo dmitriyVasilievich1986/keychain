@@ -2,11 +2,9 @@ from cryptography.fernet import Fernet
 from flask import Flask
 
 from keychain import appbuilder, db, migrate
-from keychain.views.views import KeychainIndexView, PasswordView
-
-from .api.field import FieldModelApi
-from .api.password import PasswordModelApi
-from .logging_config import setup_logging
+from keychain.api import FieldModelApi, PasswordModelApi
+from keychain.logging_config import setup_logging
+from keychain.views import KeychainIndexView, PasswordView
 
 
 class PasswordApp(Flask):
