@@ -117,7 +117,7 @@ class FieldModelApi(ModelRestApi):
     }
 
     @override
-    def post_headless(self) -> Response:
+    def post_headless(self) -> Response:  # type: ignore[misc]
         if not request.is_json:
             return self.response_400(message="Request is not JSON")
         try:
@@ -140,7 +140,7 @@ class FieldModelApi(ModelRestApi):
             return self.response_422(message=str(e.orig))
 
     @override
-    def put_headless(self, pk: str | int) -> Response:
+    def put_headless(self, pk: str | int) -> Response:  # type: ignore[misc]
         """
         Update an item in the keychain API.
 
@@ -189,7 +189,7 @@ class FieldModelApi(ModelRestApi):
             return self.response_422(message=str(e.orig))
 
     @override
-    def delete_headless(self, pk: str | int) -> Response:
+    def delete_headless(self, pk: str | int) -> Response:  # type: ignore[misc]
         """
         Deletes a resource without returning a response body.
 

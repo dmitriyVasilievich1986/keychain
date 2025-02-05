@@ -10,7 +10,7 @@ class KeychainIndexView(IndexView):
     @expose("/")
     @override
     @has_access
-    def index(self) -> str:
+    def index(self) -> str:  # type: ignore[misc]
         """
         Renders the index page of the views module.
 
@@ -30,7 +30,8 @@ class PasswordView(BaseView):
     @expose("/<string:pk>/")
     @has_access
     def pasword_view(
-        self, pk: str | int | None = None  # pylint: disable=unused-argument
+        self,
+        pk: str | int | None = None,  # pylint: disable=unused-argument
     ) -> str:
         """
         Renders the index.html template with the given appbuilder object.
