@@ -1,5 +1,3 @@
-from __future__ import annotations
-
 from typing import override
 
 from flask_appbuilder import BaseView, IndexView, expose
