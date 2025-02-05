@@ -1,2 +1,2 @@
-from keychain.api.password import PasswordModelApi
-from keychain.api.field import FieldModelApi
+from keychain.api.field import FieldModelApi as FieldModelApi
+from keychain.api.password import PasswordModelApi as PasswordModelApi

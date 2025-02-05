@@ -1,1 +1,4 @@
-from keychain.views.views import KeychainIndexView, PasswordView
+from keychain.views.views import (
+    KeychainIndexView as KeychainIndexView,
+    PasswordView as PasswordView,
+)
