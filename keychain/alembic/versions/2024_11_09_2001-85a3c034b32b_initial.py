@@ -7,7 +7,7 @@ Create Date: 2024-11-09 20:01:01.577671
 """
 
 from datetime import datetime
-from typing import Sequence, Union
+from collections.abc import Sequence
 
 import sqlalchemy as sa
 from alembic import op
@@ -15,9 +15,9 @@ from sqlalchemy.orm import relationship
 
 # revision identifiers, used by Alembic.
 revision: str = "85a3c034b32b"
-down_revision: Union[str, None] = None
-branch_labels: Union[str, Sequence[str], None] = None
-depends_on: Union[str, Sequence[str], None] = None
+down_revision: str | None = None
+branch_labels: str | Sequence[str] | None = None
+depends_on: str | Sequence[str] | None = None
 
 
 def upgrade() -> None:

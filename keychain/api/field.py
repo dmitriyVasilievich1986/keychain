@@ -13,9 +13,8 @@ from marshmallow.validate import Validator
 from sqlalchemy.exc import IntegrityError
 
 from keychain import db
-from keychain.database.models import Field, Password
-
 from keychain.api.get_user_id import get_user_id
+from keychain.database.models import Field, Password
 
 logger = getLogger(__name__)
 

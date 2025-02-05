@@ -5,9 +5,8 @@ from flask_appbuilder.models.sqla.filters import FilterEqualFunction
 from flask_appbuilder.models.sqla.interface import SQLAInterface
 from marshmallow import Schema, fields
 
-from keychain.database.models import Password
-
 from keychain.api.get_user_id import get_user_id
+from keychain.database.models import Password
 
 logger = getLogger(__name__)
 
