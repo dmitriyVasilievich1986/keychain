@@ -1,6 +1,6 @@
 import json
 from datetime import datetime
-from typing import TYPE_CHECKING
+from typing import Any, TYPE_CHECKING, TypedDict
 
 import sqlalchemy as sa
 from flask import current_app, g
@@ -14,6 +14,13 @@ if TYPE_CHECKING:
     current_app: PasswordApp  # type: ignore[no-redef]
 
 
+class FieldRepresentation(TypedDict):
+    name: str
+    value: str
+    created_at: str
+    is_deleted: bool
+
+
 class Field(Model):
     __tablename__ = "field"
 
@@ -24,7 +31,7 @@ class Field(Model):
     created_at = sa.Column(sa.DateTime, nullable=False, default=datetime.now)
     password_id = sa.Column(sa.Integer, sa.ForeignKey("password.id"), nullable=False)
 
-    def __init__(self, *, value: str, **kwargs) -> None:
+    def __init__(self, *, value: str, **kwargs: Any) -> None:
         value = current_app.fernet.encrypt(str(value).encode()).decode()
         super().__init__(value=value, **kwargs)
 
@@ -62,21 +69,28 @@ class Field(Model):
 
         return self.get_value == value
 
-    def json(self) -> dict:
+    def json(self) -> FieldRepresentation:
         """
         Returns a dictionary representation of the model object.
 
         Returns:
-            dict: A dictionary containing the name, value,
+            FieldRepresentation: A dictionary containing the name, value,
                 is_deleted, and created_at attributes.
         """
 
-        return {
-            "name": self.name,
-            "value": self.get_value,
-            "is_deleted": self.is_deleted,
-            "created_at": str(self.created_at.replace(microsecond=0)),
-        }
+        return FieldRepresentation(
+            name=self.name,
+            value=self.get_value,
+            is_deleted=self.is_deleted,
+            created_at=str(self.created_at.replace(microsecond=0)),
+        )
+
+
+class PasswordRepresentation(TypedDict):
+    id: int
+    name: str
+    image_url: str
+    fields: list[FieldRepresentation]
 
 
 class Password(Model):
@@ -93,7 +107,7 @@ class Password(Model):
     )
     user_id = sa.Column(sa.Integer, sa.ForeignKey(User.id), nullable=False)
 
-    def __init__(self, **kwargs) -> None:
+    def __init__(self, **kwargs: Any) -> None:
         kwargs["user_id"] = g.user.id
         super().__init__(**kwargs)
 
@@ -104,20 +118,20 @@ class Password(Model):
 
         return json.dumps(self.json())
 
-    def json(self) -> dict:
+    def json(self) -> PasswordRepresentation:
         """
         Generate a JSON representation of the model.
 
         Returns:
-            dict: A dictionary representing the model in JSON format.
+            PasswordRepresentation: A dictionary representing the model in JSON format.
         """
 
         fields = sorted(
             [x.json() for x in self.fields], key=lambda x: x["created_at"], reverse=True
         )
-        return {
-            "id": self.id,
-            "fields": fields,
-            "name": self.name,
-            "image_url": self.image_url,
-        }
+        return PasswordRepresentation(
+            id=self.id,
+            fields=fields,
+            name=self.name,
+            image_url=self.image_url,
+        )
