@@ -7,7 +7,7 @@ from marshmallow import Schema, fields
 
 from keychain.database.models import Password
 
-from .get_user_id import get_user_id
+from keychain.api.get_user_id import get_user_id
 
 logger = getLogger(__name__)
 

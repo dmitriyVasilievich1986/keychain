@@ -15,7 +15,7 @@ from sqlalchemy.exc import IntegrityError
 from keychain import db
 from keychain.database.models import Field, Password
 
-from .get_user_id import get_user_id
+from keychain.api.get_user_id import get_user_id
 
 logger = getLogger(__name__)
 
