@@ -9,7 +9,9 @@ from flask_appbuilder.security.sqla.models import User
 from sqlalchemy.orm import Mapped, relationship
 
 if TYPE_CHECKING:
-    pass
+    from keychain.app import PasswordApp
+
+    current_app: PasswordApp  # type: ignore[no-redef]
 
 
 class Field(Model):
