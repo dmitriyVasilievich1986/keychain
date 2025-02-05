@@ -6,8 +6,8 @@ Create Date: 2024-11-09 20:01:01.577671
 
 """
 
-from datetime import datetime
 from collections.abc import Sequence
+from datetime import datetime
 
 import sqlalchemy as sa
 from alembic import op

@@ -1,6 +1,6 @@
 from typing import override
 
-from flask_appbuilder import BaseView, IndexView, expose
+from flask_appbuilder import BaseView, expose, IndexView
 from flask_appbuilder.security.decorators import has_access
 
 

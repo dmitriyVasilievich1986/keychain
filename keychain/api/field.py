@@ -2,13 +2,13 @@ from logging import getLogger
 from typing import override
 
 import sqlalchemy as sa
-from flask import Response, request
+from flask import request, Response
 from flask_appbuilder._compat import as_unicode
 from flask_appbuilder.api import ModelRestApi
 from flask_appbuilder.const import API_RESULT_RES_KEY, LOGMSG_WAR_DBI_EDIT_INTEGRITY
 from flask_appbuilder.models.sqla.filters import FilterEqualFunction
 from flask_appbuilder.models.sqla.interface import SQLAInterface
-from marshmallow import Schema, ValidationError, fields
+from marshmallow import fields, Schema, ValidationError
 from marshmallow.validate import Validator
 from sqlalchemy.exc import IntegrityError
 

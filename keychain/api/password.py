@@ -3,7 +3,7 @@ from logging import getLogger
 from flask_appbuilder.api import ModelRestApi
 from flask_appbuilder.models.sqla.filters import FilterEqualFunction
 from flask_appbuilder.models.sqla.interface import SQLAInterface
-from marshmallow import Schema, fields
+from marshmallow import fields, Schema
 
 from keychain.api.get_user_id import get_user_id
 from keychain.database.models import Password
