@@ -14,7 +14,7 @@ logger = logging.getLogger(__name__)
 @click.pass_context
 @click.password_option()
 @click.option("--username", "-U", help="The username to use for authentication.")
-def caller(ctx: Context, password: str, username: str | None = None) -> None:
+def caller(ctx: Context, password: str, username: str | None = None) -> None:  # pylint: disable=redefined-outer-name
     """
     The main entry point for the CLI.
     """

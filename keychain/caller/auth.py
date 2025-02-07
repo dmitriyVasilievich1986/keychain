@@ -119,7 +119,8 @@ class AuthText:
             'reasonable_token'
         """  # noqa: E501, pylint: disable=line-too-long
 
-        input_value_reg = re.search(r'<input id="csrf_token".+?>', response.text)
-        if input_value_reg is None:
+        if (
+            input_value_reg := re.search(r'<input id="csrf_token".+?>', response.text)
+        ) is None:
             raise ValueError("CSRF token not found in response.")
         return re.sub(r'^<.+?value="|">$', "", input_value_reg.group(0))
