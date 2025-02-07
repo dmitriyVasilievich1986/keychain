@@ -200,8 +200,9 @@ class FieldModelApi(ModelRestApi):
         """
 
         item: Field = self.datamodel.get(pk, self._base_filters)
-        if not item:
+        if not item:  # pylint: disable=consider-using-assignment-expr
             return self.response_404()
+
         item.is_deleted = True
         self.pre_delete(item)
         try:
