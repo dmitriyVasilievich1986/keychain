@@ -28,8 +28,8 @@ class CallerProps:
             port (str, optional): The port. Defaults to None.
         """
 
-        self.username = username or getenv("USERNAME")
-        self.password = password or getenv("PASSWORD")
+        self.username = username or getenv("API_USERNAME")
+        self.password = password or getenv("API_PASSWORD")
         self.host = host or APP_HOST
         self.port = port or APP_PORT
 
