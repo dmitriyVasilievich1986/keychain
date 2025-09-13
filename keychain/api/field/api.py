@@ -1,92 +1,19 @@
 from logging import getLogger
 from typing import override
 
-import sqlalchemy as sa
 from flask import request, Response
-from flask_appbuilder._compat import as_unicode
 from flask_appbuilder.api import ModelRestApi
-from flask_appbuilder.const import API_RESULT_RES_KEY, LOGMSG_WAR_DBI_EDIT_INTEGRITY
+from flask_appbuilder.const import API_RESULT_RES_KEY
 from flask_appbuilder.models.sqla.filters import FilterEqualFunction
-from flask_appbuilder.models.sqla.interface import SQLAInterface
-from marshmallow import fields, Schema, ValidationError
-from marshmallow.validate import Validator
+from marshmallow import ValidationError
 from sqlalchemy.exc import IntegrityError
 
-from keychain import db
+from keychain.api.field.schemas import PasswordValidator
+from keychain.api.field.sqla_interface import FieldSQLAInterface
 from keychain.api.get_user_id import get_user_id
-from keychain.models import Field, Password
+from keychain.models import Field
 
 logger = getLogger(__name__)
-
-
-class FieldSQLAInterface(SQLAInterface):
-    def add_and_edit(
-        self,
-        *,
-        to_edit: Field,
-        raise_exception: bool = False,
-        to_add: Field | None = None,
-    ) -> bool:
-        """
-        Add and edit a field in the database.
-
-        Args:
-            to_edit (Field): The field to edit.
-            raise_exception (bool, optional): Whether to raise an exception
-                if an IntegrityError occurs. Defaults to False.
-            to_add (Optional[Field], optional): The field to add.
-                Defaults to None.
-
-        Returns:
-            bool: True if the operation is successful, False otherwise.
-        """
-
-        try:
-            if to_add is not None:
-                self.session.add(to_add)
-            self.session.merge(to_edit)
-            self.session.commit()
-            self.message = (as_unicode(self.edit_row_message), "success")
-            return True
-        except IntegrityError as e:
-            self.message = (as_unicode(self.edit_integrity_error_message), "warning")
-            logger.warning(LOGMSG_WAR_DBI_EDIT_INTEGRITY, e)
-            self.session.rollback()
-            if raise_exception:
-                raise e
-            return False
-        except Exception as e:  # pylint: disable=broad-except
-            self.message = (as_unicode(self.database_error_message), "danger")
-            logger.exception("Database error")
-            self.session.rollback()
-            if raise_exception:
-                raise e
-            return False
-
-
-class PasswordValidator(Validator):  # pylint: disable=too-few-public-methods
-    def __call__(self, value: str) -> None:
-        """
-        Validates the given value.
-
-        Args:
-            value (str): The value to validate.
-
-        Raises:
-            ValidationError: If the value is not valid.
-        """
-
-        password = (
-            db.session.query(Password)  # pylint: disable=no-member
-            .filter(sa.and_(Password.id == value, Password.user_id == get_user_id()))
-            .one_or_none()
-        )
-        if password is None:
-            raise ValidationError("Password not found")
-
-
-class FieldDeleteSchema(Schema):
-    is_deleted = fields.Bool()
 
 
 class FieldModelApi(ModelRestApi):
