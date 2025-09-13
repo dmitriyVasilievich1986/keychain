@@ -31,6 +31,13 @@ dependencies = [
     "sqlalchemy>=1.4, <2",
 ]
 
+[dependency-groups]
+dev = [
+    "mypy>=1.18.1",
+    "pre-commit>=4.3.0",
+    "ruff>=0.13.0",
+]
+
 [project.optional-dependencies]
 caller = [
     "psycopg2-binary>=2.9.1, <3.0.0",
