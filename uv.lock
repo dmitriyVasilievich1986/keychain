@@ -363,7 +363,7 @@ wheels = [
 
 [[package]]
 name = "flask-limiter"
-version = "3.13"
+version = "3.10.0"
 source = { registry = "https://pypi.org/simple" }
 dependencies = [
     { name = "flask" },
@@ -372,9 +372,9 @@ dependencies = [
     { name = "rich" },
     { name = "typing-extensions" },
 ]
-sdist = { url = "https://files.pythonhosted.org/packages/fa/81/3aa2cab05ecb7034489dd2415ce8a9b9667f5ca1432c2230523059d4c7ae/flask_limiter-3.13.tar.gz", hash = "sha256:f665ddc6531612c435cc8fabd58d48cf3b86b7985571e1e3644bcd389b802329", size = 305552, upload-time = "2025-09-12T15:31:00.921Z" }
+sdist = { url = "https://files.pythonhosted.org/packages/52/23/4b1a39d4dceb1c62237ff0b9f2f72fb8ea9cfeb9197c1abc643de6164ce9/flask_limiter-3.10.0.tar.gz", hash = "sha256:4b54cc4f4d254147a78967e58db2e9339f72f7cffb84fbfd1c6fcbf13b198960", size = 301922, upload-time = "2025-01-05T20:46:30.88Z" }
 wheels = [
-    { url = "https://files.pythonhosted.org/packages/10/f0/920f577be4bf3cd578dab32ec9573725cf32f94dc0b8fa65be269a8c0cf4/flask_limiter-3.13-py3-none-any.whl", hash = "sha256:2664933f71e3759a518c59cd07e05c2f7bb7614eb88d420ac348b05e32c6cb94", size = 30214, upload-time = "2025-09-12T15:30:59.071Z" },
+    { url = "https://files.pythonhosted.org/packages/d4/53/625696cc170b23b8315d52b4fcdc1b3788f75e7f327c6a09de05efc04ef1/Flask_Limiter-3.10.0-py3-none-any.whl", hash = "sha256:640ba763e05eb66bad3976d218b57c11c04c21e9ce42d20767975e7369e2ddcd", size = 28603, upload-time = "2025-01-05T20:46:28.48Z" },
 ]
 
 [[package]]
@@ -538,7 +538,9 @@ dependencies = [
     { name = "cryptography" },
     { name = "flask" },
     { name = "flask-appbuilder" },
+    { name = "flask-limiter" },
     { name = "flask-migrate" },
+    { name = "marshmallow" },
     { name = "python-dotenv" },
     { name = "sqlalchemy" },
 ]
@@ -563,7 +565,9 @@ requires-dist = [
     { name = "cryptography", specifier = ">=42.0.4,<43.0.0" },
     { name = "flask", specifier = ">=2.2.5,<3.0.0" },
     { name = "flask-appbuilder", specifier = ">=4.4.1,<5.0.0" },
+    { name = "flask-limiter", specifier = "==3.10.0" },
     { name = "flask-migrate", specifier = ">=3.1.0,<4.0" },
+    { name = "marshmallow", specifier = ">=3.0,<4.0" },
     { name = "psycopg2-binary", marker = "extra == 'caller'", specifier = ">=2.9.1,<3.0.0" },
     { name = "python-dotenv", specifier = ">=1.0.0" },
     { name = "requests", marker = "extra == 'caller'", specifier = ">=2.0.0,<3.0.0" },
@@ -657,11 +661,14 @@ wheels = [
 
 [[package]]
 name = "marshmallow"
-version = "4.0.1"
+version = "3.26.1"
 source = { registry = "https://pypi.org/simple" }
-sdist = { url = "https://files.pythonhosted.org/packages/cc/ff/8f092fe402ef12aa71b7f4ceba0c557ce4d5876a9cf421e01a67b7210560/marshmallow-4.0.1.tar.gz", hash = "sha256:e1d860bd262737cb2d34e1541b84cb52c32c72c9474e3fe6f30f137ef8b0d97f", size = 220453, upload-time = "2025-08-28T15:01:37.044Z" }
+dependencies = [
+    { name = "packaging" },
+]
+sdist = { url = "https://files.pythonhosted.org/packages/ab/5e/5e53d26b42ab75491cda89b871dab9e97c840bf12c63ec58a1919710cd06/marshmallow-3.26.1.tar.gz", hash = "sha256:e6d8affb6cb61d39d26402096dc0aee12d5a26d490a121f118d2e81dc0719dc6", size = 221825, upload-time = "2025-02-03T15:32:25.093Z" }
 wheels = [
-    { url = "https://files.pythonhosted.org/packages/cc/18/297efc62b3539b9cd379fc49be3740a02e4c8a43e486f50322cfe0b9568a/marshmallow-4.0.1-py3-none-any.whl", hash = "sha256:72f14ef346f81269dbddee891bac547dda1501e9e08b6a809756ea3dbb7936a1", size = 48414, upload-time = "2025-08-28T15:01:35.221Z" },
+    { url = "https://files.pythonhosted.org/packages/34/75/51952c7b2d3873b44a0028b1bd26a25078c18f92f256608e8d1dc61b39fd/marshmallow-3.26.1-py3-none-any.whl", hash = "sha256:3350409f20a70a7e4e11a27661187b77cdcaeb20abca41c1454fe33636bea09c", size = 50878, upload-time = "2025-02-03T15:32:22.295Z" },
 ]
 
 [[package]]
@@ -967,15 +974,15 @@ wheels = [
 
 [[package]]
 name = "rich"
-version = "14.1.0"
+version = "13.9.4"
 source = { registry = "https://pypi.org/simple" }
 dependencies = [
     { name = "markdown-it-py" },
     { name = "pygments" },
 ]
-sdist = { url = "https://files.pythonhosted.org/packages/fe/75/af448d8e52bf1d8fa6a9d089ca6c07ff4453d86c65c145d0a300bb073b9b/rich-14.1.0.tar.gz", hash = "sha256:e497a48b844b0320d45007cdebfeaeed8db2a4f4bcf49f15e455cfc4af11eaa8", size = 224441, upload-time = "2025-07-25T07:32:58.125Z" }
+sdist = { url = "https://files.pythonhosted.org/packages/ab/3a/0316b28d0761c6734d6bc14e770d85506c986c85ffb239e688eeaab2c2bc/rich-13.9.4.tar.gz", hash = "sha256:439594978a49a09530cff7ebc4b5c7103ef57baf48d5ea3184f21d9a2befa098", size = 223149, upload-time = "2024-11-01T16:43:57.873Z" }
 wheels = [
-    { url = "https://files.pythonhosted.org/packages/e3/30/3c4d035596d3cf444529e0b2953ad0466f6049528a879d27534700580395/rich-14.1.0-py3-none-any.whl", hash = "sha256:536f5f1785986d6dbdea3c75205c473f970777b4a0d6c6dd1b696aa05a3fa04f", size = 243368, upload-time = "2025-07-25T07:32:56.73Z" },
+    { url = "https://files.pythonhosted.org/packages/19/71/39c7c0d87f8d4e6c020a393182060eaefeeae6c01dab6a84ec346f2567df/rich-13.9.4-py3-none-any.whl", hash = "sha256:6049d5e6ec054bf2779ab3358186963bac2ea89175919d699e378b99738c2a90", size = 242424, upload-time = "2024-11-01T16:43:55.817Z" },
 ]
 
 [[package]]
