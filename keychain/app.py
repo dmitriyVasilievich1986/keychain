@@ -37,7 +37,6 @@ def create_app() -> PasswordApp:
     )
 
     app.config.from_mapping(config.model_dump())
-    print(config.model_dump())
 
     setup_logging(config)
     db.init_app(app)
