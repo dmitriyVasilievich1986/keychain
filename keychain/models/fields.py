@@ -20,7 +20,7 @@ class Field(Model):
     id = sa.Column(sa.Integer, primary_key=True)
     value = sa.Column(sa.String, nullable=False)
     is_deleted = sa.Column(sa.Boolean, default=False)
-    created_at = sa.Column(sa.DateTime, nullable=False, default=datetime.now)
+    created_at = sa.Column(sa.DateTime, nullable=False, default=datetime.utcnow)
     password_id = sa.Column(sa.Integer, sa.ForeignKey("password.id"), nullable=False)
 
     def __init__(self, *, value: str, **kwargs: Any) -> None:

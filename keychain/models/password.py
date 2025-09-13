@@ -16,7 +16,7 @@ class Password(Model):
 
     id = sa.Column(sa.Integer, primary_key=True)
     name = sa.Column(sa.String, unique=False, nullable=False)
-    created_at = sa.Column(sa.DateTime, nullable=False, default=datetime.now)
+    created_at = sa.Column(sa.DateTime, nullable=False, default=datetime.utcnow)
     image_url = sa.Column(
         sa.String(256), nullable=True, default="/static/i/no-photo.png"
     )
