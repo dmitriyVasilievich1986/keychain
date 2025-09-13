@@ -9,7 +9,9 @@ class FieldRepresentation(BaseModel):
     name: str = Field(..., description="The name of the field")
     value: str = Field(..., description="The value of the field")
     created_at: datetime = Field(
-        ..., description="The creation timestamp of the field", default_factory=datetime.now
+        ...,
+        description="The creation timestamp of the field",
+        default_factory=datetime.now,
     )
     is_deleted: bool = Field(False, description="Indicates if the field is deleted")
 
