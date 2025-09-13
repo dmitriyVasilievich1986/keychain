@@ -1,22 +1,21 @@
 from dataclasses import asdict, dataclass
-from os import getenv
 
-from keychain.config import APP_HOST, APP_PORT
+from keychain.config.config import caller_config, config
 
 
 @dataclass
 class CallerProps:
     username: str | None
     password: str | None
-    host: str | None
-    port: str | None
+    host: str
+    port: int
 
     def __init__(
         self,
         username: str | None = None,
         password: str | None = None,
         host: str | None = None,
-        port: str | None = None,
+        port: int | None = None,
     ) -> None:
         """
         Initialize the CallerProps object.
@@ -28,10 +27,10 @@ class CallerProps:
             port (str, optional): The port. Defaults to None.
         """
 
-        self.username = username or getenv("API_USERNAME")
-        self.password = password or getenv("API_PASSWORD")
-        self.host = host or APP_HOST
-        self.port = port or APP_PORT
+        self.username = username or caller_config.API_USERNAME
+        self.password = password or caller_config.API_PASSWORD
+        self.host = host or config.APP_HOST
+        self.port = port or config.APP_PORT
 
     @property
     def url(self) -> str:
@@ -63,7 +62,7 @@ class CallerProps:
             'http://localhost:80/login'
         """
 
-        return getenv("LOGIN_URL", f"{self.url}/login")
+        return caller_config.LOGIN_URL or f"{self.url}/login"
 
     @property
     def passwords_api_url(self) -> str:
@@ -79,7 +78,7 @@ class CallerProps:
             'http://localhost:80/api/v1/password'
         """
 
-        return getenv("PASSWORDS_API_URL", f"{self.url}/api/v1/password")
+        return caller_config.PASSWORDS_API_URL or f"{self.url}/api/v1/password"
 
 
 @dataclass

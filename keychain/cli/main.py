@@ -8,11 +8,13 @@ from werkzeug.security import generate_password_hash
 
 from keychain import appbuilder, db
 from keychain.app import create_app
+from keychain.cli.web_client import web_client
 
 logger = logging.getLogger(__name__)
 
 
 main = FlaskGroup(create_app=create_app)
+main.add_command(web_client)
 
 
 BASIC_PERMISSIONS = {

@@ -2,9 +2,8 @@ from cryptography.fernet import Fernet
 from flask import Flask
 
 from keychain import appbuilder, db, migrate
-from keychain.api import FieldModelApi, PasswordModelApi
+from keychain.config.config import config
 from keychain.logging_config import setup_logging
-from keychain.views import KeychainIndexView, PasswordView
 
 
 class PasswordApp(Flask):
@@ -17,7 +16,7 @@ class PasswordApp(Flask):
         using the secret key specified in the configuration.
         """
 
-        self.fernet = Fernet(self.config["SECRET_KEY"])
+        self.fernet = Fernet(config.SECRET_KEY)
 
 
 def create_app() -> PasswordApp:
@@ -28,13 +27,19 @@ def create_app() -> PasswordApp:
         PasswordApp: The configured Flask application.
     """
 
-    app = PasswordApp(__name__)
+    from keychain.api import FieldModelApi, PasswordModelApi
+    from keychain.views import KeychainIndexView, PasswordView
 
-    app.config.from_object("keychain.config")
-    app.static_url_path = app.config["STATIC_URL_PATH"]
-    app.static_folder = app.config["STATIC_FOLDER"]
+    app = PasswordApp(
+        import_name=__name__,
+        static_folder=config.static_folder,
+        static_url_path=config.static_url_path,
+        template_folder=config.template_folder,
+    )
 
-    setup_logging(app.config)
+    app.config.from_mapping(config.model_dump())
+
+    setup_logging(config)
     db.init_app(app)
     app.init_fernet()
 
@@ -47,7 +52,7 @@ def create_app() -> PasswordApp:
         appbuilder.add_permissions(update_perms=True)
         appbuilder.sm.lm.login_view = "AuthDBView.login"
 
-        migrate.directory = app.config["MIGRATIONS_DIR"]
+        migrate.directory = config.migrations_dir
         migrate.init_app(app, db)
 
     return app

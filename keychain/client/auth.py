@@ -1,11 +1,13 @@
 import re
 from enum import Enum
-from typing import Any
+from typing import Any, TYPE_CHECKING
 
-from requests import request, Response
 from requests.cookies import RequestsCookieJar
 
-from keychain.caller.dataclasses import CallerProps, PostData
+from keychain.client.dataclasses import CallerProps, PostData
+
+if TYPE_CHECKING:
+    from requests import Response
 
 
 class RequestMethod(Enum):
@@ -28,7 +30,7 @@ class AuthText:
         self.caller_props = caller_props
         self._login()
 
-    def __call__(self, url: str) -> Response:
+    def __call__(self, url: str) -> "Response":
         """
         Makes a GET request to the specified URL using the stored cookies.
         If the response status code is not 200, it will attempt
@@ -75,7 +77,7 @@ class AuthText:
         url: str,
         method: RequestMethod = RequestMethod.GET,
         data: dict[str, Any] | None = None,
-    ) -> Response:
+    ) -> "Response":
         """
         Sends a request to the specified URL using the specified method and data.
 
@@ -91,7 +93,9 @@ class AuthText:
                 to the request.
         """
 
-        response: Response = request(
+        from requests import request
+
+        response = request(
             cookies=self.cookies,
             timeout=self.timeout,
             method=method.value,
@@ -102,7 +106,7 @@ class AuthText:
         return response
 
     @staticmethod
-    def parse_csrf_token(response: Response) -> str:
+    def parse_csrf_token(response: "Response") -> str:
         """
         Parses the CSRF token from the given response.
 

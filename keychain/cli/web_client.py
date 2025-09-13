@@ -3,18 +3,17 @@ import logging
 import click
 from click.core import Context
 
-from keychain.caller.caller import Caller
-from keychain.caller.dataclasses import CallerProps
-from keychain.cli.main import main
+from keychain.client.client import Caller
+from keychain.client.dataclasses import CallerProps
 
 logger = logging.getLogger(__name__)
 
 
-@main.group()
+@click.group(help="Keychain client commands")
 @click.pass_context
 @click.password_option()
 @click.option("--username", "-U", help="The username to use for authentication.")
-def caller(ctx: Context, password: str, username: str | None = None) -> None:  # pylint: disable=redefined-outer-name
+def web_client(ctx: Context, password: str, username: str | None = None) -> None:  # pylint: disable=redefined-outer-name
     """
     The main entry point for the CLI.
     """
@@ -25,7 +24,7 @@ def caller(ctx: Context, password: str, username: str | None = None) -> None:  #
     )
 
 
-@caller.command()
+@web_client.command()
 @click.pass_context
 def passwords(ctx: Context) -> None:
     """
@@ -46,7 +45,7 @@ def passwords(ctx: Context) -> None:
         click.echo("Failed to retrieve passwords.")
 
 
-@caller.command()
+@web_client.command()
 @click.pass_context
 @click.argument("pk")
 def password(ctx: Context, pk: str) -> None:
