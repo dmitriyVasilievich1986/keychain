@@ -10,7 +10,7 @@ class KeychainIndexView(IndexView):
     @expose("/")
     @override
     @has_access
-    def index(self) -> str:  # type: ignore[misc]
+    def index(self) -> str:
         """
         Renders the index page of the views module.
 
