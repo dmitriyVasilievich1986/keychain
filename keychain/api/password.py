@@ -6,7 +6,7 @@ from flask_appbuilder.models.sqla.interface import SQLAInterface
 from marshmallow import fields, Schema
 
 from keychain.api.get_user_id import get_user_id
-from keychain.database.models import Password
+from keychain.models import Password
 
 logger = getLogger(__name__)
 
