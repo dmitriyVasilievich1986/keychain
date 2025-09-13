@@ -1,7 +1,10 @@
-from requests import Response
+from typing import TYPE_CHECKING
 
-from keychain.caller.auth import AuthText
-from keychain.caller.dataclasses import CallerProps
+from keychain.client.auth import AuthText
+from keychain.client.dataclasses import CallerProps
+
+if TYPE_CHECKING:
+    from requests import Response
 
 
 class Caller:
@@ -20,7 +23,7 @@ class Caller:
         self.caller_props = caller_props
         self.auth = AuthText(caller_props)
 
-    def __call__(self, url: str) -> Response:
+    def __call__(self, url: str) -> "Response":
         """
         Call the object as a function.
 
@@ -33,7 +36,7 @@ class Caller:
 
         return self.auth(url)
 
-    def get_password(self, pk: str | int) -> Response:
+    def get_password(self, pk: str | int) -> "Response":
         """
         Retrieves the password for the given primary key.
 
@@ -46,7 +49,7 @@ class Caller:
 
         return self.auth(f"{self.caller_props.passwords_api_url}/{pk}")
 
-    def get_passwords_list(self) -> Response:
+    def get_passwords_list(self) -> "Response":
         """
         Retrieves the list of passwords from the API.
 
