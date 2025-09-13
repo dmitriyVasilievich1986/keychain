@@ -2,10 +2,8 @@ from cryptography.fernet import Fernet
 from flask import Flask
 
 from keychain import appbuilder, db, migrate
-from keychain.api import FieldModelApi, PasswordModelApi
 from keychain.config.config import config
 from keychain.logging_config import setup_logging
-from keychain.views import KeychainIndexView, PasswordView
 
 
 class PasswordApp(Flask):
@@ -28,6 +26,9 @@ def create_app() -> PasswordApp:
     Returns:
         PasswordApp: The configured Flask application.
     """
+
+    from keychain.api import FieldModelApi, PasswordModelApi
+    from keychain.views import KeychainIndexView, PasswordView
 
     app = PasswordApp(
         import_name=__name__,
