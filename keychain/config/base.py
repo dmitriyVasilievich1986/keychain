@@ -112,7 +112,7 @@ class Config(BaseSettings):
         return value
 
 
-class CallerConfig(BaseSettings):
+class WebClientConfig(BaseSettings):
     PASSWORDS_API_URL: str | None = Field(None, description="URL for the passwords API")
     LOGIN_URL: str | None = Field(None, description="URL for the login page")
 
