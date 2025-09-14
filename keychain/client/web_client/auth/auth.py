@@ -33,7 +33,7 @@ class WebAuth(AuthBase[AuthResponse]):
             response = func(*args, **kwargs, token=self.token)
             if response.status_code in (401, 403):
                 self._token = None
-            response = func(*args, **kwargs, token=self.token)
+                response = func(*args, **kwargs, token=self.token)
             response.raise_for_status()
             return response
 
