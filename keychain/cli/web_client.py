@@ -3,8 +3,9 @@ import logging
 import click
 from click.core import Context
 
-from keychain.client.client import Caller
-from keychain.client.dataclasses import CallerProps
+from keychain.client.types import FluidResponse
+from keychain.client.web_client import WebClient, WebClientCreds
+from keychain.config.config import config, web_client_config
 
 logger = logging.getLogger(__name__)
 
@@ -19,8 +20,15 @@ def web_client(ctx: Context, password: str, username: str | None = None) -> None
     """
 
     ctx.ensure_object(dict)
-    ctx.obj["caller"] = Caller(
-        caller_props=CallerProps(username=username, password=password)
+    creds = WebClientCreds(
+        username=username or web_client_config.API_USERNAME,
+        password=password,
+        host=config.APP_HOST,
+        port=config.APP_PORT,
+        timeout=web_client_config.timeout,
+    )
+    ctx.obj["client"] = WebClient[FluidResponse](
+        creds=creds, transform_cls=FluidResponse
     )
 
 
@@ -38,11 +46,9 @@ def passwords(ctx: Context) -> None:
         ctx (Context): The Click context object containing the caller object.
     """
 
-    response = ctx.obj["caller"].get_passwords_list()
-    if response.status_code == 200:
-        click.echo(response.json())
-    else:
-        click.echo("Failed to retrieve passwords.")
+    client: WebClient[FluidResponse] = ctx.obj["client"]
+    data = client.get_passwords_list()
+    click.echo(data.model_dump_json(indent=2))
 
 
 @web_client.command()
@@ -57,8 +63,6 @@ def password(ctx: Context, pk: str) -> None:
         pk (str): The primary key for which the password is to be retrieved.
     """
 
-    response = ctx.obj["caller"].get_password(pk)
-    if response.status_code == 200:
-        click.echo(response.json())
-    else:
-        click.echo("Failed to retrieve passwords.")
+    client: WebClient[FluidResponse] = ctx.obj["client"]
+    data = client.get_password(pk)
+    click.echo(data.model_dump_json(indent=2))
