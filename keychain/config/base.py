@@ -112,9 +112,17 @@ class Config(BaseSettings):
         return value
 
 
-class CallerConfig(BaseSettings):
-    PASSWORDS_API_URL: str | None = Field(None, description="URL for the passwords API")
-    LOGIN_URL: str | None = Field(None, description="URL for the login page")
+class WebClientConfig(BaseSettings):
+    timeout: int = Field(
+        30, description="Timeout for web client requests in seconds", init=False
+    )
+
+    PASSWORDS_API_URL: str | None = Field(
+        "/api/v1/password/", description="URL for the passwords API"
+    )
+    LOGIN_URL: str | None = Field(
+        "/api/v1/security/login", description="URL for the login page"
+    )
 
     API_USERNAME: str | None = Field(
         None, description="Username for API authentication"

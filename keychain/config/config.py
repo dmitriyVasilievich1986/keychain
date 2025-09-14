@@ -1,4 +1,4 @@
-from keychain.config.base import CallerConfig, Config
+from keychain.config.base import Config, WebClientConfig
 
 config = Config()
-caller_config = CallerConfig()
+web_client_config = WebClientConfig()
