@@ -1,5 +1,3 @@
-from logging import getLogger
-
 from flask_appbuilder.api import ModelRestApi
 from flask_appbuilder.models.sqla.filters import FilterEqualFunction
 from flask_appbuilder.models.sqla.interface import SQLAInterface
@@ -7,8 +5,6 @@ from flask_appbuilder.models.sqla.interface import SQLAInterface
 from keychain.api.get_user_id import get_user_id
 from keychain.api.password.schemas import PasswordGetSchema
 from keychain.models import Password
-
-logger = getLogger(__name__)
 
 
 class PasswordModelApi(ModelRestApi):
