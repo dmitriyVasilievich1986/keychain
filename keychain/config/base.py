@@ -118,7 +118,7 @@ class WebClientConfig(BaseSettings):
     timeout: int = Field(30, description="Timeout for web client requests in seconds", init=False)
 
     PASSWORDS_API_URL: str | None = Field("/api/v1/password/", description="URL for the passwords API")
-    LOGIN_URL: str | None = Field("/api/v1/security/login", description="URL for the login page")
+    LOGIN_URL: str = Field("/api/v1/security/login", description="URL for the login page")
 
     API_USERNAME: str | None = Field(None, description="Username for API authentication")
     API_PASSWORD: str | None = Field(None, description="Password for API authentication")

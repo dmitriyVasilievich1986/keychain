@@ -39,7 +39,7 @@ BASIC_PERMISSIONS = {
 }
 
 
-@main.command()
+@main.command(help="Sync the permissions of the 'Basic' role")  # type: ignore[no-untyped-call]
 def sync_roles() -> None:
     """Synchronizes the permissions of the 'Basic' role.
 
@@ -68,7 +68,7 @@ def sync_roles() -> None:
     db.session.commit()  # pylint: disable=no-member
 
 
-@main.command()
+@main.command(help="Create a new user with the given username and password")  # type: ignore[no-untyped-call]
 @click.option("-U", "--username", required=True, type=str)
 @click.option("-P", "--password", prompt=True, hide_input=True, required=True, type=str)
 def create_user(username: str, password: str) -> None:

@@ -98,7 +98,7 @@ class FieldModelApi(ModelRestApi):
 
         new_data = {
             Field.password_id.key: item.password_id,
-            Field.value.key: request.json["value"],
+            Field.value.key: request.json["value"],  # type: ignore[index]
             Field.name.key: item.name,
         }
         try:

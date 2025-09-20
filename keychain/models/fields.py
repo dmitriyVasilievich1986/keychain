@@ -31,7 +31,7 @@ class Field(Model):
             **kwargs (Any): Additional keyword arguments passed to the superclass initializer.
 
         """
-        value = current_app.fernet.encrypt(str(value).encode()).decode()
+        value = current_app.fernet.encrypt(str(value).encode()).decode()  # type: ignore[attr-defined]
         super().__init__(value=value, **kwargs)
 
     def __repr__(self) -> str:
@@ -51,7 +51,7 @@ class Field(Model):
             str: The decrypted and decoded value.
 
         """
-        return current_app.fernet.decrypt(self.value.encode()).decode()
+        return current_app.fernet.decrypt(self.value.encode()).decode()  # type: ignore[attr-defined]
 
     def check(self, value: str) -> bool:
         """Checks if the provided value matches the value returned by `get_value`.

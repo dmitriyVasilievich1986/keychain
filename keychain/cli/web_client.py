@@ -17,8 +17,12 @@ logger = logging.getLogger(__name__)
 def web_client(ctx: Context, password: str, username: str | None = None) -> None:  # pylint: disable=redefined-outer-name
     """The main entry point for the CLI."""
     ctx.ensure_object(dict)
+    username = username or web_client_config.API_USERNAME
+    if not username:
+        raise click.UsageError("Username must be provided via --username option or API_USERNAME env variable")
+
     creds = WebClientCreds(
-        username=username or web_client_config.API_USERNAME,
+        username=username,
         password=password,
         host=config.APP_HOST,
         port=config.APP_PORT,

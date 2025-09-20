@@ -62,10 +62,10 @@ class WebAuth(AuthBase[AuthResponse]):
         """
 
         def wrapper(*args: P.args, **kwargs: P.kwargs) -> "Response":
-            response = func(*args, **kwargs, token=self.token)
+            response = func(*args, **kwargs, token=self.token)  # type: ignore[arg-type]
             if response.status_code in (401, 403):
                 self._token = None
-                response = func(*args, **kwargs, token=self.token)
+                response = func(*args, **kwargs, token=self.token)  # type: ignore[arg-type]
             response.raise_for_status()
             return response
 
