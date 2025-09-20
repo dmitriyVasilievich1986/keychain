@@ -15,5 +15,6 @@ __pycache__
 .vscode
 *.pyc
 venv*
+logs
 dist
 .env
