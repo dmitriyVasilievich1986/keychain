@@ -19,6 +19,6 @@ def setup_logging(config: "Config") -> None:
     from loguru import logger
 
     logger.remove()
-    logger.add(sys.stdout, level=config.LOG_LEVEL)
-    logger.add(sys.stderr, level=config.LOG_LEVEL)
+    logger.add(sys.stdout, level="INFO")
+    logger.add(sys.stderr, level="ERROR")
     logger.add(config.LOG_FILE, rotation="10 MB", retention="10 days", level=config.LOG_LEVEL)
