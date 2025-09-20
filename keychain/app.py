@@ -25,7 +25,7 @@ def create_app() -> PasswordApp:
         PasswordApp: The configured Flask application.
 
     """
-    from keychain.api import FieldModelApi, PasswordModelApi
+    from keychain.api import CommonApi, FieldModelApi, PasswordModelApi
     from keychain.views import KeychainIndexView, PasswordView
 
     app = PasswordApp(
@@ -46,6 +46,7 @@ def create_app() -> PasswordApp:
         appbuilder.init_app(app, db.session)
         appbuilder.add_api(PasswordModelApi)
         appbuilder.add_api(FieldModelApi)
+        appbuilder.add_api(CommonApi)
         appbuilder.add_view(PasswordView, "Password", icon="fa-key")
         appbuilder.add_permissions(update_perms=True)
         appbuilder.sm.lm.login_view = "AuthDBView.login"
