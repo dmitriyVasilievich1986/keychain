@@ -7,8 +7,6 @@ from flask_appbuilder.security.manager import AUTH_DB
 from pydantic import computed_field, Field, field_validator
 from pydantic_settings import BaseSettings
 
-logger = logging.getLogger(__name__)
-
 
 class Config(BaseSettings):
     SQLALCHEMY_TRACK_MODIFICATIONS: bool = Field(
@@ -20,6 +18,7 @@ class Config(BaseSettings):
 
     DEBUG: bool = Field(False, description="Enable or disable debug mode")
     LOG_LEVEL: str | int = Field(logging.INFO, description="Logging level")
+    LOG_FILE: str = Field(description="Path to the log file")
     AUTH_TYPE: int = Field(AUTH_DB, description="Authentication type for Flask AppBuilder")
     APP_HOST: str = Field("0.0.0.0", description="Host for the Flask application")
     APP_PORT: int = Field(3000, description="Port for the Flask application")

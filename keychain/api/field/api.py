@@ -1,4 +1,3 @@
-from logging import getLogger
 from typing import override
 
 from flask import request, Response
@@ -12,8 +11,6 @@ from keychain.api.field.schemas import PasswordValidator
 from keychain.api.field.sqla_interface import FieldSQLAInterface
 from keychain.api.get_user_id import get_user_id
 from keychain.models import Field
-
-logger = getLogger(__name__)
 
 
 class FieldModelApi(ModelRestApi):

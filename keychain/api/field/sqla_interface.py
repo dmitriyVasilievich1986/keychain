@@ -1,13 +1,10 @@
-from logging import getLogger
-
 from flask_appbuilder._compat import as_unicode
 from flask_appbuilder.const import LOGMSG_WAR_DBI_EDIT_INTEGRITY
 from flask_appbuilder.models.sqla.interface import SQLAInterface
+from loguru import logger
 from sqlalchemy.exc import IntegrityError
 
 from keychain.models import Field
-
-logger = getLogger(__name__)
 
 
 class FieldSQLAInterface(SQLAInterface):

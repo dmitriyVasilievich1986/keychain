@@ -1,13 +1,9 @@
-import logging
-
 import click
 from click.core import Context
 
 from keychain.client.types import FluidResponse
 from keychain.client.web_client import WebClient, WebClientCreds
 from keychain.config.config import config, web_client_config
-
-logger = logging.getLogger(__name__)
 
 
 @click.group(help="Keychain client commands")

@@ -1,17 +1,13 @@
-import logging
-
 import click
 from flask.cli import FlaskGroup
 from flask_appbuilder.security.sqla.models import PermissionView
+from loguru import logger
 from sqlalchemy.orm import eagerload
 from werkzeug.security import generate_password_hash
 
 from keychain import appbuilder, db
 from keychain.app import create_app
 from keychain.cli.web_client import web_client
-
-logger = logging.getLogger(__name__)
-
 
 main = FlaskGroup(create_app=create_app)
 main.add_command(web_client)
