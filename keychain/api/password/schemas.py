@@ -18,4 +18,4 @@ class PasswordGetSchema(Schema):
     name = fields.Str()
     image_url = fields.Str()
     created_at = fields.DateTime()
-    fields = fields.Nested(FieldGetSchema, many=True)
+    fields = fields.Nested(FieldGetSchema, many=True)  # type: ignore[assignment]

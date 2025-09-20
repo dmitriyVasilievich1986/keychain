@@ -39,10 +39,10 @@ BASIC_PERMISSIONS = {
 }
 
 
-@main.command()
+@main.command(help="Sync the permissions of the 'Basic' role")  # type: ignore[no-untyped-call]
 def sync_roles() -> None:
-    """
-    Synchronizes the permissions of the 'Basic' role.
+    """Synchronizes the permissions of the 'Basic' role.
+
     This function adds the 'Basic' role if it doesn't exist
     and syncs its permissions based on the predefined basic permissions.
     It retrieves the list of permission views from the database,
@@ -51,39 +51,34 @@ def sync_roles() -> None:
     and assigns them to the 'Basic' role.
     Finally, it commits the changes to the database.
     """
-
     role_name = "Basic"
     logger.info("Syncing %s perms", role_name)
     role = appbuilder.sm.add_role(role_name)
     pvms: list[PermissionView] = (
         db.session.query(PermissionView)  # pylint: disable=no-member
-        .options(
-            eagerload(PermissionView.permission), eagerload(PermissionView.view_menu)
-        )
+        .options(eagerload(PermissionView.permission), eagerload(PermissionView.view_menu))
         .all()
     )
     role_pvms = [
         permission_view
         for permission_view in pvms
-        if permission_view.view_menu.name
-        in BASIC_PERMISSIONS.get(permission_view.permission.name, [])
+        if permission_view.view_menu.name in BASIC_PERMISSIONS.get(permission_view.permission.name, [])
     ]
     role.permissions = role_pvms
     db.session.commit()  # pylint: disable=no-member
 
 
-@main.command()
+@main.command(help="Create a new user with the given username and password")  # type: ignore[no-untyped-call]
 @click.option("-U", "--username", required=True, type=str)
 @click.option("-P", "--password", prompt=True, hide_input=True, required=True, type=str)
 def create_user(username: str, password: str) -> None:
-    """
-    Create a new user with the given username and password.
+    """Create a new user with the given username and password.
 
     Args:
         username (str): The username of the new user.
         password (str): The password of the new user.
-    """
 
+    """
     role_name = "Basic"
     logger.info("Create new user '%s'", username)
     role = appbuilder.sm.find_role(role_name)

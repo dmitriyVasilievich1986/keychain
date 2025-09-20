@@ -1,4 +1,3 @@
-from keychain.views.views import (
-    KeychainIndexView as KeychainIndexView,
-    PasswordView as PasswordView,
-)
+from keychain.views.views import KeychainIndexView, PasswordView
+
+__all__ = ["KeychainIndexView", "PasswordView"]

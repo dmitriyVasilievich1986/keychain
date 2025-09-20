@@ -44,6 +44,20 @@ class FieldModelApi(ModelRestApi):
 
     @override
     def post_headless(self) -> Response:
+        """Handles a POST request for creating a new item in a headless (API-only) manner.
+
+        Validates that the request contains JSON data, deserializes it using the model schema,
+        and performs pre-add logic. Attempts to add the item to the data model, handling
+        validation and integrity errors appropriately. On success, returns a 201 response
+        with the serialized item.
+
+        Returns:
+            Response: A Flask response object with appropriate status code and message.
+                - 400 if the request is not JSON.
+                - 422 if validation or integrity errors occur.
+                - 201 with the created item if successful.
+
+        """
         if not request.is_json:
             return self.response_400(message="Request is not JSON")
         try:
@@ -67,16 +81,15 @@ class FieldModelApi(ModelRestApi):
 
     @override
     def put_headless(self, pk: str | int) -> Response:
-        """
-        Update an item in the keychain API.
+        """Update an item in the keychain API.
 
         Args:
             pk (str | int): The primary key of the item to be updated.
 
         Returns:
             Response: The response object containing the result of the update operation.
-        """
 
+        """
         item: Field = self.datamodel.get(pk, self._base_filters)
         if not request.is_json:
             return self.response(400, **{"message": "Request is not JSON"})
@@ -85,7 +98,7 @@ class FieldModelApi(ModelRestApi):
 
         new_data = {
             Field.password_id.key: item.password_id,
-            Field.value.key: request.json["value"],
+            Field.value.key: request.json["value"],  # type: ignore[index]
             Field.name.key: item.name,
         }
         try:
@@ -96,36 +109,29 @@ class FieldModelApi(ModelRestApi):
         self.pre_update(item)
         self.pre_add(new_item)
         try:
-            self.datamodel.add_and_edit(
-                to_add=new_item, to_edit=item, raise_exception=True
-            )
+            self.datamodel.add_and_edit(to_add=new_item, to_edit=item, raise_exception=True)
             self.post_update(item)
             self.post_add(new_item)
             pk = self.datamodel.get_pk_value(new_item)
             response_item = self.datamodel.get(pk, self._base_filters)
             return self.response(
                 201,
-                **{
-                    API_RESULT_RES_KEY: self.show_model_schema.dump(
-                        response_item, many=False
-                    )
-                },
+                **{API_RESULT_RES_KEY: self.show_model_schema.dump(response_item, many=False)},
             )
         except IntegrityError as e:
             return self.response_422(message=str(e.orig))
 
     @override
     def delete_headless(self, pk: str | int) -> Response:
-        """
-        Deletes a resource without returning a response body.
+        """Deletes a resource without returning a response body.
 
         Args:
             pk (str | int): The primary key of the resource to delete.
 
         Returns:
             Response: The response object.
-        """
 
+        """
         item: Field = self.datamodel.get(pk, self._base_filters)
         if not item:  # pylint: disable=consider-using-assignment-expr
             return self.response_404()

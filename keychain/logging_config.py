@@ -5,8 +5,8 @@ from keychain.config.base import Config
 
 
 def setup_logging(config: Config) -> None:
-    """
-    Configures the root logger using the provided configuration.
+    """Configures the root logger using the provided configuration.
+
     Sets the logging level and attaches a stream handler that outputs log messages
     to standard output. The log messages are formatted to include the timestamp,
     log level, and message.
@@ -17,8 +17,8 @@ def setup_logging(config: Config) -> None:
 
     Returns:
         None
-    """
 
+    """
     logger = logging.getLogger()
     logger.setLevel(config.LOG_LEVEL)
 

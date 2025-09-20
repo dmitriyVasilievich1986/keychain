@@ -26,9 +26,7 @@ def upgrade() -> None:
         sa.Column("id", sa.Integer, primary_key=True),
         sa.Column("name", sa.String, unique=True, nullable=False),
         sa.Column("created_at", sa.DateTime, nullable=False, default=datetime.now),
-        sa.Column(
-            "image_url", sa.String(256), nullable=True, default="/static/i/no-photo.png"
-        ),
+        sa.Column("image_url", sa.String(256), nullable=True, default="/static/i/no-photo.png"),
         relationship("fields", cascade="all, delete-orphan", backref="password"),
     )
     op.create_table(

@@ -10,23 +10,21 @@ class PasswordApp(Flask):
     fernet: Fernet
 
     def init_fernet(self) -> None:
-        """
-        Initializes the Fernet encryption object.
+        """Initializes the Fernet encryption object.
+
         This method initializes the Fernet encryption object
         using the secret key specified in the configuration.
         """
-
         self.fernet = Fernet(config.SECRET_KEY)
 
 
 def create_app() -> PasswordApp:
-    """
-    Creates and configures the Flask application.
+    """Creates and configures the Flask application.
 
     Returns:
         PasswordApp: The configured Flask application.
-    """
 
+    """
     from keychain.api import FieldModelApi, PasswordModelApi
     from keychain.views import KeychainIndexView, PasswordView
 
