@@ -6,3 +6,5 @@ __version__ = "1.3.0"
 appbuilder = AppBuilder()
 migrate = Migrate()
 db = SQLA()
+
+__all__ = ["appbuilder", "db", "migrate"]

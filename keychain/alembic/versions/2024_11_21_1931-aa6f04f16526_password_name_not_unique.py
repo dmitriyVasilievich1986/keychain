@@ -24,17 +24,13 @@ def upgrade() -> None:
     session = Session(bind=bind)
 
     with op.batch_alter_table("password", recreate="always") as batch_op:
-        batch_op.add_column(
-            sa.Column("name_temp", sa.String, nullable=True, unique=False)
-        )
+        batch_op.add_column(sa.Column("name_temp", sa.String, nullable=True, unique=False))
 
     session.execute("UPDATE password SET name_temp = name")
 
     with op.batch_alter_table("password", recreate="always") as batch_op:
         batch_op.drop_column("name")
-        batch_op.alter_column(
-            "name_temp", new_column_name="name", nullable=False, unique=False
-        )
+        batch_op.alter_column("name_temp", new_column_name="name", nullable=False, unique=False)
 
 
 def downgrade() -> None:

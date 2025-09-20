@@ -20,13 +20,12 @@ class WebClientCreds(BaseModel):
 
     @property
     def base_url(self) -> str:
-        """
-        Constructs the base URL from the host and port.
+        """Constructs the base URL from the host and port.
 
         Returns:
             str: The base URL in the format 'http://{host}:{port}'.
-        """
 
+        """
         return f"http://{self.host}:{self.port}"
 
 
@@ -35,33 +34,26 @@ class AuthBody(BaseModel):
 
     username: str = Field(..., description="The username for authentication")
     password: str = Field(..., description="The password for authentication")
-    provider: Literal["db"] = Field(
-        "db", description="The authentication provider, default is 'db'", init=False
-    )
+    provider: Literal["db"] = Field("db", description="The authentication provider, default is 'db'", init=False)
 
 
 class AuthResponse(BaseModel):
-    access_token: str = Field(
-        ..., description="The access token received after authentication"
-    )
+    access_token: str = Field(..., description="The access token received after authentication")
     token_type: str = Field("bearer", description="The type of the token", init=False)
 
     @property
     def token(self) -> dict[str, str]:
-        """
-        Returns the token as a dictionary suitable for use in authorization headers.
+        """Returns the token as a dictionary suitable for use in authorization headers.
 
         Returns:
             dict: A dictionary with the authorization header.
-        """
 
+        """
         return {"Authorization": f"{self.token_type.capitalize()} {self.access_token}"}
 
 
 class PasswordResponse(BaseModel, Generic[T]):
-    description_columns: dict[Any, Any] = Field(
-        ..., description="Mapping of description columns"
-    )
+    description_columns: dict[Any, Any] = Field(..., description="Mapping of description columns")
     id: int = Field(..., description="ID of the password entry")
     label_columns: dict[str, str] = Field(..., description="Mapping of label columns")
     result: T = Field(..., description="Password entry data")
@@ -71,9 +63,7 @@ class PasswordResponse(BaseModel, Generic[T]):
 
 class PasswordsListResponse(BaseModel, Generic[T]):
     count: int = Field(..., description="Total number of passwords")
-    description_columns: dict[Any, Any] = Field(
-        ..., description="Mapping of description columns"
-    )
+    description_columns: dict[Any, Any] = Field(..., description="Mapping of description columns")
     ids: list[int] = Field(..., description="List of password IDs")
     label_columns: dict[str, str] = Field(..., description="Mapping of label columns")
     list_columns: list[str] = Field(..., description="List of columns")

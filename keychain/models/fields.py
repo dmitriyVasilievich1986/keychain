@@ -24,6 +24,13 @@ class Field(Model):
     password_id = sa.Column(sa.Integer, sa.ForeignKey("password.id"), nullable=False)
 
     def __init__(self, *, value: str, **kwargs: Any) -> None:
+        """Initializes the field by encrypting the provided value using the application's Fernet encryption.
+
+        Args:
+            value (str): The value to be encrypted and stored in the field.
+            **kwargs (Any): Additional keyword arguments passed to the superclass initializer.
+
+        """
         value = current_app.fernet.encrypt(str(value).encode()).decode()
         super().__init__(value=value, **kwargs)
 
@@ -32,42 +39,37 @@ class Field(Model):
 
         Returns:
             str: A JSON string representation of the object.
-        """
 
+        """
         return self.serialize().model_dump_json()
 
     @property
     def get_value(self) -> str:
-        """
-        Decrypts and decodes the value of the keychain entry.
+        """Decrypts and decodes the value of the keychain entry.
 
         Returns:
             str: The decrypted and decoded value.
-        """
 
+        """
         return current_app.fernet.decrypt(self.value.encode()).decode()
 
     def check(self, value: str) -> bool:
-        """
-        Check if the given value matches the stored value.
+        """Checks if the provided value matches the value returned by `get_value`.
 
-        Parameters:
-            value (str): The value to be checked.
+        Args:
+            value (str): The value to compare.
 
         Returns:
-            bool: True if the given value matches the stored value,
-                False otherwise.
-        """
+            bool: True if the provided value matches the value from `get_value`, False otherwise.
 
+        """
         return self.get_value == value
 
     def serialize(self) -> FieldRepresentation:
-        """
-        Returns a dictionary representation of the model object.
+        """Returns a dictionary representation of the model object.
 
         Returns:
-            FieldRepresentation: A dictionary containing the name, value,
-                is_deleted, and created_at attributes.
-        """
+            FieldRepresentation: A dictionary containing the name, value, is_deleted, and created_at attributes.
 
+        """
         return FieldRepresentation.model_validate(self)

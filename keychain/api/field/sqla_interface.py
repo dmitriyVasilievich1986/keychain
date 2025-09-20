@@ -18,8 +18,7 @@ class FieldSQLAInterface(SQLAInterface):
         raise_exception: bool = False,
         to_add: Field | None = None,
     ) -> bool:
-        """
-        Add and edit a field in the database.
+        """Add and edit a field in the database.
 
         Args:
             to_edit (Field): The field to edit.
@@ -30,8 +29,8 @@ class FieldSQLAInterface(SQLAInterface):
 
         Returns:
             bool: True if the operation is successful, False otherwise.
-        """
 
+        """
         try:
             if to_add is not None:
                 self.session.add(to_add)

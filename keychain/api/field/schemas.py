@@ -13,16 +13,15 @@ class FieldDeleteSchema(Schema):
 
 class PasswordValidator(Validator):  # pylint: disable=too-few-public-methods
     def __call__(self, value: str) -> None:
-        """
-        Validates the given value.
+        """Validates the given value.
 
         Args:
             value (str): The value to validate.
 
         Raises:
             ValidationError: If the value is not valid.
-        """
 
+        """
         password = (
             db.session.query(Password)  # pylint: disable=no-member
             .filter(sa.and_(Password.id == value, Password.user_id == get_user_id()))

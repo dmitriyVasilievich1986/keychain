@@ -19,9 +19,7 @@ class FieldRepresentation(BaseModel):
 class PasswordRepresentation(BaseModel):
     id: int = Field(..., description="The unique identifier of the password")
     name: str = Field(..., description="The name of the password entry")
-    image_url: str = Field(
-        ..., description="The URL of the image associated with the password entry"
-    )
+    image_url: str = Field(..., description="The URL of the image associated with the password entry")
     fields: list[FieldRepresentation] = Field(
         ...,
         description="A list of fields associated with the password entry",
