@@ -1,7 +1,3 @@
-[build-system]
-requires = ["hatchling"]
-build-backend = "hatchling.build"
-
 [project]
 name = "keychain"
 dynamic = ["version"]
@@ -10,93 +6,31 @@ classifiers = [
     "Intended Audience :: Developers",
     "License :: OSI Approved :: MIT License",
     "Programming Language :: Python :: 3",
-    "Programming Language :: Python :: 3.12",
     "Programming Language :: Python :: 3.13",
 ]
+requires-python = ">=3.13"
 
 authors = [{ email = "dmitriyvasil@gmail.com" }]
 maintainers = [{ email = "dmitriyvasil@gmail.com" }]
 description = "Simple keychain service to store and retrieve secrets"
 
-readme = "Readme.md"
+readme = "README.md"
 license = { file = "LICENSE" }
 
-requires-python = ">=3.12"
-dependencies = [
-    "click>=8.0.0",
-    "cryptography>=42.0.4, <43.0.0",
-    "flask>=2.2.5, <3.0.0",
-    "flask-appbuilder>=4.4.1, <5.0.0",
-    "flask-limiter>=3.10.0, <3.11.0",
-    "flask-migrate>=3.1.0, <4.0",
-    "loguru>=0.7.3",
-    "marshmallow>=3.0,<4.0",
-    "pydantic>=2.11.8",
-    "pydantic-settings>=2.10.1",
-    "pydash>=8.0.5",
-    "python-dotenv>=1.0.0",
-    "sqlalchemy>=1.4, <2",
-]
+dependencies = []
 
-[dependency-groups]
-dev = [
-    "mypy>=1.18.1",
-    "pre-commit>=4.3.0",
-    "ruff>=0.13.0",
-    "types-requests>=2.32.4.20250913",
-]
-
-[project.optional-dependencies]
-web-client = ["httpx>=0.28.1"]
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
 
 [tool.hatch.version]
-path = "keychain/__init__.py"
-
-[tool.hatch.build.targets.wheel]
-packages = ["keychain"]
-
-[project.scripts]
-keychain = "keychain.cli:main"
+path = "src/keychain/__init__.py"
 
 [project.urls]
 Homepage = "https://github.com/dmitriyVasilievich1986/keychain"
 
 [tool.ruff]
-# Exclude a variety of commonly ignored directories.
-exclude = [
-    ".bzr",
-    ".direnv",
-    ".eggs",
-    ".git",
-    ".git-rewrite",
-    ".hg",
-    ".ipynb_checkpoints",
-    ".mypy_cache",
-    ".nox",
-    ".pants.d",
-    ".pyenv",
-    ".pytest_cache",
-    ".pytype",
-    ".ruff_cache",
-    ".svn",
-    ".tox",
-    ".venv",
-    ".vscode",
-    "__pypackages__",
-    "_build",
-    "buck-out",
-    "build",
-    "dist",
-    "node_modules",
-    "site-packages",
-    "venv",
-]
-
-# Same as Black.
 line-length = 120
-indent-width = 4
-
-target-version = "py312"
 
 [tool.ruff.format]
 # Like Black, use double quotes for strings.
@@ -129,8 +63,39 @@ docstring-code-line-length = "dynamic"
 # Enable Pyflakes (`F`) and a subset of the pycodestyle (`E`)  codes by default.
 # Unlike Flake8, Ruff doesn't enable pycodestyle warnings (`W`) or
 # McCabe complexity (`C901`) by default.
-select = ["B904", "D", "E4", "E7", "E9", "F"]
-ignore = ["D100", "D101", "D104", "D203", "D213", "D401"]
+select = [
+    "A",     # flake8-builtins (A)
+    "ARG",   # flake8-unused-arguments (ARG)
+    "ASYNC", # flake8-async (ASYNC)
+    "PTH",   # flake8-use-pathlib (PTH)
+    "B",     # flake8-bugbear (B)
+    "E",     # pycodestyle (E, W)
+    "F",     # Pyflakes (F)
+    "N",     # pep8-naming (N)
+    "W",     # pycodestyle (E, W)
+    "RUF",
+    "SLF",   # flake8-self (SLF)
+    "RET",   # flake8-return (RET)
+    "Q",     # flake8-quotes (Q)
+    "T20",   # flake8-print (T20)
+    "COM",   # flake8-commas (COM)
+    "D",     # pydocstyle (D)
+    "FIX",   # flake8-fixme (FIX)
+]
+ignore = [
+    "E712",
+    "RUF001",
+    "N817",
+    "N814",
+    "RUF100",
+    "D100",
+    "D101",
+    "D104",
+    "D401",
+    "D203",
+    "D213",
+    "COM812",
+]
 
 extend-select = ["I"]
 
@@ -141,14 +106,17 @@ unfixable = []
 # Allow unused variables when underscore-prefixed.
 dummy-variable-rgx = "^(_+|(_+[a-zA-Z0-9_]*[a-zA-Z0-9]+?))$"
 
-[tool.ruff.lint.per-file-ignores]
-"keychain/alembic/versions/*" = ["D"]
+[tool.ruff.lint.mccabe]
+max-complexity = 18
+
+[tool.ruff.lint.pycodestyle]
+max-line-length = 120
 
 [tool.ruff.lint.isort]
 case-sensitive = false
 combine-as-imports = true
 force-sort-within-sections = false
-known-first-party = []
+known-first-party = ["cerebra_auth", "cerebra_common"]
 lines-after-imports = -1
 order-by-type = false
 section-order = [
@@ -158,30 +126,4 @@ section-order = [
     "first-party",
     "local-folder",
 ]
-known-third-party = [
-    "alembic",
-    "click",
-    "cryptography",
-    "dotenv",
-    "flask",
-    "flask_appbuilder",
-    "flask_migrate",
-    "marshmallow",
-    "requests",
-    "sqlalchemy",
-    "werkzeug",
-]
-
-[tool.mypy]
-check_untyped_defs = true
-ignore_missing_imports = true
-disallow_any_generics = false
-disallow_untyped_calls = false
-disallow_untyped_defs = false
-no_implicit_optional = false
-warn_unused_ignores = false
-
-[tool.uv.workspace]
-members = [
-    "backend",
-]
+known-third-party = []

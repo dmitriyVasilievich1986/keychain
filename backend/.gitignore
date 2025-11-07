@@ -1,0 +1,9 @@
+keychain.egg-info
+__pycache__
+*.sqlite
+.vscode
+*.pyc
+venv*
+logs
+dist
+.env
