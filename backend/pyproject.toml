@@ -45,6 +45,9 @@ path = "src/keychain/__init__.py"
 [project.urls]
 Homepage = "https://github.com/dmitriyVasilievich1986/keychain"
 
+[project.scripts]
+keychain = "keychain.utils.cli.main:main"
+
 [tool.ruff]
 line-length = 120
 

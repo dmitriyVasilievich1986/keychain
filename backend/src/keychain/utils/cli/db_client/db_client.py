@@ -1,0 +1,30 @@
+"""CLI for managing the database of the Keychain Application."""
+
+__all__ = ["db_client"]
+
+
+import click
+
+from keychain.config import AppConfig
+from keychain.services.daos import UserDAO
+from keychain.services.db_client.client import DBClient
+
+from .user import user
+
+
+@click.group(help="CLI for managing the database of the Keychain Application.")
+@click.pass_context
+def db_client(ctx: click.Context) -> None:
+    """Initialize the database CLI group for the Keychain Application.
+
+    This function serves as the root command group for all database CLI operations.
+    It initializes the application configuration and stores them in the Click
+    context for use by subcommands.
+    """
+    ctx.ensure_object(dict)
+    config = AppConfig.get_or_create()
+    user_dao = UserDAO(DBClient(config))
+    ctx.obj["user_dao"] = user_dao
+
+
+db_client.add_command(user)
