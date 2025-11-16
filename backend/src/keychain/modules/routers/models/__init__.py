@@ -1,6 +1,25 @@
 """Models for all routers."""
 
-from .request import UserCreateRequestModel, UserUpdateRequestModel
-from .response import UserGetResponseModel, UserGetResponseModelSimple
+from .request import (
+    PasswordCreateRequestModel,
+    PasswordUpdateRequestModel,
+    UserCreateRequestModel,
+    UserUpdateRequestModel,
+)
+from .response import (
+    PasswordGetResponseModel,
+    PasswordGetResponseModelSimple,
+    UserGetResponseModel,
+    UserGetResponseModelSimple,
+)
 
-__all__ = ["UserCreateRequestModel", "UserGetResponseModel", "UserGetResponseModelSimple", "UserUpdateRequestModel"]
+__all__ = [
+    "PasswordCreateRequestModel",
+    "PasswordGetResponseModel",
+    "PasswordGetResponseModelSimple",
+    "PasswordUpdateRequestModel",
+    "UserCreateRequestModel",
+    "UserGetResponseModel",
+    "UserGetResponseModelSimple",
+    "UserUpdateRequestModel",
+]
