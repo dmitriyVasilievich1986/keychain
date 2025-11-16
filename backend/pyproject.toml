@@ -18,8 +18,11 @@ readme = "README.md"
 license = { file = "LICENSE" }
 
 dependencies = [
+    "aiosqlite>=0.21.0",
+    "alembic>=1.17.1",
     "click>=8.3.0",
     "fastapi>=0.121.0",
+    "greenlet>=3.2.4",
     "loguru>=0.7.3",
     "pydantic>=2.12.4",
     "pydantic-settings[yaml]>=2.11.0",
