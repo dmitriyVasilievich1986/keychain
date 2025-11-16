@@ -110,4 +110,3 @@ class PasswordDAO(BaseDAO[Password]):
             await session.commit()
             await session.refresh(password)
             return password
-
