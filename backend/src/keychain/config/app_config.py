@@ -5,6 +5,8 @@ __all__ = ["AppConfig"]
 from pydantic import Field
 
 from .base import BaseConfig
+from .cryptography import CryptographyConfig
+from .db import DBConfig
 from .info import AppInfo
 
 
@@ -27,6 +29,7 @@ class AppConfig(BaseConfig):
         "local",
         description="Environment name",
         examples=("local", "dev", "prod"),
-        json_schema_extra={"env_shortcut": "ENV"},
     )
     info: AppInfo = Field(description="Application information")
+    db: DBConfig = Field(description="Database configuration")
+    cryptography: CryptographyConfig = Field(description="Cryptography configuration")
