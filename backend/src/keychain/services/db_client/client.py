@@ -5,6 +5,8 @@ __all__ = ["DBClient"]
 from contextlib import asynccontextmanager
 from typing import AsyncGenerator, Self
 
+from loguru import logger
+from sqlalchemy import text
 from sqlalchemy.ext.asyncio import async_sessionmaker, AsyncEngine, AsyncSession, create_async_engine
 
 from keychain.config import AppConfig
@@ -84,6 +86,9 @@ class DBClient(metaclass=Singleton):
             autoflush=False,
             autocommit=False,
         )
+        logger.info(
+            f"Database client({self.config.db.db_provider}) initialized with url: {self.config.db.sqlalchemy_url}"
+        )
 
     @asynccontextmanager
     async def session(self) -> AsyncGenerator[AsyncSession, None]:
@@ -123,6 +128,21 @@ class DBClient(metaclass=Singleton):
             await self._engine.dispose()
             self._engine = None
             self._session_factory = None
+
+    async def health_check(self) -> bool:
+        """Check the health of the database.
+
+        Returns:
+            True if the database is healthy, False otherwise.
+
+        """
+        try:
+            async with self.session() as session:
+                await session.execute(text("SELECT 1"))
+                return True
+        except Exception as e:
+            logger.error(f"Database health check failed: {e}")
+            return False
 
     async def __aenter__(self) -> Self:
         """Async context manager entry.
