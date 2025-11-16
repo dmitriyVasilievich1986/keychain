@@ -38,7 +38,7 @@ class Password(Base):
     id: Mapped[int] = mapped_column(Integer, primary_key=True)
     name: Mapped[str] = mapped_column(String, nullable=False)
     created_at: Mapped[datetime] = mapped_column(DateTime, nullable=False, default=datetime.now)
-    image_url: Mapped[str] = mapped_column(String, nullable=True, default="/static/i/no-photo.png")
+    image_url: Mapped[str | None] = mapped_column(String, nullable=True, default="/static/i/no-photo.png")
 
     user_id: Mapped[int] = mapped_column(Integer, ForeignKey("user.id"), nullable=False)
     user: Mapped["User"] = relationship("User", back_populates="passwords")
