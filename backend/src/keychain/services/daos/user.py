@@ -77,7 +77,7 @@ class UserDAO(BaseDAO[User]):
             await session.refresh(user)
             return user
 
-    async def update(self, pk: int, name: str | None = None) -> User:
+    async def update(self, pk: int, name: str) -> User:
         """Update an existing user in the database.
 
         Updates the user's name if provided. Only the fields that are not None
@@ -86,7 +86,7 @@ class UserDAO(BaseDAO[User]):
 
         Args:
             pk: The unique identifier of the user to update.
-            name: The new name for the user. If None, the name is not updated.
+            name: The new name for the user.
 
         Returns:
             The updated User object.
@@ -97,8 +97,7 @@ class UserDAO(BaseDAO[User]):
         """
         async with self.db_client.session() as session:
             user = await self._get_by_id_with_session(session, pk)
-            if name is not None:
-                user.name = name
+            user.name = name
 
             await session.commit()
             await session.refresh(user)
