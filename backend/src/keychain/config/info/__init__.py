@@ -22,9 +22,7 @@ class AppInfo(BaseModel):
 
     """
 
-    name: str = Field(
-        default="keychain", description="Application name", json_schema_extra={"env_shortcut": "APP_NAME"}
-    )
-    version: str = Field(
-        default=__version__, description="Application version", json_schema_extra={"env_shortcut": "APP_VERSION"}
-    )
+    name: str = Field(default="keychain", description="Application name")
+    version: str = Field(default=__version__, description="Application version")
+    description: str = Field(default="Keychain Application", description="Application description")
+    debug: bool = Field(default=False, description="Debug mode")
