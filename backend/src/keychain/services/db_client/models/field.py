@@ -39,7 +39,6 @@ class Field(Base):
     name: Mapped[str] = mapped_column(String, nullable=False)
     value: Mapped[str] = mapped_column(String, nullable=False)
     created_at: Mapped[datetime] = mapped_column(DateTime, nullable=False, default=datetime.now)
-    updated_at: Mapped[datetime] = mapped_column(DateTime, nullable=False, default=datetime.now)
     is_deleted: Mapped[bool] = mapped_column(Boolean, nullable=False, default=False)
 
     password_id: Mapped[int] = mapped_column(Integer, ForeignKey("password.id"), nullable=False)
