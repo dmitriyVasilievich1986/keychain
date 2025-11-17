@@ -74,8 +74,7 @@ class UserDAO(BaseDAO[User]):
             user = User(name=name, password=password)
             session.add(user)
             await session.commit()
-            await session.refresh(user)
-            return user
+            return await self._get_by_id_with_session(session, user.id)
 
     async def update(self, pk: int, name: str) -> User:
         """Update an existing user in the database.
@@ -100,8 +99,7 @@ class UserDAO(BaseDAO[User]):
             user.name = name
 
             await session.commit()
-            await session.refresh(user)
-            return user
+            return await self._get_by_id_with_session(session, user.id)
 
     async def verify_password(self, pk: int, password: str) -> bool:
         """Verify the password for a user.
@@ -132,5 +130,4 @@ class UserDAO(BaseDAO[User]):
             user = await self._get_by_id_with_session(session, pk)
             user.password_hash = generate_password_hash(password)
             await session.commit()
-            await session.refresh(user)
-            return user
+            return await self._get_by_id_with_session(session, user.id)
