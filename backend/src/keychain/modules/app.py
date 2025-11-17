@@ -13,6 +13,7 @@ from loguru import logger
 from keychain.config import AppConfig
 from keychain.modules.middlewares import lifespan
 from keychain.modules.routers.api import router as api_router
+from keychain.modules.routers.system import router as system_router
 
 
 def get_app(config: AppConfig | None = None) -> FastAPI:
@@ -45,6 +46,7 @@ def get_app(config: AppConfig | None = None) -> FastAPI:
 
     app_router = APIRouter()
     app_router.include_router(api_router)
+    app_router.include_router(system_router)
 
     app.include_router(app_router)
 
