@@ -77,8 +77,7 @@ class FieldDAO(BaseDAO[Field]):
             )
             session.add(field)
             await session.commit()
-            await session.refresh(field)
-            return field
+            return await self._get_by_id_with_session(session, field.id)
 
     async def update(self, pk: int, value: str) -> Field:
         """Update an existing field in the database.
@@ -106,8 +105,7 @@ class FieldDAO(BaseDAO[Field]):
             session.add(new_field)
 
             await session.commit()
-            await session.refresh(new_field)
-            return new_field
+            return await self._get_by_id_with_session(session, new_field.id)
 
     async def delete(self, pk: int) -> None:
         """Delete a field from the database by its PK.
