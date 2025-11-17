@@ -145,4 +145,18 @@ section-order = [
     "first-party",
     "local-folder",
 ]
-known-third-party = []
+known-third-party = [
+    "aiosqlite",
+    "alembic",
+    "click",
+    "colorama",
+    "cryptography",
+    "fastapi",
+    "greenlet",
+    "loguru",
+    "pydantic",
+    "pydantic_settings",
+    "ruff",
+    "uvicorn",
+    "werkzeug",
+]
