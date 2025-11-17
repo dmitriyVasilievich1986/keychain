@@ -8,6 +8,8 @@ from typing import TYPE_CHECKING
 from sqlalchemy import Boolean, DateTime, ForeignKey, Integer, String
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
+from keychain.services.cryptography.client import CryptographyClient
+
 from .base import Base
 
 if TYPE_CHECKING:
@@ -30,6 +32,7 @@ class Field(Base):
         is_deleted: Whether the field has been deleted.
         password_id: The unique identifier for the password that the field belongs to.
         password: The password that the field belongs to.
+        value_decrypted: The decrypted value of the field.
 
     """
 
@@ -43,3 +46,32 @@ class Field(Base):
 
     password_id: Mapped[int] = mapped_column(Integer, ForeignKey("password.id"), nullable=False)
     password: Mapped["Password"] = relationship("Password", back_populates="fields")
+
+    def __init__(self, value: str, *args, **kwargs):
+        """Initialize a new Field instance.
+
+        Creates a new field with the provided value. The value is immediately
+        encrypted using the CryptographyClient before being stored in the
+        value attribute.
+
+        Args:
+            value: The plaintext value that will be encrypted and stored.
+            *args: Additional positional arguments passed to the parent class.
+            **kwargs: Additional keyword arguments passed to the parent class.
+
+        """
+        super().__init__(*args, **kwargs)
+        self.value = CryptographyClient().encrypt(value)
+
+    @property
+    def value_decrypted(self) -> str:
+        """Get the decrypted value of the field.
+
+        This property decrypts the stored encrypted value using the
+        CryptographyClient and returns the plaintext value.
+
+        Returns:
+            The decrypted plaintext value of the field.
+
+        """
+        return CryptographyClient().decrypt(self.value)
