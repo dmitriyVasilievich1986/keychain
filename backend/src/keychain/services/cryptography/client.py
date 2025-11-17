@@ -3,9 +3,10 @@
 from cryptography.fernet import Fernet
 
 from keychain.config import AppConfig
+from keychain.utils import Singleton
 
 
-class CryptographyClient:
+class CryptographyClient(metaclass=Singleton):
     """Client for performing encryption and decryption operations.
 
     This class provides a wrapper around the Fernet symmetric encryption

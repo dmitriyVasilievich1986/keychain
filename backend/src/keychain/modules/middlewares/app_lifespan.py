@@ -8,6 +8,7 @@ from fastapi import FastAPI
 from loguru import logger
 
 from keychain.config import AppConfig
+from keychain.services.cryptography.client import CryptographyClient
 from keychain.services.db_client.client import DBClient
 
 
@@ -37,6 +38,9 @@ async def lifespan(
     db_client = DBClient(app_config)
     await db_client.initialize()
     logger.info("Database client initialized successfully.")
+
+    CryptographyClient(config=app_config)
+    logger.info("Cryptography client initialized successfully.")
 
     yield
 
