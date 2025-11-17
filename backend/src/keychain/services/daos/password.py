@@ -80,8 +80,7 @@ class PasswordDAO(BaseDAO[Password]):
             )
             session.add(password)
             await session.commit()
-            await session.refresh(password)
-            return password
+            return await self._get_by_id_with_session(session, password.id)
 
     async def update(self, pk: int, name: str, image_url: str | None = None) -> Password:
         """Update an existing password in the database.
@@ -108,5 +107,4 @@ class PasswordDAO(BaseDAO[Password]):
             password.image_url = image_url
 
             await session.commit()
-            await session.refresh(password)
-            return password
+            return await self._get_by_id_with_session(session, password.id)
