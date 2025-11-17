@@ -9,19 +9,24 @@ from .request import (
     UserUpdateRequestModel,
 )
 from .response import (
+    ErrorResponse,
     FieldGetResponseModel,
     FieldGetResponseModelSimple,
+    HealthResponse,
     PasswordGetResponseModel,
     PasswordGetResponseModelSimple,
     UserGetResponseModel,
     UserGetResponseModelSimple,
+    VersionResponse,
 )
 
 __all__ = [
+    "ErrorResponse",
     "FieldCreateRequestModel",
     "FieldGetResponseModel",
     "FieldGetResponseModelSimple",
     "FieldUpdateRequestModel",
+    "HealthResponse",
     "PasswordCreateRequestModel",
     "PasswordGetResponseModel",
     "PasswordGetResponseModelSimple",
@@ -30,4 +35,5 @@ __all__ = [
     "UserGetResponseModel",
     "UserGetResponseModelSimple",
     "UserUpdateRequestModel",
+    "VersionResponse",
 ]
