@@ -11,4 +11,4 @@ class PasswordUpdateRequestModel(BaseRequestModel):
     """Password update request model."""
 
     name: str = Field(..., description="The name of the password", min_length=1)
-    image_url: str | None = Field(None, description="The URL of the image associated with the password")
+    image_url: str | None = Field(..., description="The URL of the image associated with the password")
