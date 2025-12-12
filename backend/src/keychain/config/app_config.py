@@ -4,6 +4,7 @@ __all__ = ["AppConfig"]
 
 from pydantic import Field
 
+from .auth import AuthConfig
 from .base import BaseConfig
 from .cryptography import CryptographyConfig
 from .db import DBConfig
@@ -33,3 +34,4 @@ class AppConfig(BaseConfig):
     info: AppInfo = Field(description="Application information")
     db: DBConfig = Field(description="Database configuration")
     cryptography: CryptographyConfig = Field(description="Cryptography configuration")
+    auth: AuthConfig = Field(description="Authentication configuration")
