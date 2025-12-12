@@ -7,6 +7,7 @@ from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import selectinload
 
+from keychain.services.db_client.client import DBClient
 from keychain.services.db_client.models.password import Password
 
 from .base import BaseDAO
@@ -20,6 +21,17 @@ class PasswordDAO(BaseDAO[Password]):
     DBClient to manage database sessions and transactions.
     """
 
+    def __init__(self, db_client: DBClient, user_id: int):
+        """Initialize the BaseDAO with a database client.
+
+        Args:
+            db_client: The database client instance used to create sessions.
+            user_id: The unique identifier of the user who owns the passwords.
+
+        """
+        self.db_client = db_client
+        self.user_id = user_id
+
     async def get_all(self) -> list[Password]:
         """Retrieve all passwords from the database.
 
@@ -28,7 +40,9 @@ class PasswordDAO(BaseDAO[Password]):
 
         """
         async with self.db_client.session() as session:
-            passwords = await session.execute(select(Password.id, Password.name))
+            passwords = await session.execute(
+                select(Password.id, Password.name).where(Password.user_id == self.user_id)
+            )
             return passwords.all()
 
     async def _get_by_id_with_session(self, session: AsyncSession, pk: int) -> Password:
@@ -52,6 +66,10 @@ class PasswordDAO(BaseDAO[Password]):
         if password is None:
             logger.error(f"Password with id '{pk}' not found")
             raise ValueError(f"Password with id '{pk}' not found")
+
+        if password.user_id != self.user_id:
+            logger.error(f"Password with id '{pk}' does not belong to user '{self.user_id}'")
+            raise ValueError(f"Password with id '{pk}' does not belong to this user")
 
         return password
 
