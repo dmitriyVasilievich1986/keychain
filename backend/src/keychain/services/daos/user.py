@@ -54,6 +54,24 @@ class UserDAO(BaseDAO[User]):
 
         return user
 
+    async def get_by_username(self, username: str) -> User:
+        """Retrieve a user by username.
+
+        Args:
+            username: The username of the user to retrieve.
+
+        Returns:
+            The User object with associated passwords loaded, if found.
+
+        """
+        async with self.db_client.session() as session:
+            user = await session.execute(select(User).where(User.name == username))
+            user = user.scalar_one_or_none()
+            if user is None:
+                logger.error(f"User with username '{username}' not found")
+                raise ValueError(f"User with username '{username}' not found")
+            return user
+
     async def create(self, name: str, password: str) -> User:
         """Create a new user in the database.
 
