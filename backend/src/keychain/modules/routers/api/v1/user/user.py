@@ -14,7 +14,6 @@ from loguru import logger
 from keychain.config import AppConfig
 from keychain.modules.middlewares.dependencies import authorize_user, get_db
 from keychain.modules.routers.models.request.user import (
-    UserCreateRequestModel,
     UserUpdateRequestModel,
 )
 from keychain.modules.routers.models.response.user import UserGetResponseModel
@@ -52,35 +51,6 @@ async def get_user(
         raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail=str(e)) from e
 
     return UserGetResponseModel.model_validate(user)
-
-
-@router.post("", response_model=UserGetResponseModel, description="Create a new user")
-async def create_user(
-    user_model: UserCreateRequestModel, db: Annotated[DBClient, Depends(get_db)]
-) -> UserGetResponseModel:
-    """Create a new user in the database.
-
-    Args:
-        user_model: UserCreateRequestModel containing the user's name and password.
-        db: Database client dependency for database operations.
-
-    Returns:
-        A UserGetResponseModel object representing the newly created user.
-
-    Raises:
-        HTTPException: If a user with the same name already exists or validation fails.
-
-    """
-    user_dao = UserDAO(db)
-    try:
-        new_user = await user_dao.create(user_model.name, user_model.password)
-    except ValueError as e:
-        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(e)) from e
-    except Exception as e:
-        logger.error(f"Error creating user: {e}")
-        raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail=str(e)) from e
-
-    return UserGetResponseModel.model_validate(new_user)
 
 
 @router.put("", response_model=UserGetResponseModel, description="Update a user by ID")
