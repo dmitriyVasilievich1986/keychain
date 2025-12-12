@@ -7,7 +7,9 @@ from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import selectinload
 
+from keychain.services.db_client.client import DBClient
 from keychain.services.db_client.models.field import Field
+from keychain.services.db_client.models.password import Password
 
 from .base import BaseDAO
 
@@ -20,6 +22,17 @@ class FieldDAO(BaseDAO[Field]):
     DBClient to manage database sessions and transactions.
     """
 
+    def __init__(self, db_client: DBClient, user_id: int):
+        """Initialize the BaseDAO with a database client.
+
+        Args:
+            db_client: The database client instance used to create sessions.
+            user_id: The unique identifier of the user who owns the fields.
+
+        """
+        self.db_client = db_client
+        self.user_id = user_id
+
     async def get_all(self) -> list[Field]:
         """Retrieve all fields from the database.
 
@@ -28,7 +41,9 @@ class FieldDAO(BaseDAO[Field]):
 
         """
         async with self.db_client.session() as session:
-            fields = await session.execute(select(Field.id, Field.name, Field.is_deleted))
+            fields = await session.execute(
+                select(Field.id, Field.name, Field.is_deleted).join(Password).where(Password.user_id == self.user_id)
+            )
             return fields.all()
 
     async def _get_by_id_with_session(self, session: AsyncSession, pk: int) -> Field:
@@ -50,6 +65,10 @@ class FieldDAO(BaseDAO[Field]):
         if field is None:
             logger.error(f"Field with id '{pk}' not found")
             raise ValueError(f"Field with id '{pk}' not found")
+
+        if field.password.user_id != self.user_id:
+            logger.error(f"Field with id '{pk}' does not belong to user '{self.user_id}'")
+            raise ValueError(f"Field with id '{pk}' does not belong to this user's password")
 
         return field
 
