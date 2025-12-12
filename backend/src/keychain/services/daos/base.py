@@ -23,7 +23,7 @@ class BaseDAO(ABC, Generic[T]):
     operations for their specific entity types.
     """
 
-    def __init__(self, db_client: DBClient):
+    def __init__(self, db_client: DBClient, **_: Any):
         """Initialize the BaseDAO with a database client.
 
         Args:
