@@ -11,7 +11,7 @@ from typing import Annotated, Any, Callable, Coroutine
 
 from fastapi import Depends, HTTPException
 from fastapi.security import HTTPAuthorizationCredentials, HTTPBearer
-from loguru import logger
+from jwt.exceptions import ExpiredSignatureError, InvalidTokenError
 
 from keychain.config import AppConfig
 from keychain.services.auth.client import AuthClient
@@ -70,13 +70,12 @@ def authorize_user(
             result = auth_service.decode_token(token=token_header.credentials)
         except ValueError as e:
             raise HTTPException(status_code=401, detail=str(e)) from e
+        except (ExpiredSignatureError, InvalidTokenError) as e:
+            raise HTTPException(status_code=401, detail=str(e)) from e
 
         try:
             return await UserDAO(db_client).get_by_id(pk=result.user_id)
         except ValueError as e:
             raise HTTPException(status_code=401, detail=str(e)) from e
-        except Exception as e:
-            logger.error(f"Error authorizing user: {e}")
-            raise HTTPException(status_code=500, detail=str(e)) from e
 
     return _authorize_user
