@@ -2,12 +2,13 @@ import AppBar from '@mui/material/AppBar';
 import Container from '@mui/material/Container';
 import Toolbar from '@mui/material/Toolbar';
 import Typography from '@mui/material/Typography';
+import axios from 'axios';
 import classnames from 'classnames/bind';
+import { useEffect } from 'react';
+
 import { useUserStore, type User } from '@store/user';
 
 import * as defaultStyle from './style.scss';
-import { useEffect } from 'react';
-import axios from 'axios';
 
 const cx = classnames.bind(defaultStyle);
 
