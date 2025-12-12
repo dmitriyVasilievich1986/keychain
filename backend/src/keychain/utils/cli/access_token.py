@@ -34,7 +34,7 @@ def generate_access_token(ctx: click.Context, user_id: str) -> None:
     """
     auth_client: AuthClient = ctx.obj["auth_client"]
     access_token = auth_client.encode_token(user_id)
-    click.echo(access_token)
+    click.echo(access_token.model_dump_json(indent=2))
 
 
 @access_token.command(help="Decode an access token")
@@ -47,4 +47,4 @@ def decode_access_token(ctx: click.Context, token: str) -> None:
     """
     auth_client: AuthClient = ctx.obj["auth_client"]
     payload = auth_client.decode_token(token)
-    click.echo(payload)
+    click.echo(payload.model_dump_json(indent=2))
