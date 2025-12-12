@@ -8,7 +8,7 @@ __all__ = ["router"]
 
 from typing import Annotated
 
-from fastapi import APIRouter, Depends, HTTPException, status
+from fastapi import APIRouter, Depends, HTTPException, Path, status
 from loguru import logger
 
 from keychain.config import AppConfig
@@ -19,7 +19,7 @@ from keychain.services.daos.field import FieldDAO
 from keychain.services.db_client.client import DBClient
 from keychain.services.db_client.models.user import User
 
-router = APIRouter(prefix="/field", tags=["field"])
+router = APIRouter(prefix="/field", tags=["Fields Management"])
 
 
 @router.get("", response_model=list[FieldGetResponseModelSimple], description="Get all fields")
@@ -43,12 +43,14 @@ async def get_fields(
 
 @router.get("/{field_id}", response_model=FieldGetResponseModel, description="Get a field by ID")
 async def get_field(
-    field_id: int, db: Annotated[DBClient, Depends(get_db)], user: Annotated[User, Depends(authorize_user(AppConfig))]
+    field_id: Annotated[int, Path(description="The unique identifier of the field to retrieve")],
+    db: Annotated[DBClient, Depends(get_db)],
+    user: Annotated[User, Depends(authorize_user(AppConfig))],
 ) -> FieldGetResponseModel:
     """Retrieve a specific field by its ID.
 
     Args:
-        field_id: The unique identifier of the field to retrieve.
+        field_id: The unique identifier of the field to retrieve passed as a path parameter.
         db: Database client dependency for database operations.
         user: User dependency for the authenticated user.
 
@@ -107,7 +109,7 @@ async def create_field(
 
 @router.put("/{field_id}", response_model=FieldGetResponseModel, description="Update a field by ID")
 async def update_field(
-    field_id: int,
+    field_id: Annotated[int, Path(description="The unique identifier of the field to update")],
     field: FieldUpdateRequestModel,
     db: Annotated[DBClient, Depends(get_db)],
     user: Annotated[User, Depends(authorize_user(AppConfig))],
@@ -115,7 +117,7 @@ async def update_field(
     """Update an existing field's information.
 
     Args:
-        field_id: The unique identifier of the field to update.
+        field_id: The unique identifier of the field to update passed as a path parameter.
         field: FieldUpdateRequestModel containing the updated field information.
         db: Database client dependency for database operations.
         user: User dependency for the authenticated user.
@@ -141,12 +143,14 @@ async def update_field(
 
 @router.delete("/{field_id}", status_code=status.HTTP_204_NO_CONTENT, description="Delete a field by ID")
 async def delete_field(
-    field_id: int, db: Annotated[DBClient, Depends(get_db)], user: Annotated[User, Depends(authorize_user(AppConfig))]
+    field_id: Annotated[int, Path(description="The unique identifier of the field to delete")],
+    db: Annotated[DBClient, Depends(get_db)],
+    user: Annotated[User, Depends(authorize_user(AppConfig))],
 ) -> None:
     """Delete a field from the database.
 
     Args:
-        field_id: The unique identifier of the field to delete.
+        field_id: The unique identifier of the field to delete passed as a path parameter.
         db: Database client dependency for database operations.
         user: User dependency for the authenticated user.
 
