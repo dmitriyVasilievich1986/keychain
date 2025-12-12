@@ -8,7 +8,7 @@ __all__ = ["router"]
 
 from typing import Annotated
 
-from fastapi import APIRouter, Depends, HTTPException, status
+from fastapi import APIRouter, Depends, HTTPException, Path, status
 from loguru import logger
 
 from keychain.config import AppConfig
@@ -19,7 +19,7 @@ from keychain.services.daos.password import PasswordDAO
 from keychain.services.db_client.client import DBClient
 from keychain.services.db_client.models.user import User
 
-router = APIRouter(prefix="/password", tags=["password"])
+router = APIRouter(prefix="/password", tags=["Passwords Management"])
 
 
 @router.get("", response_model=list[PasswordGetResponseModelSimple], description="Get all passwords")
@@ -43,14 +43,14 @@ async def get_passwords(
 
 @router.get("/{password_id}", response_model=PasswordGetResponseModel, description="Get a password by ID")
 async def get_password(
-    password_id: int,
+    password_id: Annotated[int, Path(description="The unique identifier of the password to retrieve")],
     db: Annotated[DBClient, Depends(get_db)],
     user: Annotated[User, Depends(authorize_user(AppConfig))],
 ) -> PasswordGetResponseModel:
     """Retrieve a specific password by its ID.
 
     Args:
-        password_id: The unique identifier of the password to retrieve.
+        password_id: The unique identifier of the password to retrieve passed as a path parameter.
         db: Database client dependency for database operations.
         user: User dependency for the authenticated user.
 
@@ -107,7 +107,7 @@ async def create_password(
 
 @router.put("/{password_id}", response_model=PasswordGetResponseModel, description="Update a password by ID")
 async def update_password(
-    password_id: int,
+    password_id: Annotated[int, Path(description="The unique identifier of the password to update")],
     password: PasswordUpdateRequestModel,
     db: Annotated[DBClient, Depends(get_db)],
     user: Annotated[User, Depends(authorize_user(AppConfig))],
@@ -115,7 +115,7 @@ async def update_password(
     """Update an existing password's information.
 
     Args:
-        password_id: The unique identifier of the password to update.
+        password_id: The unique identifier of the password to update passed as a path parameter.
         password: PasswordUpdateRequestModel containing the updated password information.
         db: Database client dependency for database operations.
         user: User dependency for the authenticated user.
@@ -141,14 +141,14 @@ async def update_password(
 
 @router.delete("/{password_id}", status_code=status.HTTP_204_NO_CONTENT, description="Delete a password by ID")
 async def delete_password(
-    password_id: int,
+    password_id: Annotated[int, Path(description="The unique identifier of the password to delete")],
     db: Annotated[DBClient, Depends(get_db)],
     user: Annotated[User, Depends(authorize_user(AppConfig))],
 ) -> None:
     """Delete a password from the database.
 
     Args:
-        password_id: The unique identifier of the password to delete.
+        password_id: The unique identifier of the password to delete passed as a path parameter.
         db: Database client dependency for database operations.
         user: User dependency for the authenticated user.
 
