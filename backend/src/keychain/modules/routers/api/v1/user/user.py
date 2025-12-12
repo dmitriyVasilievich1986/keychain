@@ -13,13 +13,16 @@ from loguru import logger
 
 from keychain.config import AppConfig
 from keychain.modules.middlewares.dependencies import authorize_user, get_db
-from keychain.modules.routers.models.request.user import UserCreateRequestModel, UserUpdateRequestModel
+from keychain.modules.routers.models.request.user import (
+    UserCreateRequestModel,
+    UserUpdateRequestModel,
+)
 from keychain.modules.routers.models.response.user import UserGetResponseModel
 from keychain.services.daos.user import UserDAO
 from keychain.services.db_client.client import DBClient
 from keychain.services.db_client.models.user import User
 
-router = APIRouter(prefix="/user", tags=["User Management"])
+router = APIRouter(prefix="/user")
 
 
 @router.get("/me", response_model=UserGetResponseModel, description="Get the current user")

@@ -3,9 +3,10 @@
 from .field import FieldGetResponseModel, FieldGetResponseModelSimple
 from .password import PasswordGetResponseModel, PasswordGetResponseModelSimple
 from .system import ErrorResponse, HealthResponse, VersionResponse
-from .user import UserGetResponseModel, UserGetResponseModelSimple
+from .user import AccessTokenResponseModel, UserGetResponseModel, UserGetResponseModelSimple
 
 __all__ = [
+    "AccessTokenResponseModel",
     "ErrorResponse",
     "FieldGetResponseModel",
     "FieldGetResponseModelSimple",
