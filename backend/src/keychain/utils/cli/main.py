@@ -3,6 +3,7 @@ import uvicorn
 
 from keychain.config import AppConfig
 
+from .access_token import access_token
 from .cryptography import cryptography
 from .db import db
 from .db_client import db_client
@@ -99,3 +100,4 @@ def run(host: str, port: int, reload: bool) -> None:
 main.add_command(db)
 main.add_command(db_client)
 main.add_command(cryptography)
+main.add_command(access_token)
