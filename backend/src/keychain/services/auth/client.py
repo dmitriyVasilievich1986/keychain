@@ -7,6 +7,8 @@ from jwt import decode, encode
 from keychain.config import AppConfig
 from keychain.utils import Singleton
 
+from .models import DecodedToken, EncodedToken
+
 
 class AuthClient(metaclass=Singleton):
     """Client for performing JWT token operations.
@@ -34,7 +36,7 @@ class AuthClient(metaclass=Singleton):
         self.algorithm = config.auth.algorithm
         self.access_token_expire_minutes = config.auth.access_token_expire_minutes
 
-    def encode_token(self, sub: str, exp: datetime | None = None) -> str:
+    def encode_token(self, sub: str, exp: datetime | None = None) -> EncodedToken:
         """Encode a JWT token with the given subject and optional expiration.
 
         Takes a subject (typically a user identifier) and optional expiration time,
@@ -47,7 +49,7 @@ class AuthClient(metaclass=Singleton):
                 based on access_token_expire_minutes from configuration.
 
         Returns:
-            The encoded JWT token as a string.
+            EncodedToken model containing the encoded token payload.
 
         """
         # Build the payload
@@ -56,12 +58,13 @@ class AuthClient(metaclass=Singleton):
         # Add expiration time
         if exp is None:
             exp = datetime.now(timezone.utc) + timedelta(minutes=self.access_token_expire_minutes)
-        payload["exp"] = exp
 
         # Encode the token
-        return encode(payload, self.secret_key, algorithm=self.algorithm)
+        return EncodedToken(
+            access_token=encode(payload | {"exp": exp}, self.secret_key, algorithm=self.algorithm), expires_at=exp
+        )
 
-    def decode_token(self, token: str) -> dict:
+    def decode_token(self, token: str) -> DecodedToken:
         """Decode and validate a JWT token.
 
         Takes a JWT token string, validates it, and returns the decoded payload.
@@ -70,13 +73,18 @@ class AuthClient(metaclass=Singleton):
             token: The JWT token string to decode.
 
         Returns:
-            Dictionary containing the decoded token payload.
+            DecodedToken model containing the decoded token payload.
 
         Raises:
             jwt.ExpiredSignatureError: If the token has expired.
             jwt.InvalidTokenError: If the token is invalid or malformed.
 
         """
-        return decode(
-            token, self.secret_key, algorithms=[self.algorithm], options={"verify_signature": True, "verify_exp": True}
+        return DecodedToken.model_validate(
+            decode(
+                token,
+                self.secret_key,
+                algorithms=[self.algorithm],
+                options={"verify_signature": True, "verify_exp": True},
+            )
         )
