@@ -1,5 +1,6 @@
 keychain.egg-info
 __pycache__
+static/js
 *.sqlite
 .vscode
 *.pyc
