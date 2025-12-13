@@ -1,3 +1,4 @@
 import { Login } from './login';
+import { Password } from './password';
 
-export { Login };
+export { Login, Password };
