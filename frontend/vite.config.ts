@@ -13,4 +13,15 @@ export default defineConfig({
       '@assets': resolve(__dirname, './src/assets'),
     },
   },
+  build: {
+    outDir: '../static',
+    emptyOutDir: false,
+    rollupOptions: {
+      output: {
+        assetFileNames: 'assets/[name]-[hash][extname]',
+        chunkFileNames: 'assets/[name]-[hash].js',
+        entryFileNames: 'assets/[name]-[hash].js',
+      },
+    },
+  },
 });
