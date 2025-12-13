@@ -1,11 +1,10 @@
 import './App.css';
 import { Login } from '@pages/login';
-import { Routes, Route } from 'react-router';
+import { Password } from '@pages/password';
+import { Routes, Route, Navigate } from 'react-router';
 
+import { Navbar } from '@components/navbar';
 import { ProtectedRoute } from '@components/protectedRoute';
-
-import { Navbar } from './components/navbar';
-
 
 function App() {
   return (
@@ -13,11 +12,20 @@ function App() {
       <Navbar />
       <Routes>
         <Route path="/login" element={<Login />} />
+        <Route path="/" element={<Navigate to="/password" replace />} />
         <Route
-          path="/"
+          path="/password"
           element={
             <ProtectedRoute>
-              <p>Hello World</p>
+              <Password />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/password/:passwordId"
+          element={
+            <ProtectedRoute>
+              <Password />
             </ProtectedRoute>
           }
         />
