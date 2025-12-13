@@ -38,7 +38,7 @@ async def get_passwords(
     """
     password_dao = PasswordDAO(db, user.id)
     passwords = await password_dao.get_all()
-    return [PasswordGetResponseModelSimple.model_validate({"id": pwd.id, "name": pwd.name}) for pwd in passwords]
+    return [PasswordGetResponseModelSimple.model_validate(pwd) for pwd in passwords]
 
 
 @router.get("/{password_id}", response_model=PasswordGetResponseModel, description="Get a password by ID")
