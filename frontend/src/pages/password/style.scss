@@ -1,0 +1,36 @@
+.passwords-list-container {
+  width: 100%;
+  display: flex;
+  justify-content: center;
+
+  .passwords-list-autocomplete-container {
+    width: 100%;
+    padding: 1rem;
+  }
+}
+
+.passwords-list-autocomplete-option {
+  display: flex;
+  align-items: center;
+  transition: all 0.3s ease;
+
+  &:hover {
+    color: #000;
+    background-color: #ccc;
+    padding-left: 5px;
+    cursor: pointer;
+  }
+
+  .passwords-list-autocomplete-option-link {
+    display: flex;
+    align-items: center;
+    text-decoration: none;
+    color: #000;
+
+    img {
+      margin-right: 10px;
+      width: 20px;
+      height: 20px;
+    }
+  }
+}

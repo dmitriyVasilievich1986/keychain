@@ -1,0 +1,16 @@
+info:
+  name: keychain
+  debug: true
+  description: Keychain Application to store and retrieve secrets
+
+db:
+  alembic_ini_path: src/keychain/services/alembic/alembic.ini
+  db_provider: sqlite
+  db_uri: ./keychain.sqlite
+
+cryptography:
+  pass: ignore
+
+auth:
+  algorithm: HS256
+  access_token_expire_minutes: 30

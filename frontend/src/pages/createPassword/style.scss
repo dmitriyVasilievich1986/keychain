@@ -1,0 +1,12 @@
+.create-password-container {
+  width: 100%;
+  display: flex;
+  justify-content: center;
+
+  .create-password-paper {
+    padding: 0.5rem;
+    width: 100vw;
+    max-width: 400px;
+    margin-top: 4rem;
+  }
+}

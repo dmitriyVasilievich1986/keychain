@@ -1,0 +1,81 @@
+"""Change 'Field' value field data type.
+
+This migration modifies the 'field' table to:
+- Change the 'value' column data type from BINARY to String
+- Make the 'password_id' column non-nullable (after cleaning up null values)
+
+Revision ID: 56fda1ef4adc
+Revises: 85a3c034b32b
+Create Date: 2024-11-16 20:17:06.978705
+
+"""
+
+from collections.abc import Sequence
+
+import sqlalchemy as sa
+from alembic import op
+from sqlalchemy.orm import DeclarativeBase, Session
+
+# revision identifiers, used by Alembic.
+revision: str = "56fda1ef4adc"
+down_revision: str | None = "85a3c034b32b"
+branch_labels: str | Sequence[str] | None = None
+depends_on: str | Sequence[str] | None = None
+
+
+class Base(DeclarativeBase):
+    """Base class for SQLAlchemy declarative models.
+
+    Used to define the Field model for querying during migration.
+    """
+
+    pass
+
+
+class Field(Base):
+    """Temporary model for the 'field' table.
+
+    Used during migration to query and delete records with null password_id
+    before making the column non-nullable.
+
+    Attributes:
+        id: Primary key identifier for the field
+        password_id: Foreign key reference to the password table
+
+    """
+
+    __tablename__ = "field"
+
+    id: int = sa.Column(sa.Integer, primary_key=True)
+    password_id: int | None = sa.Column(sa.Integer, nullable=False)
+
+
+def upgrade() -> None:
+    """Upgrade the database schema.
+
+    Performs the following operations:
+    1. Deletes all field records with null password_id values
+    2. Changes the 'value' column data type from BINARY to String
+    3. Makes the 'password_id' column non-nullable
+    """
+    bind = op.get_bind()
+    session = Session(bind=bind)
+    session.query(Field).filter(Field.password_id is None).delete()
+
+    with op.batch_alter_table("field", recreate="always") as batch_op:
+        batch_op.alter_column("value", type_=sa.String, existing_type=sa.BINARY)
+        batch_op.alter_column("password_id", nullable=False, existing_nullable=True)
+
+
+def downgrade() -> None:
+    """Downgrade the database schema.
+
+    Reverses the upgrade changes:
+    1. Changes the 'value' column data type back from String to BINARY
+    2. Makes the 'password_id' column nullable again
+
+    Note: This does not restore deleted records with null password_id values.
+    """
+    with op.batch_alter_table("field", recreate="always") as batch_op:
+        batch_op.alter_column("value", type_=sa.BINARY, existing_type=sa.String)
+        batch_op.alter_column("password_id", nullable=True, existing_nullable=False)
