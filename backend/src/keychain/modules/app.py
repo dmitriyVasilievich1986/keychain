@@ -8,6 +8,7 @@ routers, middleware, and lifecycle management.
 __all__ = ["get_app"]
 
 from fastapi import APIRouter, FastAPI
+from fastapi.middleware.cors import CORSMiddleware
 from loguru import logger
 
 from keychain.config import AppConfig
@@ -42,6 +43,14 @@ def get_app(config: AppConfig | None = None) -> FastAPI:
         version=config.info.version,
         debug=config.info.debug,
         lifespan=lifespan,
+    )
+
+    app.add_middleware(
+        CORSMiddleware,
+        allow_origins="*",
+        allow_credentials="*",
+        allow_methods="*",
+        allow_headers="*",
     )
 
     app_router = APIRouter()
