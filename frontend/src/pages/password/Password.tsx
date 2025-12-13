@@ -1,6 +1,6 @@
 import Grid from '@mui/material/Grid';
 
-import { PasswordCard } from './PasswordCard';
+import { PasswordCard } from './passwordCard';
 import PasswordsList from './PasswordsList';
 
 export function Password() {
