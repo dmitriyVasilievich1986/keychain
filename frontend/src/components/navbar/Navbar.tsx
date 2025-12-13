@@ -38,6 +38,12 @@ export function Navbar() {
         <Toolbar disableGutters>
           <div className={cx('navbar-inner')}>
             <div className={cx('navbar-brand')}>
+              <img
+                src={`${import.meta.env.VITE_IMAGES_HOST}/padlock.png`}
+                alt="padlock"
+                width={32}
+                height={32}
+              />
               <Typography variant="h6" component="div" sx={{ flexGrow: 1 }}>
                 <a href="/password" className={cx('navbar-link')}>
                   Password
