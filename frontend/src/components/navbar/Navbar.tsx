@@ -5,6 +5,7 @@ import Typography from '@mui/material/Typography';
 import axios from 'axios';
 import classnames from 'classnames/bind';
 import { useEffect } from 'react';
+import { NavLink } from 'react-router';
 
 import { useUserStore, type User } from '@store/user';
 
@@ -45,16 +46,16 @@ export function Navbar() {
                 height={32}
               />
               <Typography variant="h6" component="div" sx={{ flexGrow: 1 }}>
-                <a href="/password" className={cx('navbar-link')}>
+                <NavLink to="/password" className={cx('navbar-link')}>
                   Password
-                </a>
+                </NavLink>
               </Typography>
             </div>
             <div>
               <Typography variant="h6" component="div" sx={{ flexGrow: 1 }}>
-                <a href="/logout" className={cx('navbar-link')}>
+                <NavLink to="/logout" className={cx('navbar-link')}>
                   {user?.name}
-                </a>
+                </NavLink>
               </Typography>
             </div>
           </div>
