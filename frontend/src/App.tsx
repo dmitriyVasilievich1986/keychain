@@ -1,4 +1,5 @@
 import './App.css';
+import { CreatePassword } from '@pages/createPassword';
 import { Login } from '@pages/login';
 import { Password } from '@pages/password';
 import { Routes, Route, Navigate } from 'react-router';
@@ -18,6 +19,14 @@ function App() {
           element={
             <ProtectedRoute>
               <Password />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/password/create"
+          element={
+            <ProtectedRoute>
+              <CreatePassword />
             </ProtectedRoute>
           }
         />
