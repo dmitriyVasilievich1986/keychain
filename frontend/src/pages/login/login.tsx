@@ -1,4 +1,3 @@
-import avatar from '@assets/avatar.svg';
 import Box from '@mui/material/Box';
 import Button from '@mui/material/Button';
 import CardContent from '@mui/material/CardContent';
@@ -60,7 +59,12 @@ export function Login() {
               alignItems: 'center',
             }}
           >
-            <img src={avatar} alt="avatar" width={100} height={100} />
+            <img
+              src={`${import.meta.env.VITE_IMAGES_HOST}/avatar.svg`}
+              alt="avatar"
+              width={100}
+              height={100}
+            />
           </Box>
           <form onSubmit={handleLogin}>
             <Stack spacing={2} sx={{ marginTop: '1rem' }}>
