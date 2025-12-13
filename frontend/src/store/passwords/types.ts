@@ -27,4 +27,5 @@ export type PasswordStore = {
   setCurrentPassword: (password: Password | null) => void;
   removePassword: (id: number) => void;
   addPassword: (password: PasswordSimple) => void;
+  addField: (field: PasswordField) => void;
 };
