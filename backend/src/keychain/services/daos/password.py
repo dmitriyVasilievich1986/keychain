@@ -41,7 +41,7 @@ class PasswordDAO(BaseDAO[Password]):
         """
         async with self.db_client.session() as session:
             passwords = await session.execute(
-                select(Password.id, Password.name).where(Password.user_id == self.user_id)
+                select(Password.id, Password.name, Password.image_url).where(Password.user_id == self.user_id)
             )
             return passwords.all()
 
