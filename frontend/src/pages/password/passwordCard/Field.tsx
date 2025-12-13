@@ -1,14 +1,14 @@
 import ContentCopyIcon from '@mui/icons-material/ContentCopy';
 import EditIcon from '@mui/icons-material/Edit';
-import Box from '@mui/material/Box';
-import Fab from '@mui/material/Fab';
+import Stack from '@mui/material/Stack';
 import TextField from '@mui/material/TextField';
-import axios from 'axios';
 import classnames from 'classnames/bind';
 import { useState } from 'react';
 
+import { FloatingButton } from '@components/floatingButton';
 import { usePasswordsStore, type PasswordField } from '@store/passwords';
 import { useUserStore } from '@store/user';
+import { useApiClient } from '@utils/apiClient';
 
 import * as defaultStyle from './style.scss';
 
@@ -16,10 +16,10 @@ const cx = classnames.bind(defaultStyle);
 
 export function Field(props: { field: PasswordField }) {
   const [value, setValue] = useState(props.field.valueDecrypted);
-  const [isLoading, setIsLoading] = useState(false);
   const [updateFieldError, setUpdateFieldError] = useState<string>('');
 
-  const { accessToken } = useUserStore();
+  const { isLoading } = useUserStore();
+  const { apiPut } = useApiClient();
   const { updateField } = usePasswordsStore();
 
   const handleUpdateField = async () => {
@@ -28,28 +28,21 @@ export function Field(props: { field: PasswordField }) {
       setUpdateFieldError('Please fill in all fields');
       return;
     }
-    setIsLoading(true);
     try {
-      const response = await axios.put<PasswordField>(
-        `${import.meta.env.VITE_API_HOST}/api/v1/field/${props.field.id}`,
-        { value },
-        {
-          headers: {
-            Authorization: `Bearer ${accessToken}`,
-          },
-        }
+      const response = await apiPut<{ value: string }, PasswordField>(
+        `/api/v1/field/${props.field.id}`,
+        { value }
       );
-      updateField(props.field.id, response.data);
+      updateField(props.field.id, response);
       setValue(props.field.valueDecrypted);
     } catch (error) {
       console.error(error);
-    } finally {
-      setIsLoading(false);
+      setUpdateFieldError('Failed to update field');
     }
   };
 
   return (
-    <Box sx={{ display: 'flex', alignItems: 'center' }}>
+    <Stack spacing={2} sx={{ marginTop: '2rem' }} direction="row" alignItems="center">
       <TextField
         key={props.field.id}
         label={props.field.name}
@@ -74,18 +67,14 @@ export function Field(props: { field: PasswordField }) {
         }}
       />
       {props.field.isDeleted ? null : (
-        <Box sx={{ marginLeft: '1rem', width: '40px', height: '40px' }}>
-          <Fab
-            color="secondary"
-            aria-label="edit"
-            size="small"
-            disabled={value === props.field.valueDecrypted}
-            onClick={handleUpdateField}
-          >
-            <EditIcon />
-          </Fab>
-        </Box>
+        <FloatingButton
+          color="secondary"
+          onClick={handleUpdateField}
+          disabled={value === props.field.valueDecrypted}
+        >
+          <EditIcon />
+        </FloatingButton>
       )}
-    </Box>
+    </Stack>
   );
 }
