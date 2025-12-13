@@ -7,6 +7,8 @@ export type User = {
 export type UserStore = {
   user: User | null;
   accessToken: string | null;
+  isLoading: boolean;
+  setIsLoading: (isLoading: boolean) => void;
   setAccessToken: (accessToken: string) => void;
   setUser: (user: User) => void;
 };

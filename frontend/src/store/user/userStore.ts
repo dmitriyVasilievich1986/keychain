@@ -7,6 +7,8 @@ export const useUserStore = create<UserStore>()(
   devtools((set) => ({
     user: null,
     accessToken: null,
+    isLoading: false,
+    setIsLoading: (isLoading: boolean) => set({ isLoading }, undefined, 'setIsLoading'),
     setUser: (user: User) => set({ user }, undefined, 'setUser'),
     setAccessToken: (accessToken: string) => set({ accessToken }, undefined, 'setAccessToken'),
   }))
