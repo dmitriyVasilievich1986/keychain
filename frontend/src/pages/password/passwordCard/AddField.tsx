@@ -1,23 +1,21 @@
 import AddIcon from '@mui/icons-material/Add';
-import Box from '@mui/material/Box';
-import CircularProgress from '@mui/material/CircularProgress';
-import Fab from '@mui/material/Fab';
 import Stack from '@mui/material/Stack';
 import TextField from '@mui/material/TextField';
-import axios from 'axios';
 import { useState } from 'react';
 
+import { FloatingButton } from '@components/floatingButton';
 import { usePasswordsStore, type PasswordField } from '@store/passwords';
 import { useUserStore } from '@store/user';
+import { useApiClient } from '@utils/apiClient';
 
 export function AddField() {
   const [fieldName, setFieldName] = useState<string>('');
   const [fieldValue, setFieldValue] = useState<string>('');
   const [newFieldError, setNewFieldError] = useState<string>('');
-  const [isLoading, setIsLoading] = useState<boolean>(false);
 
   const { currentPassword, addField } = usePasswordsStore();
-  const { accessToken } = useUserStore();
+  const { isLoading } = useUserStore();
+  const { apiPost } = useApiClient();
 
   const handleAddField = async () => {
     if (isLoading) return;
@@ -25,26 +23,20 @@ export function AddField() {
       setNewFieldError('Please fill in all fields');
       return;
     }
-    setIsLoading(true);
     try {
-      const response = await axios.post<PasswordField>(
-        `${import.meta.env.VITE_API_HOST}/api/v1/field`,
-        {
-          name: fieldName,
-          value: fieldValue,
-          passwordId: currentPassword!.id,
-        },
-        {
-          headers: {
-            Authorization: `Bearer ${accessToken}`,
-          },
-        }
-      );
+      const response = await apiPost<
+        { name: string; value: string; passwordId: number },
+        PasswordField
+      >('/api/v1/field', {
+        name: fieldName,
+        value: fieldValue,
+        passwordId: currentPassword!.id,
+      });
       addField({
-        id: response.data.id,
-        name: response.data.name,
-        valueDecrypted: response.data.valueDecrypted,
-        createdAt: response.data.createdAt,
+        id: response.id,
+        name: response.name,
+        valueDecrypted: response.valueDecrypted,
+        createdAt: response.createdAt,
         isDeleted: false,
       });
       setFieldName('');
@@ -53,13 +45,11 @@ export function AddField() {
     } catch (error) {
       console.error(error);
       setNewFieldError('Failed to add field');
-    } finally {
-      setIsLoading(false);
     }
   };
 
   return (
-    <Stack spacing={2} sx={{ marginTop: '2rem' }} direction="row">
+    <Stack spacing={2} sx={{ marginTop: '2rem' }} direction="row" alignItems="center">
       <TextField
         label="New field name"
         variant="outlined"
@@ -78,21 +68,9 @@ export function AddField() {
         error={!!newFieldError}
         helperText={newFieldError}
       />
-      <Box sx={{ display: 'flex', alignItems: 'center' }}>
-        {isLoading ? (
-          <CircularProgress size={20} />
-        ) : (
-          <Fab
-            color="primary"
-            aria-label="add"
-            onClick={handleAddField}
-            size="small"
-            disabled={isLoading}
-          >
-            <AddIcon />
-          </Fab>
-        )}
-      </Box>
+      <FloatingButton color="primary" onClick={handleAddField} disabled={isLoading}>
+        <AddIcon />
+      </FloatingButton>
     </Stack>
   );
 }
