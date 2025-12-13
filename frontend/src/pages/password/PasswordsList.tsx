@@ -51,17 +51,12 @@ function PasswordsList() {
         value={passwordId ? passwords.find((password) => password.id === Number(passwordId)) : null}
         onOpen={fetchPasswords}
         loading={isLoading}
-        renderOption={(props, option) => {
-          return (
-            <Box
-              key={props.key}
-              className={cx('passwords-list-autocomplete-option')}
-              onClick={() => navigate(`/password/${option.id}`)}
-            >
-              {option.imageUrl && <img src={option.imageUrl} />}
-              {option.name}
-            </Box>
-          );
+        onChange={(_, value) => {
+          if (value) {
+            navigate(`/password/${value.id}`);
+          } else {
+            navigate('/password');
+          }
         }}
       />
     </Box>
