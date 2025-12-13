@@ -39,7 +39,7 @@ export function Navbar() {
           <div className={cx('navbar-inner')}>
             <div className={cx('navbar-brand')}>
               <Typography variant="h6" component="div" sx={{ flexGrow: 1 }}>
-                <a href="/password/" className={cx('navbar-link')}>
+                <a href="/password" className={cx('navbar-link')}>
                   Password
                 </a>
               </Typography>
