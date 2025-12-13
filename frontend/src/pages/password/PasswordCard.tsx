@@ -43,9 +43,13 @@ export function PasswordCard() {
   return (
     <Box sx={{ padding: '1rem' }}>
       <Paper elevation={10} sx={{ padding: '1rem' }}>
-        <Typography textAlign="center" variant="h6">
-          {currentPassword.name}
-        </Typography>
+        <Box className={cx('password-card-header')}>
+          <img
+            src={`${import.meta.env.VITE_IMAGES_HOST}/${currentPassword.imageUrl}`}
+            alt={currentPassword.name}
+          />
+          <Typography variant="h6">{currentPassword.name}</Typography>
+        </Box>
         <Stack spacing={2} sx={{ marginTop: '2rem' }}>
           {currentPassword.fields
             .filter((f) => !f.isDeleted)
