@@ -3,43 +3,31 @@ import Autocomplete from '@mui/material/Autocomplete';
 import Box from '@mui/material/Box';
 import Fab from '@mui/material/Fab';
 import TextField from '@mui/material/TextField';
-import axios from 'axios';
 import classnames from 'classnames/bind';
-import { useState } from 'react';
 import { useNavigate, useParams } from 'react-router';
 
 import { usePasswordsStore, type PasswordSimple } from '@store/passwords';
 import { useUserStore } from '@store/user';
+import { useApiClient } from '@utils/apiClient';
 
 import * as defaultStyle from './style.scss';
 
 const cx = classnames.bind(defaultStyle);
 
 function PasswordsList() {
-  const [isLoading, setIsLoading] = useState(false);
-
   const { passwords, setPasswords } = usePasswordsStore();
-  const { accessToken } = useUserStore();
+  const { isLoading } = useUserStore();
   const { passwordId } = useParams();
   const navigate = useNavigate();
+  const { apiGet } = useApiClient();
 
   const fetchPasswords = async () => {
-    if (!accessToken || passwords.length) return;
-    setIsLoading(true);
+    if (isLoading || passwords.length) return;
     try {
-      const response = await axios.get<PasswordSimple[]>(
-        `${import.meta.env.VITE_API_HOST}/api/v1/password`,
-        {
-          headers: {
-            Authorization: `Bearer ${accessToken}`,
-          },
-        }
-      );
-      setPasswords(response.data);
+      const response = await apiGet<PasswordSimple[]>('/api/v1/password');
+      setPasswords(response);
     } catch (error) {
       console.error(error);
-    } finally {
-      setIsLoading(false);
     }
   };
 
