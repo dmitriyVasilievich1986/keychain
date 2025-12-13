@@ -23,7 +23,10 @@ export function PasswordCard() {
   const { accessToken } = useUserStore();
 
   useEffect(() => {
-    if (!passwordId) return;
+    if (!passwordId) {
+      setCurrentPassword(null);
+      return;
+    }
     axios
       .get<Password>(`${import.meta.env.VITE_API_HOST}/api/v1/password/${passwordId}`, {
         headers: {
