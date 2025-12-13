@@ -29,5 +29,19 @@ export const usePasswordsStore = create<PasswordStore>()(
         undefined,
         'addField'
       ),
+    updateField: (id: number, field: PasswordField) =>
+      set(
+        (state) => ({
+          currentPassword: {
+            ...state.currentPassword,
+            fields:
+              [...state.currentPassword!.fields, field].map((f) =>
+                f.id === id ? { ...f, isDeleted: true } : f
+              ) || [],
+          } as Password,
+        }),
+        undefined,
+        'updateField'
+      ),
   }))
 );
