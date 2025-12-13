@@ -1,4 +1,5 @@
+import { FloatingButton } from './floatingButton/FloatingButton';
 import { Navbar } from './navbar/Navbar';
 import { ProtectedRoute } from './protectedRoute/ProtectedRoute';
 
-export { Navbar, ProtectedRoute };
+export { Navbar, ProtectedRoute, FloatingButton };
