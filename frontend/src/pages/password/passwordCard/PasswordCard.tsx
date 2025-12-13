@@ -1,9 +1,7 @@
-import ContentCopyIcon from '@mui/icons-material/ContentCopy';
 import Box from '@mui/material/Box';
 import Divider from '@mui/material/Divider';
 import Paper from '@mui/material/Paper';
 import Stack from '@mui/material/Stack';
-import TextField from '@mui/material/TextField';
 import Typography from '@mui/material/Typography';
 import axios from 'axios';
 import classnames from 'classnames/bind';
@@ -14,6 +12,7 @@ import { usePasswordsStore, type Password } from '@store/passwords';
 import { useUserStore } from '@store/user';
 
 import { AddField } from './AddField';
+import { Field } from './Field';
 import * as defaultStyle from './style.scss';
 
 const cx = classnames.bind(defaultStyle);
@@ -55,22 +54,7 @@ export function PasswordCard() {
           {currentPassword.fields
             .filter((f) => !f.isDeleted)
             .map((f) => (
-              <TextField
-                key={f.id}
-                label={f.name}
-                variant="outlined"
-                value={f.valueDecrypted}
-                slotProps={{
-                  input: {
-                    endAdornment: (
-                      <ContentCopyIcon
-                        onClick={() => navigator.clipboard.writeText(f.valueDecrypted)}
-                        className={cx('copy-icon')}
-                      />
-                    ),
-                  },
-                }}
-              />
+              <Field key={f.id} field={f} />
             ))}
         </Stack>
         <AddField />
@@ -79,25 +63,7 @@ export function PasswordCard() {
           {currentPassword.fields
             .filter((f) => f.isDeleted)
             .map((f) => (
-              <TextField
-                key={f.id}
-                label={f.name}
-                variant="outlined"
-                fullWidth
-                value={f.valueDecrypted}
-                sx={{ textDecoration: 'line-through' }}
-                disabled
-                slotProps={{
-                  input: {
-                    endAdornment: (
-                      <ContentCopyIcon
-                        onClick={() => navigator.clipboard.writeText(f.valueDecrypted)}
-                        className={cx('copy-icon')}
-                      />
-                    ),
-                  },
-                }}
-              />
+              <Field key={f.id} field={f} />
             ))}
         </Stack>
       </Paper>
