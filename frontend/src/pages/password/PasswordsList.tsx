@@ -66,7 +66,7 @@ function PasswordsList() {
               }
             }}
             renderOption={(props, option) => (
-              <li {...props}>
+              <li {...props} key={option.id}>
                 <img
                   src={`${import.meta.env.VITE_IMAGES_HOST}/${option.imageUrl}`}
                   alt={option.name}
