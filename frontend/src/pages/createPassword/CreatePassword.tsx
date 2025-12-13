@@ -4,13 +4,13 @@ import CircularProgress from '@mui/material/CircularProgress';
 import Paper from '@mui/material/Paper';
 import Stack from '@mui/material/Stack';
 import TextField from '@mui/material/TextField';
-import axios from 'axios';
 import classnames from 'classnames/bind';
 import { useState } from 'react';
 import { useNavigate } from 'react-router';
 
 import { usePasswordsStore, type Password } from '@store/passwords';
 import { useUserStore } from '@store/user';
+import { useApiClient } from '@utils/apiClient';
 
 import * as defaultStyle from './style.scss';
 
@@ -19,41 +19,33 @@ const cx = classnames.bind(defaultStyle);
 export function CreatePassword() {
   const [name, setName] = useState<string>('');
   const [imageUrl, setImageUrl] = useState<string>('');
-  const [isLoading, setIsLoading] = useState<boolean>(false);
   const [error, setError] = useState<string>('');
 
   const { setCurrentPassword, addPassword } = usePasswordsStore();
-  const { accessToken } = useUserStore();
+  const { isLoading } = useUserStore();
   const navigate = useNavigate();
+  const { apiPost } = useApiClient();
 
   const handleCreatePassword = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
     if (isLoading) return;
 
-    setIsLoading(true);
     const data = { name, imageUrl };
     try {
-      const response = await axios.post<Password>(
-        `${import.meta.env.VITE_API_HOST}/api/v1/password`,
-        data,
-        {
-          headers: {
-            Authorization: `Bearer ${accessToken}`,
-          },
-        }
+      const response = await apiPost<{ name: string; imageUrl: string }, Password>(
+        '/api/v1/password',
+        data
       );
       addPassword({
-        id: response.data.id,
-        name: response.data.name,
-        imageUrl: response.data.imageUrl,
+        id: response.id,
+        name: response.name,
+        imageUrl: response.imageUrl,
       });
-      setCurrentPassword(response.data);
-      navigate(`/password/${response.data.id}`);
+      setCurrentPassword(response);
+      navigate(`/password/${response.id}`);
     } catch (error) {
       setError('Failed to create password');
       console.error(error);
-    } finally {
-      setIsLoading(false);
     }
   };
 
