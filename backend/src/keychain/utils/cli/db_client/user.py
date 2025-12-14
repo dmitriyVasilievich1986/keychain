@@ -9,15 +9,18 @@ from colorama import Fore, Style
 
 from keychain.modules.routers.models.response import UserGetResponseModel
 from keychain.services.daos import UserDAO
+from keychain.services.db_client.client import DBClient
 
 
 @click.group(help="CLI for managing users of the Keychain Application.")
-def user() -> None:
+@click.pass_context
+def user(ctx: click.Context) -> None:
     """Initialize the user CLI group for the Keychain Application.
 
     This function serves as the root command group for all user CLI operations.
     """
-    pass
+    db_client: DBClient = ctx.obj["db_client_instance"]
+    ctx.obj["user_dao"] = UserDAO(db_client)
 
 
 @user.command(help="Create a new user")
@@ -131,3 +134,31 @@ def verify_password(ctx: click.Context, user_id: int, password: str) -> None:
     is_valid_text = "valid" if is_valid else "invalid"
     is_valid_color = Fore.GREEN if is_valid else Fore.RED
     click.echo(f"Password for user with id {user_id} is {is_valid_color}{is_valid_text}{Style.RESET_ALL}")
+
+
+@user.command(help="Reset a user's password by ID")
+@click.option("--user-id", prompt="Enter the user ID", help="The ID of the user")
+@click.option(
+    "--password",
+    prompt="Enter the new password",
+    help="The new password of the user",
+    hide_input=True,
+    confirmation_prompt=True,
+)
+@click.pass_context
+def reset_password(ctx: click.Context, user_id: int, password: str) -> None:
+    """Reset a user's password.
+
+    This command resets the password for an existing user identified by their ID
+    and outputs the updated user information as JSON.
+
+    Args:
+        ctx: Click context object containing the user DAO.
+        user_id: The unique identifier of the user to reset the password for.
+        password: The new password for the user.
+
+    """
+    user_dao: UserDAO = ctx.obj["user_dao"]
+    user = asyncio.run(user_dao.reset_password(user_id, password))
+    user_response = UserGetResponseModel.model_validate(user)
+    click.echo(user_response.model_dump_json(indent=2))

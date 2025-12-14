@@ -95,7 +95,7 @@ async def create_password(
     """
     password_dao = PasswordDAO(db, user.id)
     try:
-        password = await password_dao.create(password.name, user.id, password.image_url)
+        password = await password_dao.create(password.name, password.image_url)
     except ValueError as e:
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(e)) from e
     except Exception as e:

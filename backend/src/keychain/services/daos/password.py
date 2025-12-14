@@ -73,17 +73,16 @@ class PasswordDAO(BaseDAO[Password]):
 
         return password
 
-    async def create(self, name: str, user_id: int, image_url: str | None = None) -> Password:
+    async def create(self, name: str, image_url: str | None = None) -> Password:
         """Create a new password in the database.
 
-        Creates a new password with the provided name and user_id. The image_url
+        Creates a new password with the provided name and user_id from the DAO. The image_url
         is optional and will default to "/static/i/no-photo.png" if not provided.
         After creation, the password is refreshed from the database to ensure all
         generated fields (e.g., ID, timestamps) are populated.
 
         Args:
             name: The name of the password to create.
-            user_id: The unique identifier of the user who owns the password.
             image_url: The URL of the image associated with the password.
 
         Returns:
@@ -93,7 +92,7 @@ class PasswordDAO(BaseDAO[Password]):
         async with self.db_client.session() as session:
             password = Password(
                 name=name,
-                user_id=user_id,
+                user_id=self.user_id,
                 image_url=image_url,
             )
             session.add(password)

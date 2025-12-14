@@ -9,6 +9,7 @@ import click
 
 from keychain.modules.routers.models.response import PasswordGetResponseModel, PasswordGetResponseModelSimple
 from keychain.services.daos import PasswordDAO
+from keychain.services.db_client.client import DBClient
 
 
 @click.group(help="CLI for managing passwords of the Keychain Application.")
@@ -38,16 +39,18 @@ def create_password(ctx: click.Context, name: str, user_id: int, image_url: str 
         image_url: Optional URL of the image associated with the password.
 
     """
-    password_dao: PasswordDAO = ctx.obj["password_dao"]
-    password = asyncio.run(password_dao.create(name, user_id, image_url))
+    db_client: DBClient = ctx.obj["db_client_instance"]
+    password_dao = PasswordDAO(db_client, user_id)
+    password = asyncio.run(password_dao.create(name, image_url))
     password_response = PasswordGetResponseModel.model_validate(password)
     click.echo(password_response.model_dump_json(indent=2))
 
 
 @password.command(help="Get a password by ID")
 @click.option("--password-id", prompt="Enter the password ID", help="The ID of the password", type=int)
+@click.option("--user-id", prompt="Enter the user ID", help="The ID of the user who owns the password", type=int)
 @click.pass_context
-def get_password(ctx: click.Context, password_id: int) -> None:
+def get_password(ctx: click.Context, password_id: int, user_id: int) -> None:
     """Retrieve a password from the database by its ID.
 
     This command fetches a password record by ID and outputs the password information
@@ -56,9 +59,11 @@ def get_password(ctx: click.Context, password_id: int) -> None:
     Args:
         ctx: Click context object containing the password DAO.
         password_id: The unique identifier of the password to retrieve.
+        user_id: The unique identifier of the user who owns the password.
 
     """
-    password_dao: PasswordDAO = ctx.obj["password_dao"]
+    db_client: DBClient = ctx.obj["db_client_instance"]
+    password_dao = PasswordDAO(db_client, user_id)
     password = asyncio.run(password_dao.get_by_id(password_id))
     password_response = PasswordGetResponseModel.model_validate(password)
     click.echo(password_response.model_dump_json(indent=2))
@@ -68,8 +73,9 @@ def get_password(ctx: click.Context, password_id: int) -> None:
 @click.option("--password-id", prompt="Enter the password ID", help="The ID of the password", type=int)
 @click.option("--name", prompt="Enter the new name", help="The new name of the password")
 @click.option("--image-url", default=None, help="The new image URL of the password")
+@click.option("--user-id", prompt="Enter the user ID", help="The ID of the user who owns the password", type=int)
 @click.pass_context
-def update_password(ctx: click.Context, password_id: int, name: str, image_url: str | None) -> None:
+def update_password(ctx: click.Context, password_id: int, name: str, image_url: str | None, user_id: int) -> None:
     """Update a password's name and/or image URL in the database.
 
     This command updates the name and/or image URL of an existing password identified
@@ -80,9 +86,11 @@ def update_password(ctx: click.Context, password_id: int, name: str, image_url: 
         password_id: The unique identifier of the password to update.
         name: The new name to assign to the password.
         image_url: Optional new image URL to assign to the password.
+        user_id: The unique identifier of the user who owns the password.
 
     """
-    password_dao: PasswordDAO = ctx.obj["password_dao"]
+    db_client: DBClient = ctx.obj["db_client_instance"]
+    password_dao = PasswordDAO(db_client, user_id)
     password = asyncio.run(password_dao.update(password_id, name, image_url))
     password_response = PasswordGetResponseModel.model_validate(password)
     click.echo(password_response.model_dump_json(indent=2))
@@ -90,8 +98,9 @@ def update_password(ctx: click.Context, password_id: int, name: str, image_url: 
 
 @password.command(help="Delete a password by ID")
 @click.option("--password-id", prompt="Enter the password ID", help="The ID of the password", type=int)
+@click.option("--user-id", prompt="Enter the user ID", help="The ID of the user who owns the password", type=int)
 @click.pass_context
-def delete_password(ctx: click.Context, password_id: int) -> None:
+def delete_password(ctx: click.Context, password_id: int, user_id: int) -> None:
     """Delete a password from the database by its ID.
 
     This command permanently removes a password record from the database.
@@ -100,16 +109,19 @@ def delete_password(ctx: click.Context, password_id: int) -> None:
     Args:
         ctx: Click context object containing the password DAO.
         password_id: The unique identifier of the password to delete.
+        user_id: The unique identifier of the user who owns the password.
 
     """
-    password_dao: PasswordDAO = ctx.obj["password_dao"]
+    db_client: DBClient = ctx.obj["db_client_instance"]
+    password_dao = PasswordDAO(db_client, user_id)
     asyncio.run(password_dao.delete(password_id))
     click.echo(f"Password with id {password_id} deleted successfully")
 
 
 @password.command(help="List all passwords")
+@click.option("--user-id", prompt="Enter the user ID", help="The ID of the user who owns the password", type=int)
 @click.pass_context
-def list_passwords(ctx: click.Context) -> None:
+def list_passwords(ctx: click.Context, user_id: int) -> None:
     """List all passwords in the database.
 
     This command retrieves all passwords from the database and outputs them
@@ -117,9 +129,11 @@ def list_passwords(ctx: click.Context) -> None:
 
     Args:
         ctx: Click context object containing the password DAO.
+        user_id: The unique identifier of the user who owns the password.
 
     """
-    password_dao: PasswordDAO = ctx.obj["password_dao"]
+    db_client: DBClient = ctx.obj["db_client_instance"]
+    password_dao = PasswordDAO(db_client, user_id)
     passwords = asyncio.run(password_dao.get_all())
     password_responses = [
         PasswordGetResponseModelSimple.model_validate({"id": pwd.id, "name": pwd.name}) for pwd in passwords
