@@ -48,7 +48,6 @@ def create_field(ctx: click.Context, name: str, value: str, user_id: int, passwo
         password_id: The unique identifier of the password that owns the field.
 
     """
-    field_dao: FieldDAO = ctx.obj["field_dao"]
     db_client: DBClient = ctx.obj["db_client_instance"]
     field_dao = FieldDAO(db_client, user_id)
     field = asyncio.run(field_dao.create(name, value, password_id))
@@ -72,7 +71,6 @@ def get_field(ctx: click.Context, field_id: int, user_id: int) -> None:
         user_id: The unique identifier of the user who owns the field.
 
     """
-    field_dao: FieldDAO = ctx.obj["field_dao"]
     db_client: DBClient = ctx.obj["db_client_instance"]
     field_dao = FieldDAO(db_client, user_id)
     field = asyncio.run(field_dao.get_by_id(field_id))
@@ -99,7 +97,6 @@ def update_field(ctx: click.Context, field_id: int, value: str, user_id: int) ->
         user_id: The unique identifier of the user who owns the field.
 
     """
-    field_dao: FieldDAO = ctx.obj["field_dao"]
     db_client: DBClient = ctx.obj["db_client_instance"]
     field_dao = FieldDAO(db_client, user_id)
     field = asyncio.run(field_dao.update(field_id, value))
@@ -123,7 +120,6 @@ def delete_field(ctx: click.Context, field_id: int, user_id: int) -> None:
         user_id: The unique identifier of the user who owns the field.
 
     """
-    field_dao: FieldDAO = ctx.obj["field_dao"]
     db_client: DBClient = ctx.obj["db_client_instance"]
     field_dao = FieldDAO(db_client, user_id)
     asyncio.run(field_dao.delete(field_id))
@@ -144,7 +140,6 @@ def list_fields(ctx: click.Context, user_id: int) -> None:
         user_id: The unique identifier of the user who owns the field.
 
     """
-    field_dao: FieldDAO = ctx.obj["field_dao"]
     db_client: DBClient = ctx.obj["db_client_instance"]
     field_dao = FieldDAO(db_client, user_id)
     fields = asyncio.run(field_dao.get_all())

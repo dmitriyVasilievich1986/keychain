@@ -39,7 +39,6 @@ def create_password(ctx: click.Context, name: str, user_id: int, image_url: str 
         image_url: Optional URL of the image associated with the password.
 
     """
-    password_dao: PasswordDAO = ctx.obj["password_dao"]
     db_client: DBClient = ctx.obj["db_client_instance"]
     password_dao = PasswordDAO(db_client, user_id)
     password = asyncio.run(password_dao.create(name, image_url))
@@ -63,7 +62,6 @@ def get_password(ctx: click.Context, password_id: int, user_id: int) -> None:
         user_id: The unique identifier of the user who owns the password.
 
     """
-    password_dao: PasswordDAO = ctx.obj["password_dao"]
     db_client: DBClient = ctx.obj["db_client_instance"]
     password_dao = PasswordDAO(db_client, user_id)
     password = asyncio.run(password_dao.get_by_id(password_id))
@@ -91,7 +89,6 @@ def update_password(ctx: click.Context, password_id: int, name: str, image_url: 
         user_id: The unique identifier of the user who owns the password.
 
     """
-    password_dao: PasswordDAO = ctx.obj["password_dao"]
     db_client: DBClient = ctx.obj["db_client_instance"]
     password_dao = PasswordDAO(db_client, user_id)
     password = asyncio.run(password_dao.update(password_id, name, image_url))
@@ -115,7 +112,6 @@ def delete_password(ctx: click.Context, password_id: int, user_id: int) -> None:
         user_id: The unique identifier of the user who owns the password.
 
     """
-    password_dao: PasswordDAO = ctx.obj["password_dao"]
     db_client: DBClient = ctx.obj["db_client_instance"]
     password_dao = PasswordDAO(db_client, user_id)
     asyncio.run(password_dao.delete(password_id))
@@ -136,7 +132,6 @@ def list_passwords(ctx: click.Context, user_id: int) -> None:
         user_id: The unique identifier of the user who owns the password.
 
     """
-    password_dao: PasswordDAO = ctx.obj["password_dao"]
     db_client: DBClient = ctx.obj["db_client_instance"]
     password_dao = PasswordDAO(db_client, user_id)
     passwords = asyncio.run(password_dao.get_all())
