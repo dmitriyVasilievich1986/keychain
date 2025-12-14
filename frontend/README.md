@@ -65,11 +65,13 @@ The project uses path aliases for cleaner imports:
 ### Installation
 
 1. Install dependencies:
+
 ```bash
 npm install
 ```
 
 2. Start the development server:
+
 ```bash
 npm run dev
 ```
@@ -79,30 +81,38 @@ The application will be available at `http://localhost:5173`
 ## Available Scripts
 
 ### Development
+
 ```bash
 npm run dev
 ```
+
 Starts the Vite development server with hot module replacement.
 
 ### Build
+
 ```bash
 npm run build
 ```
+
 Compiles TypeScript and builds the application for production. Output is generated in the `../static` directory.
 
 ### Preview
+
 ```bash
 npm run preview
 ```
+
 Previews the production build locally.
 
 ### Linting
+
 ```bash
 npm run lint:check    # Check for linting errors
 npm run lint:fix      # Fix linting errors automatically
 ```
 
 ### Formatting
+
 ```bash
 npm run format:check  # Check code formatting
 npm run format:fix    # Format code automatically
@@ -188,7 +198,7 @@ const passwords = await apiClient.get('/api/passwords');
 const newPassword = await apiClient.post('/api/passwords', {
   title: 'My Password',
   username: 'user@example.com',
-  password: 'securepass123'
+  password: 'securepass123',
 });
 
 // DELETE request
@@ -219,6 +229,7 @@ await apiClient.delete(`/api/passwords/${passwordId}`);
 ## Build Configuration
 
 The build outputs to `../static` directory with the following structure:
+
 - `assets/` - Contains all compiled JS, CSS, and asset files with hash-based filenames for cache busting
 
 ## License
