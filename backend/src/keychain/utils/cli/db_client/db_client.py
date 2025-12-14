@@ -6,7 +6,6 @@ __all__ = ["db_client"]
 import click
 
 from keychain.config import AppConfig
-from keychain.services.daos import FieldDAO, PasswordDAO, UserDAO
 from keychain.services.db_client.client import DBClient
 
 from .field import field
@@ -25,13 +24,7 @@ def db_client(ctx: click.Context) -> None:
     """
     ctx.ensure_object(dict)
     config = AppConfig.get_or_create()
-    db_client_instance = DBClient(config)
-    user_dao = UserDAO(db_client_instance)
-    password_dao = PasswordDAO(db_client_instance)
-    field_dao = FieldDAO(db_client_instance)
-    ctx.obj["user_dao"] = user_dao
-    ctx.obj["password_dao"] = password_dao
-    ctx.obj["field_dao"] = field_dao
+    ctx.obj["db_client_instance"] = DBClient(config)
 
 
 db_client.add_command(user)
