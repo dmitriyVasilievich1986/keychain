@@ -10,7 +10,7 @@ export function Logout() {
   useEffect(() => {
     removeAccessToken();
     navigate('/login');
-  }, []);
+  }, [navigate, removeAccessToken]);
 
   return null;
 }
