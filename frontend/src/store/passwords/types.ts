@@ -29,4 +29,5 @@ export type PasswordStore = {
   addPassword: (password: PasswordSimple) => void;
   addField: (field: PasswordField) => void;
   updateField: (id: number, field: PasswordField) => void;
+  clearStore: () => void;
 };

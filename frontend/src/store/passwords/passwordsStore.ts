@@ -43,5 +43,6 @@ export const usePasswordsStore = create<PasswordStore>()(
         undefined,
         'updateField'
       ),
+    clearStore: () => set({ passwords: [], currentPassword: null }, undefined, 'clearStore'),
   }))
 );

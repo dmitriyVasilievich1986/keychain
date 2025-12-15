@@ -11,9 +11,9 @@ export const useUserStore = create<UserStore>()(
     isLoading: false,
     setIsLoading: (isLoading: boolean) => set({ isLoading }, undefined, 'setIsLoading'),
     setUser: (user: User) => set({ user }, undefined, 'setUser'),
-    removeAccessToken: () => {
+    clearStore: () => {
       Cookies.remove('accessToken');
-      set({ accessToken: null, user: null }, undefined, 'removeAccessToken');
+      set({ accessToken: null, user: null }, undefined, 'clearStore');
     },
     setAccessToken: (accessToken: string) => {
       Cookies.set('accessToken', accessToken);
