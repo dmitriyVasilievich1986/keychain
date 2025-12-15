@@ -1,10 +1,12 @@
 import axios, { AxiosError } from 'axios';
 import { useCallback } from 'react';
 
+import { usePasswordsStore } from '@store/passwords';
 import { useUserStore } from '@store/user';
 
 export const useApiGet = () => {
-  const { setIsLoading, accessToken, removeAccessToken } = useUserStore();
+  const { setIsLoading, accessToken, clearStore } = useUserStore();
+  const { clearStore: clearPasswordStore } = usePasswordsStore();
 
   return useCallback(
     async <T>(url: string): Promise<T> => {
@@ -19,7 +21,8 @@ export const useApiGet = () => {
         return response.data;
       } catch (error) {
         if (error instanceof AxiosError && error.response?.status === 401) {
-          removeAccessToken();
+          clearStore();
+          clearPasswordStore();
         } else {
           console.error(error);
         }
@@ -28,12 +31,13 @@ export const useApiGet = () => {
         setIsLoading(false);
       }
     },
-    [accessToken, setIsLoading]
+    [accessToken, setIsLoading, clearStore, clearPasswordStore]
   );
 };
 
 export const useApiPut = () => {
-  const { setIsLoading, accessToken, removeAccessToken } = useUserStore();
+  const { setIsLoading, accessToken, clearStore } = useUserStore();
+  const { clearStore: clearPasswordStore } = usePasswordsStore();
 
   return useCallback(
     async <D, T>(url: string, data: D): Promise<T> => {
@@ -48,7 +52,8 @@ export const useApiPut = () => {
         return response.data;
       } catch (error) {
         if (error instanceof AxiosError && error.response?.status === 401) {
-          removeAccessToken();
+          clearStore();
+          clearPasswordStore();
         } else {
           console.error(error);
         }
@@ -57,12 +62,13 @@ export const useApiPut = () => {
         setIsLoading(false);
       }
     },
-    [accessToken, setIsLoading]
+    [accessToken, setIsLoading, clearStore, clearPasswordStore]
   );
 };
 
 export const useApiPost = () => {
-  const { setIsLoading, accessToken, removeAccessToken } = useUserStore();
+  const { setIsLoading, accessToken, clearStore } = useUserStore();
+  const { clearStore: clearPasswordStore } = usePasswordsStore();
 
   return useCallback(
     async <D, T>(url: string, data: D): Promise<T> => {
@@ -77,7 +83,8 @@ export const useApiPost = () => {
         return response.data;
       } catch (error) {
         if (error instanceof AxiosError && error.response?.status === 401) {
-          removeAccessToken();
+          clearStore();
+          clearPasswordStore();
         } else {
           console.error(error);
         }
@@ -86,7 +93,7 @@ export const useApiPost = () => {
         setIsLoading(false);
       }
     },
-    [accessToken, setIsLoading]
+    [accessToken, setIsLoading, clearStore, clearPasswordStore]
   );
 };
 

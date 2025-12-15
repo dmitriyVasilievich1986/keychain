@@ -11,5 +11,5 @@ export type UserStore = {
   setIsLoading: (isLoading: boolean) => void;
   setAccessToken: (accessToken: string) => void;
   setUser: (user: User) => void;
-  removeAccessToken: () => void;
+  clearStore: () => void;
 };
