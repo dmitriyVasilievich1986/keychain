@@ -1,3 +1,3 @@
 nginx/ssl/
-scripts/
-static/
+/scripts/
+/static/
