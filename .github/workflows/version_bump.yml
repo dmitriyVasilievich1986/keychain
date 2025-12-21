@@ -1,0 +1,141 @@
+name: version-bump
+
+on:
+  push:
+    branches:
+      - development
+      - master
+    paths:
+      - "backend/**"
+      - "frontend/**"
+
+jobs:
+  bump-backend-version:
+    runs-on: ubuntu-latest
+    if: ${{ !contains(github.event.head_commit.message, '[skip ci]') && !contains(github.event.head_commit.message, '[version bump]') }}
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 2
+          token: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Check if backend files changed
+        id: check-backend
+        run: |
+          CHANGED_FILES=$(git diff --name-only HEAD^ HEAD)
+          if echo "$CHANGED_FILES" | grep -q "^backend/"; then
+            echo "changed=true" >> $GITHUB_OUTPUT
+          else
+            echo "changed=false" >> $GITHUB_OUTPUT
+          fi
+
+      - name: Setup Python
+        if: steps.check-backend.outputs.changed == 'true'
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.13"
+
+      - name: Bump backend version
+        if: steps.check-backend.outputs.changed == 'true'
+        run: |
+          python .github/scripts/bump_version.py \
+            --file backend/src/keychain/__init__.py \
+            --type python \
+            --branch ${{ github.ref_name }}
+
+      - name: Get new version
+        if: steps.check-backend.outputs.changed == 'true'
+        id: get-version
+        run: |
+          VERSION=$(python .github/scripts/bump_version.py --file backend/src/keychain/__init__.py --type python --get-version)
+          echo "version=$VERSION" >> $GITHUB_OUTPUT
+
+      - name: Commit and push backend version
+        if: steps.check-backend.outputs.changed == 'true'
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+
+          git add backend/src/keychain/__init__.py
+          git commit -m "chore: bump backend version to ${{ steps.get-version.outputs.version }} [version bump]"
+          git tag -a "backend-v${{ steps.get-version.outputs.version }}" -m "Backend release v${{ steps.get-version.outputs.version }}"
+          git push origin ${{ github.ref_name }}
+          git push origin "backend-v${{ steps.get-version.outputs.version }}"
+
+      - name: Create GitHub Release
+        if: steps.check-backend.outputs.changed == 'true' && github.ref_name == 'master'
+        uses: softprops/action-gh-release@v1
+        with:
+          tag_name: backend-v${{ steps.get-version.outputs.version }}
+          name: Backend v${{ steps.get-version.outputs.version }}
+          draft: false
+          prerelease: false
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+  bump-frontend-version:
+    runs-on: ubuntu-latest
+    if: ${{ !contains(github.event.head_commit.message, '[skip ci]') && !contains(github.event.head_commit.message, '[version bump]') }}
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 2
+          token: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Check if frontend files changed
+        id: check-frontend
+        run: |
+          CHANGED_FILES=$(git diff --name-only HEAD^ HEAD)
+          if echo "$CHANGED_FILES" | grep -q "^frontend/"; then
+            echo "changed=true" >> $GITHUB_OUTPUT
+          else
+            echo "changed=false" >> $GITHUB_OUTPUT
+          fi
+
+      - name: Setup Python
+        if: steps.check-frontend.outputs.changed == 'true'
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.13"
+
+      - name: Bump frontend version
+        if: steps.check-frontend.outputs.changed == 'true'
+        run: |
+          python .github/scripts/bump_version.py \
+            --file frontend/package.json \
+            --type json \
+            --branch ${{ github.ref_name }}
+
+      - name: Get new version
+        if: steps.check-frontend.outputs.changed == 'true'
+        id: get-version
+        run: |
+          VERSION=$(python .github/scripts/bump_version.py --file frontend/package.json --type json --get-version)
+          echo "version=$VERSION" >> $GITHUB_OUTPUT
+
+      - name: Commit and push frontend version
+        if: steps.check-frontend.outputs.changed == 'true'
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+
+          git add frontend/package.json
+          git commit -m "chore: bump frontend version to ${{ steps.get-version.outputs.version }} [version bump]"
+          git tag -a "frontend-v${{ steps.get-version.outputs.version }}" -m "Frontend release v${{ steps.get-version.outputs.version }}"
+          git push origin ${{ github.ref_name }}
+          git push origin "frontend-v${{ steps.get-version.outputs.version }}"
+
+      - name: Create GitHub Release
+        if: steps.check-frontend.outputs.changed == 'true' && github.ref_name == 'master'
+        uses: softprops/action-gh-release@v1
+        with:
+          tag_name: frontend-v${{ steps.get-version.outputs.version }}
+          name: Frontend v${{ steps.get-version.outputs.version }}
+          draft: false
+          prerelease: false
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
