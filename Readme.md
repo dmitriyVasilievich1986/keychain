@@ -1,5 +1,5 @@
-[![pre-commit](https://github.com/dmitriyVasilievich1986/keychain/actions/workflows/pre_commit.yml/badge.svg)](https://github.com/dmitriyVasilievich1986/keychain/actions/workflows/pre_commit.yml)
-[![build-project](https://github.com/dmitriyVasilievich1986/keychain/actions/workflows/build_project.yml/badge.svg)](https://github.com/dmitriyVasilievich1986/keychain/actions/workflows/build_project.yml)
+[![build-backend](https://github.com/dmitriyVasilievich1986/keychain/actions/workflows/build_backend.yml/badge.svg)](https://github.com/dmitriyVasilievich1986/keychain/actions/workflows/build_backend.yml)
+[![build-frontend](https://github.com/dmitriyVasilievich1986/keychain/actions/workflows/build_frontend.yml/badge.svg)](https://github.com/dmitriyVasilievich1986/keychain/actions/workflows/build_frontend.yml)
 
 # Keychain
 
@@ -92,6 +92,7 @@ keychain/
 ## Tech Stack
 
 ### Backend
+
 - Python 3.13
 - FastAPI - Web framework
 - SQLAlchemy - ORM
@@ -102,6 +103,7 @@ keychain/
 - Uvicorn - ASGI server
 
 ### Frontend
+
 - React 19
 - TypeScript
 - Vite - Build tool
@@ -112,6 +114,7 @@ keychain/
 - Sass - Styling
 
 ### Infrastructure
+
 - Docker & Docker Compose
 - Nginx - Reverse proxy
 - SQLite - Database
@@ -119,6 +122,7 @@ keychain/
 ## Quick Start with Docker Compose
 
 ### Prerequisites
+
 - Docker and Docker Compose installed
 - Git
 
@@ -138,6 +142,7 @@ cd backend
 ```
 
 Create `backend/.env`:
+
 ```bash
 CONFIG_FILE_PATH=/opt/backend/configurations/local.yaml
 CRYPTOGRAPHY__SECRET_KEY=<generate-with-keychain-cryptography-generate-key>
@@ -145,6 +150,7 @@ AUTH__JWT_SECRET_KEY=<generate-with-keychain-access-token-generate-key>
 ```
 
 Generate encryption keys (requires Python 3.13):
+
 ```bash
 # Install dependencies locally to generate keys
 python -m venv .venv
@@ -197,11 +203,13 @@ npm run build  # Outputs to ../static/
 ### 6. Access the Application
 
 Open your browser and navigate to:
+
 ```
 http://localhost
 ```
 
 The application is now running with:
+
 - Frontend: Served by Nginx on port 80
 - Backend API: `http://localhost/api/`
 - Backend direct access: `http://localhost:8000` (if needed)
@@ -213,9 +221,11 @@ The `docker-compose.local.yaml` file orchestrates three services:
 ### Services
 
 #### 1. Nginx (keychain-nginx)
+
 ```yaml
 ports: 80:80
 ```
+
 - **Purpose**: Acts as a reverse proxy and static file server
 - **Configuration**: `nginx/nginx.conf`
 - **Responsibilities**:
@@ -229,9 +239,11 @@ ports: 80:80
   - `./static/` → Frontend build output and static assets
 
 #### 2. Backend (keychain-backend)
+
 ```yaml
 ports: 8000:8000
 ```
+
 - **Purpose**: FastAPI application server
 - **Build**: Uses multi-stage Dockerfile from `./backend`
 - **Environment**:
@@ -245,9 +257,11 @@ ports: 8000:8000
 - **Dependencies**: None (starts first)
 
 #### 3. Frontend (keychain-frontend)
+
 ```yaml
 profile: frontend
 ```
+
 - **Purpose**: Development build server (optional)
 - **Profile**: Only starts when explicitly requested with `--profile frontend`
 - **Image**: Node.js 24
@@ -261,11 +275,13 @@ profile: frontend
 ### Usage Patterns
 
 **Development** (with hot reload):
+
 ```bash
 docker-compose -f docker-compose.local.yaml --profile frontend up
 ```
 
 **Production** (pre-built frontend):
+
 ```bash
 # Build frontend first
 cd frontend && npm run build && cd ..
@@ -275,6 +291,7 @@ docker-compose -f docker-compose.local.yaml up -d
 ```
 
 **Rebuilding backend**:
+
 ```bash
 docker-compose -f docker-compose.local.yaml build backend
 docker-compose -f docker-compose.local.yaml up -d
@@ -287,6 +304,7 @@ docker-compose -f docker-compose.local.yaml up -d
 See [backend/README.md](./backend/README.md) for detailed backend setup instructions.
 
 Quick start:
+
 ```bash
 cd backend
 python -m venv .venv
@@ -301,6 +319,7 @@ keychain run --reload
 See [frontend/README.md](./frontend/README.md) for detailed frontend setup instructions.
 
 Quick start:
+
 ```bash
 cd frontend
 npm install
@@ -364,6 +383,7 @@ Once the backend is running, interactive API documentation is available at:
 ## Environment Variables
 
 ### Backend
+
 ```bash
 CONFIG_FILE_PATH            # Path to YAML config
 CRYPTOGRAPHY__SECRET_KEY    # Fernet encryption key
@@ -374,6 +394,7 @@ INFO__DEBUG                 # Debug mode (true/false)
 ```
 
 ### Frontend
+
 ```bash
 VITE_API_HOST              # API base URL (empty for relative)
 VITE_IMAGES_HOST           # Image path prefix
@@ -418,21 +439,25 @@ server {
 ## Troubleshooting
 
 ### Backend won't start
+
 - Check if `.env` file exists with valid keys
 - Verify database migrations are up to date: `docker exec keychain-backend keychain db current`
 - Check logs: `docker logs keychain-backend`
 
 ### Frontend build fails
+
 - Ensure Node.js 18+ is installed
 - Clear node_modules and reinstall: `rm -rf node_modules && npm install`
 - Check for TypeScript errors: `npm run build`
 
 ### API calls fail
+
 - Verify backend is running: `curl http://localhost:8000/health`
 - Check nginx configuration is correctly proxying `/api/` requests
 - Inspect browser network tab for CORS or 404 errors
 
 ### Database errors
+
 - Ensure migrations are applied: `keychain db upgrade`
 - Check database file permissions
 - Verify `CONFIG_FILE_PATH` points to correct YAML file
@@ -463,12 +488,14 @@ Copyright (c) 2024 dmitriyvasil@gmail.com
 ## Author
 
 Dmitriy Vasilievich
+
 - Email: dmitriyvasil@gmail.com
 - GitHub: [dmitriyVasilievich1986](https://github.com/dmitriyVasilievich1986)
 
 ## Acknowledgments
 
 Built with modern open-source technologies:
+
 - FastAPI for the elegant Python API framework
 - React for the powerful UI library
 - Material-UI for the beautiful component library
