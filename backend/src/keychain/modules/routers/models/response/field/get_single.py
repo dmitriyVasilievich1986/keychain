@@ -1,23 +1,15 @@
 """Field get response model."""
 
-__all__ = ["FieldGetResponseModel", "FieldGetResponseModelSimple"]
+__all__ = ("FieldGetResponseModel",)
 
 from datetime import datetime
 
 from pydantic import Field
 
-from keychain.modules.routers.models.base.response import BaseResponseModel
+from keychain.modules.routers.models.base.response import BaseResponseFromModelSchema
 
 
-class FieldGetResponseModelSimple(BaseResponseModel):
-    """Field get response model simple."""
-
-    id: int = Field(..., description="The ID of the field")
-    name: str = Field(..., description="The name of the field")
-    is_deleted: bool = Field(..., description="Whether the field is deleted")
-
-
-class FieldGetResponseModel(BaseResponseModel):
+class FieldGetResponseModel(BaseResponseFromModelSchema):
     """Field get response model."""
 
     id: int = Field(..., description="The ID of the field")
