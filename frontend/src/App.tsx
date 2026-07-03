@@ -8,8 +8,6 @@ import { Routes, Route, Navigate } from 'react-router';
 import { Navbar } from '@components/navbar';
 import { ProtectedRoute } from '@components/protectedRoute';
 
-// just for test
-
 function App() {
   return (
     <>
