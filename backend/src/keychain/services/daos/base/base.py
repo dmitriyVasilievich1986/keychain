@@ -45,6 +45,8 @@ class BaseDAO[DatabaseModel: Base](ABC):
     get_all_columns: tuple[InstrumentedAttribute, ...] | None = None
     select_in_options_single: tuple[InstrumentedAttribute, ...] | None = None
     select_in_options_all: tuple[InstrumentedAttribute, ...] | None = None
+    join_options_single: tuple[InstrumentedAttribute, ...] | None = None
+    join_options_all: tuple[InstrumentedAttribute, ...] | None = None
     base_filters: list[ColumnElement[bool]] | None = None
 
     @overload
@@ -170,6 +172,10 @@ class BaseDAO[DatabaseModel: Base](ABC):
         if self.select_in_options_single:
             stmt = stmt.options(*map(selectinload, self.select_in_options_single))
 
+        if self.join_options_single:
+            for join_option in self.join_options_single:
+                stmt = stmt.join(join_option)
+
         result = await session.execute(stmt)
         return result.scalar_one()
 
@@ -216,6 +222,10 @@ class BaseDAO[DatabaseModel: Base](ABC):
 
         if c_filters := self.concat_filters(self.base_filters, filters):
             stmt = stmt.where(*c_filters)
+
+        if self.join_options_all:
+            for join_option in self.join_options_all:
+                stmt = stmt.join(join_option)
 
         result = await session.execute(stmt)
         return result.scalar_one()
@@ -270,6 +280,10 @@ class BaseDAO[DatabaseModel: Base](ABC):
 
         if self.get_all_columns:
             stmt = stmt.options(load_only(*self.get_all_columns))
+
+        if self.join_options_all:
+            for join_option in self.join_options_all:
+                stmt = stmt.join(join_option)
 
         if self.select_in_options_all:
             stmt = stmt.options(*map(selectinload, self.select_in_options_all))
