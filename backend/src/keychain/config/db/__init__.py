@@ -5,7 +5,8 @@ __all__ = ["DBConfig"]
 from pathlib import Path
 from typing import Literal
 
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, Field, SecretStr
+from sqlalchemy.engine import URL
 
 
 class DBConfig(BaseModel):
@@ -15,34 +16,41 @@ class DBConfig(BaseModel):
     URI and connection pool settings.
 
     Attributes:
-        uri: The database URI. Can be set via the DATABASE_URI environment variable shortcut.
-        pool_size: The maximum number of connections in the connection pool. Can be set via the POOL_SIZE environment variable shortcut.
-        max_overflow: The maximum number of connections to allow beyond the pool size. Can be set via the MAX_OVERFLOW environment variable shortcut.
-        pool_timeout: The number of seconds to wait before timing out a connection. Can be set via the POOL_TIMEOUT environment variable shortcut.
-        pool_recycle: The number of seconds to recycle a connection. Can be set via the POOL_RECYCLE environment variable shortcut.
+        alembic_ini_path: The path to the Alembic configuration file.
+        provider: The database provider.
+        host: The database host.
+        port: The database port.
+        name: The database name.
+        user: The database user.
+        password: The database password.
 
     """  # noqa: E501
 
-    alembic_ini_path: Path = Field(
-        Path("src/keychain/services/alembic/alembic.ini"), description="Path to the Alembic configuration file"
-    )
-    db_provider: Literal["sqlite", "postgresql"] = Field(default="sqlite", description="The database provider")
-    db_uri: str = Field(default=":memory:", description="The database URI")
+    alembic_ini_path: Path = Field(..., description="Path to the Alembic configuration file")
+    provider: Literal["sqlite", "postgresql"] = Field(..., description="The database provider")
+    host: str = Field(..., description="The database URI")
+
+    port: int | None = Field(None, description="The port of the database")
+    name: str | None = Field(None, description="The name of the database")
+    user: SecretStr | None = Field(None, description="The user of the database")
+    password: SecretStr | None = Field(None, description="The password of the database")
 
     @property
-    def sqlalchemy_url(self) -> str:
+    def sqlalchemy_uri(self) -> str:
         """The SQLAlchemy database URL."""
-        if self.db_provider == "sqlite":
-            return f"sqlite+aiosqlite:///{self.db_uri}"
-        if self.db_provider == "postgresql":
-            return f"postgresql+asyncpg://{self.db_uri}"
-        raise ValueError(f"Invalid database provider: {self.db_provider}")
-
-    @property
-    def sync_sqlalchemy_url(self) -> str:
-        """The synchronous SQLAlchemy database URL."""
-        if self.db_provider == "sqlite":
-            return f"sqlite:///{self.db_uri}"
-        if self.db_provider == "postgresql":
-            return f"postgresql://{self.db_uri}"
-        raise ValueError(f"Invalid database provider: {self.db_provider}")
+        match self.provider:
+            case "sqlite":
+                return URL.create("sqlite+aiosqlite", database=self.host)
+            case "postgresql":
+                if not all((self.user, self.password, self.name)):
+                    raise ValueError("User, password and name are required for PostgreSQL")
+                return URL.create(
+                    "postgresql+asyncpg",
+                    username=self.user.get_secret_value(),  # type: ignore[union-attr]
+                    password=self.password.get_secret_value(),  # type: ignore[union-attr]
+                    host=self.host,
+                    port=self.port,
+                    database=self.name,
+                )
+            case _:
+                raise ValueError(f"Invalid database provider: {self.provider}")

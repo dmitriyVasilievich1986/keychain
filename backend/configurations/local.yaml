@@ -5,8 +5,8 @@ info:
 
 db:
   alembic_ini_path: src/keychain/services/alembic/alembic.ini
-  db_provider: sqlite
-  db_uri: ./keychain.sqlite
+  provider: sqlite
+  host: ./keychain.sqlite
 
 cryptography:
   pass: ignore
