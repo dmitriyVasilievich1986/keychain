@@ -1,8 +1,4 @@
-"""System health endpoints.
-
-This module provides a REST API endpoint for checking service health and
-dependency connectivity.
-"""
+"""System health check router."""
 
 __all__ = ["router"]
 
@@ -37,16 +33,16 @@ router = APIRouter()
     },
 )
 async def health_check(db: Annotated[DBClient, Depends(get_db)]) -> HealthResponse:
-    """Check service health and dependency connectivity.
+    """Report service health based on database connectivity.
 
     Args:
-        db: Database client dependency used to verify connectivity.
+        db (DBClient): The database client used to verify connectivity.
 
     Returns:
-        A HealthResponse object indicating the service is healthy.
+        HealthResponse: A response indicating the service is healthy.
 
     Raises:
-        HTTPException: If the database health check fails.
+        HTTPException: 503 if the database health check fails.
 
     """
     if not await db.healthcheck():
