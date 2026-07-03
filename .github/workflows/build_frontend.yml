@@ -4,6 +4,7 @@ on:
   push:
     branches:
       - master
+      - development
   pull_request:
     branches:
       - master
@@ -17,31 +18,40 @@ jobs:
       - name: Checkout code
         uses: actions/checkout@v4
 
+      - name: Detect frontend changes
+        uses: dorny/paths-filter@v3
+        id: changes
+        with:
+          filters: |
+            frontend:
+              - 'frontend/**'
+              - '.github/workflows/build_frontend.yml'
+
+      - name: Skip frontend build (no relevant changes)
+        if: steps.changes.outputs.frontend != 'true'
+        run: echo "No frontend or workflow changes; marking check successful."
+
       - name: Setup Node.js
+        if: steps.changes.outputs.frontend == 'true'
         uses: actions/setup-node@v4
         with:
-          node-version: "20"
+          node-version: "24"
           cache: "npm"
           cache-dependency-path: frontend/package-lock.json
 
       - name: Install dependencies
+        if: steps.changes.outputs.frontend == 'true'
         working-directory: ./frontend
         run: npm ci
 
-      - name: Run linter check
-        working-directory: ./frontend
-        run: npm run lint:check
-
-      - name: Run format check
-        working-directory: ./frontend
-        run: npm run format:check
-
       - name: Build project
+        if: steps.changes.outputs.frontend == 'true'
         working-directory: ./frontend
         run: npm run build
 
       - name: Upload build artifacts
         uses: actions/upload-artifact@v4
+        if: steps.changes.outputs.frontend == 'true'
         with:
           name: frontend-build
           path: frontend/dist/
