@@ -91,8 +91,8 @@ jobs:
           python .github/scripts/bump_version.py \
             --type backend \
             --version-type minor
-          NEW_VERSION=$(sed -nE 's/^__version__[[:space:]]*=[[:space:]]*"([0-9]+\.[0-9]+\.[0-9]+)".*/\1/p' backend/src/expenses_counter/__init__.py)
-          git add backend/src/expenses_counter/__init__.py
+          NEW_VERSION=$(sed -nE 's/^__version__[[:space:]]*=[[:space:]]*"([0-9]+\.[0-9]+\.[0-9]+)".*/\1/p' backend/src/keychain/__init__.py)
+          git add backend/src/keychain/__init__.py
           git commit -m "version(backend): bump version to $NEW_VERSION"
 
       - name: Bump frontend version
