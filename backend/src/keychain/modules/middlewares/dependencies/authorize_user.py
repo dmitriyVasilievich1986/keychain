@@ -58,11 +58,14 @@ def authorize_user(
 
         try:
             result = auth_service.decode_token(token=token_header.credentials)
-        except (ExpiredSignatureError, InvalidTokenError, ValueError) as e:
+        except ExpiredSignatureError as e:
+            logger.warning("Expired token")
+            raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Expired token") from e
+        except (InvalidTokenError, ValueError) as e:
             logger.exception("Invalid token", exc_info=e)
             raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Invalid token") from e
         except PyJWTError as e:
-            logger.exception("Invalid token", exc_info=e)
+            logger.exception("An unexpected error occurred", exc_info=e)
             raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="An unexpected error occurred") from e
 
         try:
