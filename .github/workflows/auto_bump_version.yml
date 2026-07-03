@@ -2,7 +2,6 @@ name: auto-bump-version
 
 on:
   pull_request:
-    types: [opened]
     branches:
       - development
 
