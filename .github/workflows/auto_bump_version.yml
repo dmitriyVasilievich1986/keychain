@@ -1,0 +1,111 @@
+name: auto-bump-version
+
+on:
+  pull_request:
+    types: [opened]
+    branches:
+      - development
+
+permissions:
+  contents: write
+
+jobs:
+  auto-bump-version:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Generate GitHub App token
+        id: app-token
+        uses: actions/create-github-app-token@v1
+        with:
+          app-id: ${{ secrets.BUMP_APP_ID }}
+          private-key: ${{ secrets.BUMP_APP_PRIVATE_KEY }}
+
+      - name: Checkout PR branch
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.pull_request.head.ref }}
+          repository: ${{ github.event.pull_request.head.repo.full_name }}
+          fetch-depth: 0
+          token: ${{ steps.app-token.outputs.token }}
+
+      - name: Detect path changes
+        uses: dorny/paths-filter@v3
+        id: changes
+        with:
+          filters: |
+            backend:
+              - 'backend/**'
+            frontend:
+              - 'frontend/**'
+
+      - name: Check for existing version commits
+        id: version-commits
+        run: |
+          BASE_SHA="${{ github.event.pull_request.base.sha }}"
+          HEAD_SHA="${{ github.event.pull_request.head.sha }}"
+          if git log "$BASE_SHA..$HEAD_SHA" --pretty=%s | grep -q "^version(backend):"; then
+            echo "backend_already_bumped=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "backend_already_bumped=false" >> "$GITHUB_OUTPUT"
+          fi
+          if git log "$BASE_SHA..$HEAD_SHA" --pretty=%s | grep -q "^version(frontend):"; then
+            echo "frontend_already_bumped=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "frontend_already_bumped=false" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Decide whether to run
+        id: gate
+        run: |
+          BUMP_BACKEND=false
+          BUMP_FRONTEND=false
+          if [ "${{ steps.changes.outputs.backend }}" = "true" ] && [ "${{ steps.version-commits.outputs.backend_already_bumped }}" = "false" ]; then
+            BUMP_BACKEND=true
+          fi
+          if [ "${{ steps.changes.outputs.frontend }}" = "true" ] && [ "${{ steps.version-commits.outputs.frontend_already_bumped }}" = "false" ]; then
+            BUMP_FRONTEND=true
+          fi
+          echo "bump_backend=$BUMP_BACKEND" >> "$GITHUB_OUTPUT"
+          echo "bump_frontend=$BUMP_FRONTEND" >> "$GITHUB_OUTPUT"
+          if [ "$BUMP_BACKEND" = "true" ] || [ "$BUMP_FRONTEND" = "true" ]; then
+            echo "any=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "any=false" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Set up Python
+        if: steps.gate.outputs.any == 'true'
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.13"
+
+      - name: Configure git
+        if: steps.gate.outputs.any == 'true'
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+
+      - name: Bump backend version
+        if: steps.gate.outputs.bump_backend == 'true'
+        run: |
+          python .github/scripts/bump_version.py \
+            --type backend \
+            --version-type minor
+          NEW_VERSION=$(sed -nE 's/^__version__[[:space:]]*=[[:space:]]*"([0-9]+\.[0-9]+\.[0-9]+)".*/\1/p' backend/src/expenses_counter/__init__.py)
+          git add backend/src/expenses_counter/__init__.py
+          git commit -m "version(backend): bump version to $NEW_VERSION"
+
+      - name: Bump frontend version
+        if: steps.gate.outputs.bump_frontend == 'true'
+        run: |
+          python .github/scripts/bump_version.py \
+            --type frontend \
+            --version-type minor
+          NEW_VERSION=$(jq -r '.version' frontend/package.json)
+          git add frontend/package.json
+          git add frontend/package-lock.json
+          git commit -m "version(frontend): bump version to $NEW_VERSION"
+
+      - name: Push changes
+        if: steps.gate.outputs.any == 'true'
+        run: git push origin HEAD:${{ github.event.pull_request.head.ref }}
