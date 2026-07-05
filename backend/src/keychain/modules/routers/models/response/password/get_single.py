@@ -1,24 +1,16 @@
 """Password get response model."""
 
-__all__ = ["PasswordGetResponseModel", "PasswordGetResponseModelSimple"]
+__all__ = ("PasswordGetResponseModel",)
 
 from datetime import datetime
 
 from pydantic import Field
 
-from keychain.modules.routers.models.base.response import BaseResponseModel
+from keychain.modules.routers.models.base.response import BaseResponseFromModelSchema
 from keychain.modules.routers.models.response.field import FieldGetResponseModel
 
 
-class PasswordGetResponseModelSimple(BaseResponseModel):
-    """Password get response model simple."""
-
-    id: int = Field(..., description="The ID of the password")
-    name: str = Field(..., description="The name of the password")
-    image_url: str | None = Field(None, description="The URL of the image associated with the password")
-
-
-class PasswordGetResponseModel(BaseResponseModel):
+class PasswordGetResponseModel(BaseResponseFromModelSchema):
     """Password get response model."""
 
     id: int = Field(..., description="The ID of the password")
