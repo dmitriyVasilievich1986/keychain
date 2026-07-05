@@ -11,6 +11,8 @@ Create Date: 2024-11-17 20:39:38.678721
 """
 
 from collections.abc import Sequence
+from datetime import datetime
+from uuid import uuid4
 
 import sqlalchemy as sa
 from alembic import op
@@ -45,6 +47,9 @@ class User(Base):
     __tablename__ = "user"
 
     id: int = sa.Column(sa.Integer, primary_key=True)
+    name: str = sa.Column(sa.String(255), nullable=False)
+    created_at: datetime = sa.Column(sa.DateTime, nullable=False)
+    password_hash: str = sa.Column(sa.String(255), nullable=False)
 
 
 class Password(Base):
@@ -82,7 +87,9 @@ def upgrade() -> None:
     session = Session(bind=bind)
     user = session.query(User).first()
     if user is None:
-        raise ValueError("To proceed, please create at least one user.")
+        session.add(User(name="dummy_user", password_hash=str(uuid4()), created_at=datetime.now()))
+        session.commit()
+        user = session.query(User).first()
 
     user_id = user.id
 
