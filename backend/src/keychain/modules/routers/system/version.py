@@ -9,7 +9,7 @@ from fastapi.params import Depends
 
 from keychain.config import AppConfig
 from keychain.modules.middlewares.dependencies import get_config
-from keychain.modules.routers.models.response import VersionResponse
+from keychain.modules.routers.models.response.system import VersionResponse
 
 router = APIRouter()
 

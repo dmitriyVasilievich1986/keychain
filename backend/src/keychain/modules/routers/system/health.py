@@ -7,7 +7,7 @@ from typing import Annotated
 from fastapi import APIRouter, Depends, HTTPException, status
 
 from keychain.modules.middlewares.dependencies import get_db
-from keychain.modules.routers.models.response import (
+from keychain.modules.routers.models.response.system import (
     ErrorResponse,
     HealthResponse,
 )
