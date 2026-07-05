@@ -1,6 +1,6 @@
 """User login router for issuing access tokens."""
 
-__all__ = ["router"]
+__all__ = ("router",)
 
 from typing import Annotated
 
@@ -43,6 +43,7 @@ async def login_user(
     Raises:
         HTTPException: 404 if the username does not exist, 401 if the password
             is incorrect, or 500 on a database or token encoding error.
+
     """
     user_dao = UserDAO(db)
     try:

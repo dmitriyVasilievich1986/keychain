@@ -1,6 +1,6 @@
 """User router for retrieving and updating the current user."""
 
-__all__ = ["router"]
+__all__ = ("router",)
 
 from typing import Annotated
 
@@ -30,6 +30,7 @@ async def get_user(user: Annotated[User, Depends(authorize_user(AppConfig))]) ->
 
     Returns:
         UserGetResponseModel: The serialized current user.
+
     """
     return UserGetResponseModel.model_validate(user)
 
@@ -53,10 +54,12 @@ async def update_user(
     Raises:
         HTTPException: 404 if the user no longer exists, or 500 on an
             unexpected database error.
+
     """
     user_dao = UserDAO(db)
+
     try:
-        updated_user = await user_dao.update(user.id, body.name)
+        updated_user = await user_dao.update(user.id, **body.model_dump())
     except NoResultFound as e:
         logger.warning(f"User not found: {user.id}")
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="User not found") from e

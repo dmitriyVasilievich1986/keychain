@@ -1,6 +1,6 @@
 """Access token response model."""
 
-__all__ = ["AccessTokenResponseModel"]
+__all__ = ("AccessTokenResponseModel",)
 
 from pydantic import Field
 

@@ -1,6 +1,6 @@
 """API v1 router."""
 
-__all__ = ["router"]
+__all__ = ("router",)
 
 from fastapi import APIRouter
 
