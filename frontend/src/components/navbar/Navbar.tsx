@@ -11,6 +11,7 @@ import LogoutIcon from '@mui/icons-material/Logout';
 import { useUserStore } from '@store/user';
 import { useUserAPIClient } from '@utils/apiClient/user';
 import { useClearStore } from '@utils/useClearStore';
+import IconButton from '@mui/material/IconButton';
 
 import * as defaultStyle from './style.scss';
 
@@ -49,17 +50,19 @@ export function Navbar() {
               </Typography>
             </div>
             {user !== null && (
-              <div
-                style={{ display: 'flex', alignItems: 'center', gap: '1rem', cursor: 'pointer' }}
-                onClick={() => {
-                  clearAllStores();
-                  navigate('/login');
-                }}
-              >
+              <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
                 <Typography variant="h6" component="div" sx={{ flexGrow: 1 }}>
                   {user?.name}
                 </Typography>
-                <LogoutIcon />
+                <IconButton
+                  size="small"
+                  onClick={() => {
+                    clearAllStores();
+                    navigate('/login');
+                  }}
+                >
+                  <LogoutIcon />
+                </IconButton>
               </div>
             )}
           </div>
