@@ -14,6 +14,7 @@ import { useState } from 'react';
 import { useNavigate, useSearchParams } from 'react-router';
 import Cookies from 'js-cookie';
 import { useAuthAPIClient } from '@utils/apiClient/auth';
+import { Image } from '@components/image';
 
 import { useUserStore } from '@store/user';
 
@@ -59,7 +60,7 @@ export function Login() {
               alignItems: 'center',
             }}
           >
-            <img
+            <Image
               src={`${import.meta.env.VITE_IMAGES_HOST}/avatar.svg`}
               alt="avatar"
               width={100}

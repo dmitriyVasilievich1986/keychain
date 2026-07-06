@@ -11,6 +11,7 @@ import { usePasswordsStore } from '@store/passwords';
 import { useUserStore } from '@store/user';
 import { usePasswordAPIClient } from '@utils/apiClient/password';
 import * as defaultStyle from './style.scss';
+import { Image } from '@components/image';
 
 const cx = classnames.bind(defaultStyle);
 
@@ -57,14 +58,13 @@ function PasswordsList() {
           }}
           renderOption={(props, option) => (
             <li {...props} key={option.id}>
-              <img
+              <Image
                 src={`${import.meta.env.VITE_IMAGES_HOST}/${option.imageUrl}`}
                 alt={option.name}
-                style={{ marginRight: '0.5rem' }}
                 width={25}
                 height={25}
               />
-              <span>{option.name}</span>
+              <span style={{ marginLeft: '0.5rem' }}>{option.name}</span>
             </li>
           )}
         />

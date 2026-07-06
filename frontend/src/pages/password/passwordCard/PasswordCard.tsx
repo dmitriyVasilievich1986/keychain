@@ -15,6 +15,7 @@ import { usePasswordAPIClient } from '@utils/apiClient/password';
 import * as defaultStyle from './style.scss';
 import Skeleton from '@mui/material/Skeleton';
 import ExpandMoreIcon from '@mui/icons-material/ExpandMore';
+import { Image } from '@components/image';
 
 import Accordion from '@mui/material/Accordion';
 import AccordionSummary from '@mui/material/AccordionSummary';
@@ -56,9 +57,11 @@ export function PasswordCard() {
     <Box sx={{ padding: '1rem' }}>
       <Paper elevation={10} sx={{ padding: '1rem' }}>
         <Box className={cx('password-card-header')}>
-          <img
+          <Image
             src={`${import.meta.env.VITE_IMAGES_HOST}/${currentPassword.imageUrl}`}
             alt={currentPassword.name}
+            width={25}
+            height={25}
           />
           <Typography variant="h6">{currentPassword.name}</Typography>
         </Box>

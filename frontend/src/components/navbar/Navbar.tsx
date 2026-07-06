@@ -12,6 +12,7 @@ import { useUserStore } from '@store/user';
 import { useUserAPIClient } from '@utils/apiClient/user';
 import { useClearStore } from '@utils/useClearStore';
 import IconButton from '@mui/material/IconButton';
+import { Image } from '@components/image';
 
 import * as defaultStyle from './style.scss';
 
@@ -37,11 +38,11 @@ export function Navbar() {
         <Toolbar disableGutters>
           <div className={cx('navbar-inner')}>
             <div className={cx('navbar-brand')}>
-              <img
+              <Image
                 src={`${import.meta.env.VITE_IMAGES_HOST}/padlock.png`}
                 alt="padlock"
-                width={32}
-                height={32}
+                width={20}
+                height={20}
               />
               <Typography variant="h6" component="div" sx={{ flexGrow: 1 }}>
                 <NavLink to="/password" className={cx('navbar-link')}>
