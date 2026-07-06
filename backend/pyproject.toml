@@ -20,6 +20,7 @@ license = { file = "LICENSE" }
 dependencies = [
     "aiosqlite>=0.22.1",
     "alembic>=1.17.1",
+    "asyncpg>=0.31.0",
     "click>=8.3.0",
     "colorama>=0.4.6",
     "cryptography>=46.0.3",
