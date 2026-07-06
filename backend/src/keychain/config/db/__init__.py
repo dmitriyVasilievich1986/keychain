@@ -27,7 +27,7 @@ class DBConfig(BaseModel):
     """  # noqa: E501
 
     alembic_ini_path: Path = Field(..., description="Path to the Alembic configuration file")
-    provider: Literal["sqlite", "postgresql"] = Field(..., description="The database provider")
+    provider: Literal["postgresql"] = Field(..., description="The database provider")
     host: str = Field(..., description="The database URI")
 
     port: int | None = Field(None, description="The port of the database")

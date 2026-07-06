@@ -5,8 +5,10 @@ info:
 
 db:
   alembic_ini_path: src/keychain/services/alembic/alembic.ini
-  provider: sqlite
-  host: ./keychain.sqlite
+  provider: postgresql
+  host: db
+  port: 5432
+  name: keychain_local
 
 cryptography:
   pass: ignore
