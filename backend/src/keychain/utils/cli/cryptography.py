@@ -1,8 +1,8 @@
 """CLI for managing the cryptography of the Keychain Application."""
 
-__all__ = ["cryptography"]
+__all__ = ("cryptography",)
 
-import click
+import asyncclick as click
 
 from keychain.services.cryptography.client import CryptographyClient
 
@@ -22,7 +22,7 @@ def cryptography(ctx: click.Context) -> None:
 
 
 @cryptography.command(help="Encrypt a string")
-@click.option("--string", prompt="Enter the string to encrypt", help="The string to encrypt")
+@click.option("--string", help="The string to encrypt", type=str, required=True)
 @click.pass_context
 def encrypt(ctx: click.Context, string: str) -> None:
     """Encrypt a string using the cryptography client.
@@ -40,7 +40,7 @@ def encrypt(ctx: click.Context, string: str) -> None:
 
 
 @cryptography.command(help="Decrypt a string")
-@click.option("--string", prompt="Enter the string to decrypt", help="The string to decrypt")
+@click.option("--string", help="The string to decrypt", type=str, required=True)
 @click.pass_context
 def decrypt(ctx: click.Context, string: str) -> None:
     """Decrypt a string using the cryptography client.
