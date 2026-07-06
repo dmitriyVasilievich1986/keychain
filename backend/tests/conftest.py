@@ -29,6 +29,8 @@ os.environ.setdefault("DB__PORT", "5432")
 os.environ.setdefault("DB__USER", "root")
 os.environ.setdefault("DB__PASSWORD", "root")
 os.environ.setdefault("DB__ALEMBIC_INI_PATH", str(BACKEND_DIR / "src/keychain/services/alembic/alembic.ini"))
+os.environ.setdefault("CRYPTOGRAPHY__SECRET_KEY", "WcrmZ43_lZNqollPA7g_Bt8pKZq2YBr69OFSjQ0V710=")
+os.environ.setdefault("AUTH__JWT_SECRET_KEY", "test-secret")
 
 import pytest  # noqa: E402
 import pytest_asyncio  # noqa: E402
