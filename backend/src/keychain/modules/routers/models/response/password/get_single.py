@@ -7,7 +7,7 @@ from datetime import datetime
 from pydantic import Field
 
 from keychain.modules.routers.models.base.response import BaseResponseFromModelSchema
-from keychain.modules.routers.models.response.field import FieldGetResponseModel
+from keychain.modules.routers.models.response.field import SimpleFieldGet
 
 
 class PasswordGetResponseModel(BaseResponseFromModelSchema):
@@ -18,4 +18,4 @@ class PasswordGetResponseModel(BaseResponseFromModelSchema):
     created_at: datetime = Field(..., description="The creation date of the password")
     image_url: str | None = Field(None, description="The URL of the image associated with the password")
     user_id: int = Field(..., description="The ID of the user who owns the password")
-    fields: list[FieldGetResponseModel] = Field(..., description="The fields associated with the password")
+    fields: list[SimpleFieldGet] = Field(..., description="The fields associated with the password")
