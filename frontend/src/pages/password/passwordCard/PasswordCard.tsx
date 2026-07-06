@@ -1,5 +1,4 @@
 import Box from '@mui/material/Box';
-import Divider from '@mui/material/Divider';
 import Paper from '@mui/material/Paper';
 import Stack from '@mui/material/Stack';
 import Typography from '@mui/material/Typography';
@@ -15,6 +14,11 @@ import { Field } from './Field';
 import { usePasswordAPIClient } from '@utils/apiClient/password';
 import * as defaultStyle from './style.scss';
 import Skeleton from '@mui/material/Skeleton';
+import ExpandMoreIcon from '@mui/icons-material/ExpandMore';
+
+import Accordion from '@mui/material/Accordion';
+import AccordionSummary from '@mui/material/AccordionSummary';
+import AccordionDetails from '@mui/material/AccordionDetails';
 
 const cx = classnames.bind(defaultStyle);
 
@@ -66,14 +70,20 @@ export function PasswordCard() {
             ))}
         </Stack>
         <AddField />
-        <Divider sx={{ marginTop: '2rem' }}>Deleted Fields</Divider>
-        <Stack spacing={2} sx={{ marginTop: '2rem' }}>
-          {currentPassword.fields
-            .filter((f) => f.isDeleted)
-            .map((f) => (
-              <Field key={f.id} field={f} />
-            ))}
-        </Stack>
+        <Accordion sx={{ '&::before': { display: 'none' }, marginTop: '2rem' }}>
+          <AccordionSummary expandIcon={<ExpandMoreIcon />}>
+            <Typography>Deleted Fields</Typography>
+          </AccordionSummary>
+          <AccordionDetails>
+            <Stack spacing={2} sx={{ marginTop: '2rem' }}>
+              {currentPassword.fields
+                .filter((f) => f.isDeleted)
+                .map((f) => (
+                  <Field key={f.id} field={f} />
+                ))}
+            </Stack>
+          </AccordionDetails>
+        </Accordion>
       </Paper>
     </Box>
   );
