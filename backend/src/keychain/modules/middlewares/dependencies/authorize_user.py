@@ -69,7 +69,7 @@ def authorize_user(
             raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="An unexpected error occurred") from e
 
         try:
-            return await UserDAO(db_client).get_by_pk(pk=result.user_id)
+            return await UserDAO(db_client).get_by_pk(pk=int(result.user_id))
         except NoResultFound as e:
             logger.warning(f"User not found: {result.user_id}")
             raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="User not found") from e
