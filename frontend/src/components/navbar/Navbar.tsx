@@ -2,36 +2,33 @@ import AppBar from '@mui/material/AppBar';
 import Container from '@mui/material/Container';
 import Toolbar from '@mui/material/Toolbar';
 import Typography from '@mui/material/Typography';
-import axios from 'axios';
 import classnames from 'classnames/bind';
 import { useEffect } from 'react';
-import { NavLink } from 'react-router';
+import { NavLink, useNavigate } from 'react-router';
+import Cookies from 'js-cookie';
+import LogoutIcon from '@mui/icons-material/Logout';
 
-import { useUserStore, type User } from '@store/user';
+import { useUserStore } from '@store/user';
+import { useUserAPIClient } from '@utils/apiClient/user';
+import { useClearStore } from '@utils/useClearStore';
 
 import * as defaultStyle from './style.scss';
 
 const cx = classnames.bind(defaultStyle);
 
 export function Navbar() {
-  const { user, accessToken, setUser } = useUserStore();
+  const { user, setUser } = useUserStore();
+  const { getUser } = useUserAPIClient();
+  const navigate = useNavigate();
+  const { clearAllStores } = useClearStore();
 
   useEffect(() => {
-    if (accessToken) {
-      axios
-        .get<User>(`${import.meta.env.VITE_API_HOST}/api/v1/user/me`, {
-          headers: {
-            Authorization: `Bearer ${accessToken}`,
-          },
-        })
-        .then((response) => {
-          setUser(response.data);
-        })
-        .catch((error) => {
-          console.error(error);
-        });
+    if (user === null && !!Cookies.get('accessToken')) {
+      getUser().then((user) => {
+        setUser(user);
+      });
     }
-  }, [accessToken]);
+  }, [user, Cookies.get('accessToken')]);
 
   return (
     <AppBar position="sticky">
@@ -51,13 +48,20 @@ export function Navbar() {
                 </NavLink>
               </Typography>
             </div>
-            <div>
-              <Typography variant="h6" component="div" sx={{ flexGrow: 1 }}>
-                <NavLink to="/logout" className={cx('navbar-link')}>
+            {user !== null && (
+              <div
+                style={{ display: 'flex', alignItems: 'center', gap: '1rem', cursor: 'pointer' }}
+                onClick={() => {
+                  clearAllStores();
+                  navigate('/login');
+                }}
+              >
+                <Typography variant="h6" component="div" sx={{ flexGrow: 1 }}>
                   {user?.name}
-                </NavLink>
-              </Typography>
-            </div>
+                </Typography>
+                <LogoutIcon />
+              </div>
+            )}
           </div>
         </Toolbar>
       </Container>
