@@ -3,42 +3,50 @@ import Divider from '@mui/material/Divider';
 import Paper from '@mui/material/Paper';
 import Stack from '@mui/material/Stack';
 import Typography from '@mui/material/Typography';
-import axios from 'axios';
 import classnames from 'classnames/bind';
 import { useEffect } from 'react';
 import { useParams } from 'react-router';
 
-import { usePasswordsStore, type Password } from '@store/passwords';
+import { usePasswordsStore } from '@store/passwords';
 import { useUserStore } from '@store/user';
 
 import { AddField } from './AddField';
 import { Field } from './Field';
+import { usePasswordAPIClient } from '@utils/apiClient/password';
 import * as defaultStyle from './style.scss';
+import Skeleton from '@mui/material/Skeleton';
 
 const cx = classnames.bind(defaultStyle);
 
 export function PasswordCard() {
   const { passwordId } = useParams();
   const { currentPassword, setCurrentPassword } = usePasswordsStore();
-  const { accessToken } = useUserStore();
+  const { isLoading } = useUserStore();
+  const { getPassword } = usePasswordAPIClient();
 
   useEffect(() => {
     if (!passwordId) {
       setCurrentPassword(null);
       return;
     }
-    axios
-      .get<Password>(`${import.meta.env.VITE_API_HOST}/api/v1/password/${passwordId}`, {
-        headers: {
-          Authorization: `Bearer ${accessToken}`,
-        },
-      })
+    if (currentPassword !== null) return;
+    getPassword(parseInt(passwordId))
       .then((response) => {
-        setCurrentPassword(response.data);
+        setCurrentPassword(response);
+      })
+      .catch((error) => {
+        console.error(error);
       });
-  }, [passwordId]);
+  }, [passwordId, currentPassword]);
 
   if (!currentPassword) return null;
+  if (isLoading) {
+    return (
+      <Box sx={{ padding: '1rem' }}>
+        <Skeleton variant="rectangular" width="100%" height={400} />
+      </Box>
+    );
+  }
 
   return (
     <Box sx={{ padding: '1rem' }}>
