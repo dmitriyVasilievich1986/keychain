@@ -10,6 +10,6 @@ export type UserStore = {
   isLoading: boolean;
   setIsLoading: (isLoading: boolean) => void;
   setAccessToken: (accessToken: string) => void;
-  setUser: (user: User) => void;
+  setUser: (user: User | null) => void;
   clearStore: () => void;
 };
