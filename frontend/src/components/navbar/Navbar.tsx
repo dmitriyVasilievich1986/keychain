@@ -46,7 +46,7 @@ export function Navbar() {
               />
               <Typography variant="h6" component="div" sx={{ flexGrow: 1 }}>
                 <NavLink to="/password" className={cx('navbar-link')}>
-                  Password
+                  Keychain
                 </NavLink>
               </Typography>
             </div>
