@@ -1,6 +1,6 @@
 """Data access object for user records."""
 
-__all__ = ["UserDAO"]
+__all__ = ("UserDAO",)
 
 from sqlalchemy.sql import ColumnElement
 from werkzeug.security import generate_password_hash
@@ -63,7 +63,7 @@ class UserDAO(BaseDAO[User]):
         new_password_hash = generate_password_hash(password)
 
         if self.session is not None:
-            return await self._update_raw(self.session, pk, col, {"password_hash": new_password_hash}, filters=filters)
+            return await self._update_raw(self.session, pk, col, filters=filters, password_hash=new_password_hash)
 
         async with self.database_client.session_factory() as session:  # type: ignore[union-attr]
-            return await self._update_raw(session, pk, col, {"password_hash": new_password_hash}, filters=filters)
+            return await self._update_raw(session, pk, col, filters=filters, password_hash=new_password_hash)
