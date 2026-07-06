@@ -4,31 +4,31 @@ import Box from '@mui/material/Box';
 import Stack from '@mui/material/Stack';
 import TextField from '@mui/material/TextField';
 import classnames from 'classnames/bind';
-import { useNavigate, useParams } from 'react-router';
+import { useNavigate } from 'react-router';
 
 import { FloatingButton } from '@components/floatingButton';
-import { usePasswordsStore, type PasswordSimple } from '@store/passwords';
+import { usePasswordsStore } from '@store/passwords';
 import { useUserStore } from '@store/user';
-import { useApiClient } from '@utils/apiClient';
-
+import { usePasswordAPIClient } from '@utils/apiClient/password';
 import * as defaultStyle from './style.scss';
 
 const cx = classnames.bind(defaultStyle);
 
 function PasswordsList() {
-  const { passwords, setPasswords } = usePasswordsStore();
+  const { passwords, setPasswords, currentPassword } = usePasswordsStore();
   const { isLoading } = useUserStore();
-  const { passwordId } = useParams();
   const navigate = useNavigate();
-  const { apiGet } = useApiClient();
+  const { getPasswords } = usePasswordAPIClient();
 
   const fetchPasswords = async () => {
-    if (isLoading || passwords.length) return;
-    try {
-      const response = await apiGet<PasswordSimple[]>('/api/v1/password');
-      setPasswords(response);
-    } catch (error) {
-      console.error(error);
+    if (passwords.length === 0) {
+      getPasswords()
+        .then((response) => {
+          setPasswords(response.data);
+        })
+        .catch((error) => {
+          console.error(error);
+        });
     }
   };
 
@@ -45,9 +45,7 @@ function PasswordsList() {
           options={passwords}
           getOptionLabel={(option) => option.name}
           renderInput={(params) => <TextField {...params} label="Password" />}
-          value={
-            passwordId ? passwords.find((password) => password.id === Number(passwordId)) : null
-          }
+          value={currentPassword}
           onOpen={fetchPasswords}
           loading={isLoading}
           onChange={(_, value) => {

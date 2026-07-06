@@ -8,7 +8,7 @@ import { useState } from 'react';
 import { FloatingButton } from '@components/floatingButton';
 import { usePasswordsStore, type PasswordField } from '@store/passwords';
 import { useUserStore } from '@store/user';
-import { useApiClient } from '@utils/apiClient';
+import { useFieldAPIClient } from '@utils/apiClient/field';
 
 import * as defaultStyle from './style.scss';
 
@@ -19,8 +19,8 @@ export function Field(props: { field: PasswordField }) {
   const [updateFieldError, setUpdateFieldError] = useState<string>('');
 
   const { isLoading } = useUserStore();
-  const { apiPut } = useApiClient();
   const { updateField } = usePasswordsStore();
+  const { putField } = useFieldAPIClient();
 
   const handleUpdateField = async () => {
     if (isLoading) return;
@@ -28,17 +28,15 @@ export function Field(props: { field: PasswordField }) {
       setUpdateFieldError('Please fill in all fields');
       return;
     }
-    try {
-      const response = await apiPut<{ value: string }, PasswordField>(
-        `/api/v1/field/${props.field.id}`,
-        { value }
-      );
-      updateField(props.field.id, response);
-      setValue(props.field.valueDecrypted);
-    } catch (error) {
-      console.error(error);
-      setUpdateFieldError('Failed to update field');
-    }
+    putField(props.field.id, { value })
+      .then((response) => {
+        updateField(props.field.id, response);
+        setValue(response.valueDecrypted);
+      })
+      .catch((error) => {
+        console.error(error);
+        setUpdateFieldError('Failed to update field');
+      });
   };
 
   return (
