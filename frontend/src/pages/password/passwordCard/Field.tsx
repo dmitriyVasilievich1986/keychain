@@ -2,21 +2,20 @@ import ContentCopyIcon from '@mui/icons-material/ContentCopy';
 import EditIcon from '@mui/icons-material/Edit';
 import Stack from '@mui/material/Stack';
 import TextField from '@mui/material/TextField';
-import classnames from 'classnames/bind';
 import { useState } from 'react';
 
 import { FloatingButton } from '@components/floatingButton';
 import { usePasswordsStore, type PasswordField } from '@store/passwords';
 import { useUserStore } from '@store/user';
 import { useFieldAPIClient } from '@utils/apiClient/field';
-
-import * as defaultStyle from './style.scss';
-
-const cx = classnames.bind(defaultStyle);
+import VisibilityIcon from '@mui/icons-material/Visibility';
+import VisibilityOffIcon from '@mui/icons-material/VisibilityOff';
+import IconButton from '@mui/material/IconButton';
 
 export function Field(props: { field: PasswordField }) {
   const [value, setValue] = useState(props.field.valueDecrypted);
   const [updateFieldError, setUpdateFieldError] = useState<string>('');
+  const [show, setShow] = useState<boolean>(false);
 
   const { isLoading } = useUserStore();
   const { updateField } = usePasswordsStore();
@@ -44,6 +43,7 @@ export function Field(props: { field: PasswordField }) {
       <TextField
         key={props.field.id}
         label={props.field.name}
+        type={show ? 'text' : 'password'}
         fullWidth
         variant="outlined"
         value={value}
@@ -56,10 +56,20 @@ export function Field(props: { field: PasswordField }) {
         slotProps={{
           input: {
             endAdornment: (
-              <ContentCopyIcon
-                onClick={() => navigator.clipboard.writeText(props.field.valueDecrypted)}
-                className={cx('copy-icon')}
-              />
+              <Stack direction="row" spacing={1}>
+                <IconButton size="small" onClick={() => setShow(!show)}>
+                  {show ? (
+                    <VisibilityIcon onClick={() => setShow(false)} />
+                  ) : (
+                    <VisibilityOffIcon onClick={() => setShow(true)} />
+                  )}
+                </IconButton>
+                <IconButton
+                  onClick={() => navigator.clipboard.writeText(props.field.valueDecrypted)}
+                >
+                  <ContentCopyIcon />
+                </IconButton>
+              </Stack>
             ),
           },
         }}
