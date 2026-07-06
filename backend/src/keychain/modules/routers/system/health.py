@@ -1,4 +1,4 @@
-"""Health check API router."""
+"""System health check router."""
 
 __all__ = ["router"]
 
@@ -7,7 +7,7 @@ from typing import Annotated
 from fastapi import APIRouter, Depends, HTTPException, status
 
 from keychain.modules.middlewares.dependencies import get_db
-from keychain.modules.routers.models.response import (
+from keychain.modules.routers.models.response.system import (
     ErrorResponse,
     HealthResponse,
 )
@@ -33,16 +33,19 @@ router = APIRouter()
     },
 )
 async def health_check(db: Annotated[DBClient, Depends(get_db)]) -> HealthResponse:
-    """Perform a health check on the service by verifying connectivity to Redis cache and message clients.
+    """Report service health based on database connectivity.
 
-    Raises:
-        HTTPException: If any Redis connection check fails, returns a 503 Service Unavailable error.
+    Args:
+        db (DBClient): The database client used to verify connectivity.
 
     Returns:
-        HealthResponse: Indicates the service is healthy if all checks pass.
+        HealthResponse: A response indicating the service is healthy.
+
+    Raises:
+        HTTPException: 503 if the database health check fails.
 
     """
-    if not await db.health_check():
+    if not await db.healthcheck():
         raise HTTPException(status_code=status.HTTP_503_SERVICE_UNAVAILABLE, detail="Service is unhealthy.")
 
     return HealthResponse(status="ok")

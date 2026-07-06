@@ -1,2 +1,9 @@
 info:
   name: keychain
+
+db:
+  alembic_ini_path: src/keychain/services/alembic/alembic.ini
+  provider: postgresql
+  host: db
+  port: 5432
+  name: keychain

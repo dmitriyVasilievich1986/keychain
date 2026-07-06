@@ -1,6 +1,6 @@
 """Password create request model."""
 
-__all__ = ["PasswordCreateRequestModel"]
+__all__ = ("PasswordCreateRequestModel",)
 
 from pydantic import Field
 

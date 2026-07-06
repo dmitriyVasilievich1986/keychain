@@ -1,15 +1,12 @@
-"""User related endpoints.
+"""User router for retrieving and updating the current user."""
 
-This module provides REST API endpoints for user management operations,
-including creating, reading, updating, and deleting users.
-"""
-
-__all__ = ["router"]
+__all__ = ("router",)
 
 from typing import Annotated
 
-from fastapi import APIRouter, Depends, HTTPException, status
+from fastapi import APIRouter, Body, Depends, HTTPException, status
 from loguru import logger
+from sqlalchemy.exc import NoResultFound, SQLAlchemyError
 
 from keychain.config import AppConfig
 from keychain.modules.middlewares.dependencies import authorize_user, get_db
@@ -25,61 +22,51 @@ router = APIRouter(prefix="/user")
 
 
 @router.get("/me", response_model=UserGetResponseModel, description="Get the current user")
-async def get_user(
-    db: Annotated[DBClient, Depends(get_db)], user: Annotated[User, Depends(authorize_user(AppConfig))]
-) -> UserGetResponseModel:
-    """Retrieve the current user.
+async def get_user(user: Annotated[User, Depends(authorize_user(AppConfig))]) -> UserGetResponseModel:
+    """Return the currently authenticated user.
 
     Args:
-        db: Database client dependency for database operations.
-        user: User dependency for the authenticated user.
+        user (User): The authenticated user resolved from the request token.
 
     Returns:
-        A UserGetResponseModel object representing the current user.
-
-    Raises:
-        HTTPException: If the current user is not found.
+        UserGetResponseModel: The serialized current user.
 
     """
-    user_dao = UserDAO(db)
-    try:
-        user = await user_dao.get_by_id(user.id)
-    except ValueError as e:
-        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=str(e)) from e
-    except Exception as e:
-        logger.error(f"Error retrieving user {user.id}: {e}")
-        raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail=str(e)) from e
-
     return UserGetResponseModel.model_validate(user)
 
 
 @router.put("", response_model=UserGetResponseModel, description="Update a user by ID")
 async def update_user(
-    user_model: UserUpdateRequestModel,
+    body: Annotated[UserUpdateRequestModel, Body(description="Update user request body")],
     db: Annotated[DBClient, Depends(get_db)],
     user: Annotated[User, Depends(authorize_user(AppConfig))],
 ) -> UserGetResponseModel:
-    """Update an existing user's information.
+    """Update the authenticated user's details.
 
     Args:
-        user_model: UserUpdateRequestModel containing the updated user information.
-        db: Database client dependency for database operations.
-        user: User dependency for the authenticated user.
+        body (UserUpdateRequestModel): The request body with fields to update.
+        db (DBClient): The database client used to persist the update.
+        user (User): The authenticated user resolved from the request token.
 
     Returns:
-        A UserGetResponseModel object representing the updated user.
+        UserGetResponseModel: The serialized updated user.
 
     Raises:
-        HTTPException: If the current user is not found or validation fails.
+        HTTPException: 404 if the user no longer exists, or 500 on an
+            unexpected database error.
 
     """
     user_dao = UserDAO(db)
+
     try:
-        updated_user = await user_dao.update(user.id, user_model.name)
-    except ValueError as e:
-        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=str(e)) from e
-    except Exception as e:
-        logger.error(f"Error updating user {user.id}: {e}")
-        raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail=str(e)) from e
+        updated_user = await user_dao.update(user.id, **body.model_dump())
+    except NoResultFound as e:
+        logger.warning(f"User not found: {user.id}")
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="User not found") from e
+    except SQLAlchemyError as e:
+        logger.exception(f"Error updating user {user.id}", exc_info="An unexpected error occurred")
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail="An unexpected error occurred"
+        ) from e
 
     return UserGetResponseModel.model_validate(updated_user)

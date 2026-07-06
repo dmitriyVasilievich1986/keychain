@@ -1,17 +1,14 @@
-"""User authorization dependency for FastAPI endpoints.
-
-This module provides dependency injection functions for authorizing users
-via JWT tokens in HTTP Bearer authentication headers. It validates tokens,
-retrieves user information from the database, and handles authentication errors.
-"""
+"""FastAPI dependency for authorizing a user from a bearer token."""
 
 __all__ = ["authorize_user"]
 
 from typing import Annotated, Any, Callable, Coroutine
 
-from fastapi import Depends, HTTPException
+from fastapi import Depends, HTTPException, status
 from fastapi.security import HTTPAuthorizationCredentials, HTTPBearer
-from jwt.exceptions import ExpiredSignatureError, InvalidTokenError
+from jwt.exceptions import ExpiredSignatureError, InvalidTokenError, PyJWTError
+from loguru import logger
+from sqlalchemy.exc import NoResultFound, SQLAlchemyError
 
 from keychain.config import AppConfig
 from keychain.services.auth.client import AuthClient
@@ -27,22 +24,14 @@ user_token = HTTPBearer(scheme_name="User Token")
 def authorize_user(
     config: type[AppConfig],
 ) -> Callable[[Annotated[HTTPAuthorizationCredentials, Depends(user_token)]], Coroutine[Any, Any, User]]:
-    """Create a FastAPI dependency for user authorization.
-
-    This factory function creates a dependency that validates JWT tokens from
-    HTTP Bearer authentication headers and retrieves the corresponding user
-    from the database.
+    """Build a FastAPI dependency that authorizes a user from a bearer token.
 
     Args:
-        config: The application configuration class containing authentication settings.
+        config (type[AppConfig]): The application config class used to build
+            the authentication client.
 
     Returns:
-        A dependency function that can be used with FastAPI's Depends() to inject
-        an authorized User object into endpoint handlers.
-
-    Raises:
-        HTTPException: With status 401 if token is invalid or user not found.
-        HTTPException: With status 500 if an unexpected error occurs.
+        Callable: An async dependency that resolves the authenticated user.
 
     """
 
@@ -50,32 +39,44 @@ def authorize_user(
         token_header: Annotated[HTTPAuthorizationCredentials, Depends(user_token)],
         db_client: Annotated[DBClient, Depends(get_db)],
     ) -> User:
-        """Authorize a user based on their JWT token.
+        """Resolve the authenticated user from the request's bearer token.
 
         Args:
-            token_header: The HTTP Bearer token credentials from the request header.
-            db_client: The database client for querying user information.
+            token_header (HTTPAuthorizationCredentials): The bearer credentials
+                extracted from the request.
+            db_client (DBClient): The database client used to look up the user.
 
         Returns:
-            The authenticated User object from the database.
+            User: The authenticated user matching the token.
 
         Raises:
-            HTTPException: With status 401 if token is invalid or user not found.
-            HTTPException: With status 500 if an unexpected error occurs during authorization.
+            HTTPException: 401 if the token is invalid or expired, 401 if the
+                user does not exist, or 500 on an unexpected database error.
 
         """
         auth_service = AuthClient(config=config.get_or_create())
 
         try:
             result = auth_service.decode_token(token=token_header.credentials)
-        except ValueError as e:
-            raise HTTPException(status_code=401, detail=str(e)) from e
-        except (ExpiredSignatureError, InvalidTokenError) as e:
-            raise HTTPException(status_code=401, detail=str(e)) from e
+        except ExpiredSignatureError as e:
+            logger.warning("Expired token")
+            raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Expired token") from e
+        except (InvalidTokenError, ValueError) as e:
+            logger.exception("Invalid token", exc_info=e)
+            raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Invalid token") from e
+        except PyJWTError as e:
+            logger.exception("An unexpected error occurred", exc_info=e)
+            raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="An unexpected error occurred") from e
 
         try:
-            return await UserDAO(db_client).get_by_id(pk=result.user_id)
-        except ValueError as e:
-            raise HTTPException(status_code=401, detail=str(e)) from e
+            return await UserDAO(db_client).get_by_pk(pk=int(result.user_id))
+        except NoResultFound as e:
+            logger.warning(f"User not found: {result.user_id}")
+            raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="User not found") from e
+        except SQLAlchemyError as e:
+            logger.exception("Error retrieving user", exc_info=e)
+            raise HTTPException(
+                status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail="An unexpected error occurred"
+            ) from e
 
     return _authorize_user

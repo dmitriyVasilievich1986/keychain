@@ -14,7 +14,7 @@ from collections.abc import Sequence
 
 import sqlalchemy as sa
 from alembic import op
-from sqlalchemy.orm import DeclarativeBase, Session
+from sqlalchemy.orm import DeclarativeBase
 
 # revision identifiers, used by Alembic.
 revision: str = "aa6f04f16526"
@@ -49,36 +49,29 @@ class Password(Base):
 
     id: int = sa.Column(sa.Integer, primary_key=True)
     name: str = sa.Column(sa.String, nullable=False, unique=False)
-    name_temp: str = sa.Column(sa.String, nullable=True, unique=False)
 
 
 def upgrade() -> None:
-    """Upgrade the database schema.
+    """Drop the unique constraint on ``password.name``.
 
-    Removes the unique constraint from the 'name' column by:
-    1. Adding a temporary 'name_temp' column
-    2. Copying all data from 'name' to 'name_temp'
-    3. Dropping the original 'name' column (which has the unique constraint)
-    4. Renaming 'name_temp' to 'name' and making it non-nullable without unique constraint
+    Removes the ``uq_password_name`` constraint so multiple passwords may share
+    the same name.
+
+    Returns:
+        None
+
     """
-    bind = op.get_bind()
-    session = Session(bind=bind)
-
-    with op.batch_alter_table("password", recreate="always") as batch_op:
-        batch_op.add_column(sa.Column("name_temp", sa.String, nullable=True, unique=False))
-
-    session.query(Password).update({Password.name_temp: Password.name})
-
-    with op.batch_alter_table("password", recreate="always") as batch_op:
-        batch_op.drop_column("name")
-        batch_op.alter_column("name_temp", new_column_name="name", nullable=False, unique=False)
+    op.drop_constraint("uq_password_name", "password", type_="unique")
 
 
 def downgrade() -> None:
-    """Downgrade the database schema.
+    """Restore the unique constraint on ``password.name``.
 
-    This migration cannot be reversed as restoring the unique constraint would fail
-    if duplicate names exist in the database. The downgrade function is intentionally
-    left empty (no-op).
+    Recreates the ``uq_password_name`` constraint. This fails if duplicate
+    names already exist in the table.
+
+    Returns:
+        None
+
     """
-    pass
+    op.create_unique_constraint("uq_password_name", "password", ["name"])

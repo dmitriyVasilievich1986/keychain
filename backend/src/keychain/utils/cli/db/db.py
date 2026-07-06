@@ -1,8 +1,17 @@
-import click
+"""Database CLI commands."""
+
+__all__ = ("db",)
+
+import asyncclick as click
 from alembic import command
 from alembic.config import Config
 
 from keychain.config import AppConfig
+from keychain.services.db_client.client import DBClient
+
+from .field import field
+from .password import password
+from .user import user
 
 
 @click.group(help="CLI for managing the database of the Keychain Application.")
@@ -24,6 +33,7 @@ def db(ctx: click.Context) -> None:
     config: AppConfig = ctx.obj["config"]
     alembic_cfg = Config(config.db.alembic_ini_path)
     ctx.obj["alembic_cfg"] = alembic_cfg
+    ctx.obj["db_client_instance"] = DBClient(app_config=config)
 
 
 @db.command()
@@ -93,3 +103,8 @@ def downgrade(ctx: click.Context, revision: str) -> None:
     """
     alembic_cfg: Config = ctx.obj["alembic_cfg"]
     command.downgrade(alembic_cfg, revision)
+
+
+db.add_command(user)
+db.add_command(password)
+db.add_command(field)

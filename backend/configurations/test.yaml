@@ -1,0 +1,18 @@
+info:
+  name: keychain-test
+  debug: false
+  description: Keychain test configuration
+
+db:
+  alembic_ini_path: src/keychain/services/alembic/alembic.ini
+  provider: postgresql
+  host: localhost
+  port: 5432
+  name: test_db
+  user: root
+  password: root
+
+auth:
+  jwt_secret_key: test-secret
+  algorithm: HS256
+  access_token_expire_minutes: 30
