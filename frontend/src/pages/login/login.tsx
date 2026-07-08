@@ -10,11 +10,12 @@ import Paper from '@mui/material/Paper';
 import Stack from '@mui/material/Stack';
 import TextField from '@mui/material/TextField';
 import classnames from 'classnames/bind';
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useNavigate, useSearchParams } from 'react-router';
 import Cookies from 'js-cookie';
 import { useAuthAPIClient } from '@utils/apiClient/auth';
 import { Image } from '@components/image';
+import { useClearStore } from '@utils/useClearStore';
 
 import { useUserStore } from '@store/user';
 
@@ -27,6 +28,7 @@ export function Login() {
   const [password, setPassword] = useState<string>('');
   const [showPassword, setShowPassword] = useState<boolean>(false);
   const [error, setError] = useState<string>('');
+  const { clearAllStores } = useClearStore();
 
   const { isLoading } = useUserStore();
 
@@ -36,6 +38,10 @@ export function Login() {
   const { login } = useAuthAPIClient();
 
   const navigate = useNavigate();
+
+  useEffect(() => {
+    clearAllStores();
+  }, []);
 
   const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();

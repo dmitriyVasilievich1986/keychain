@@ -10,7 +10,6 @@ import LogoutIcon from '@mui/icons-material/Logout';
 
 import { useUserStore } from '@store/user';
 import { useUserAPIClient } from '@utils/apiClient/user';
-import { useClearStore } from '@utils/useClearStore';
 import IconButton from '@mui/material/IconButton';
 import { Image } from '@components/image';
 
@@ -22,7 +21,6 @@ export function Navbar() {
   const { user, setUser } = useUserStore();
   const { getUser } = useUserAPIClient();
   const navigate = useNavigate();
-  const { clearAllStores } = useClearStore();
 
   useEffect(() => {
     if (user === null && !!Cookies.get('accessToken')) {
@@ -55,13 +53,7 @@ export function Navbar() {
                 <Typography variant="h6" component="div" sx={{ flexGrow: 1 }}>
                   {user?.name}
                 </Typography>
-                <IconButton
-                  size="small"
-                  onClick={() => {
-                    clearAllStores();
-                    navigate('/login');
-                  }}
-                >
+                <IconButton size="small" onClick={() => navigate('/login')}>
                   <LogoutIcon />
                 </IconButton>
               </div>
