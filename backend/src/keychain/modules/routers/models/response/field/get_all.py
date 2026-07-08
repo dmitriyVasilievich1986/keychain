@@ -15,6 +15,7 @@ class SimpleFieldGet(BaseResponseFromModelSchema):
     name: str = Field(..., description="The name of the field")
     is_deleted: bool = Field(..., description="Whether the field is deleted")
     password_id: int = Field(..., description="The ID of the password that owns the field")
+    value_decrypted: str = Field(..., description="The decrypted value of the field")
 
 
 class GetAllFieldsResponse(BaseResponseFromModelSchema):

@@ -6,25 +6,33 @@ import json
 
 import asyncclick as click
 
+from keychain.config import AppConfig
 from keychain.modules.routers.models.request.password import PasswordCreateRequestModel, PasswordUpdateRequestModel
 from keychain.modules.routers.models.response.password import PasswordGetResponseModel, SimplePasswordGet
+from keychain.services.cryptography.client import CryptographyClient
 from keychain.services.daos import PasswordDAO
 from keychain.services.db_client.client import DBClient
 from keychain.services.db_client.models.password import Password
 
 
 @click.group(help="CLI for managing passwords of the Keychain Application.")
-def password() -> None:
+@click.pass_context
+def password(ctx: click.Context) -> None:
     """Initialize the password CLI group for the Keychain Application.
 
     This function serves as the root command group for all password CLI
     operations.
 
+    Args:
+        ctx (click.Context): Click context object containing the app config.
+
     Returns:
         None
 
     """
-    pass
+    config: AppConfig = ctx.obj["config"]
+    cryptography_client = CryptographyClient(config)
+    ctx.obj["cryptography_client"] = cryptography_client
 
 
 @password.command(help="Create a new password")
