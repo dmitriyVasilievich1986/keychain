@@ -60,7 +60,7 @@ class FieldDAO(BaseDAO[Field]):
         session.add(new_field)
         await session.commit()
 
-        return await self._get_by_pk_raw(session, pk, pk_column_name, filters)
+        return await self._get_by_pk_raw(session, new_field.id, pk_column_name, filters)
 
     async def _create_raw(
         self, session: AsyncSession, filters: list[ColumnElement[bool]] | None, **kwargs: Any

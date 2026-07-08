@@ -7,3 +7,7 @@ db:
   host: db
   port: 5432
   name: keychain
+
+auth:
+  algorithm: HS256
+  access_token_expire_minutes: 30

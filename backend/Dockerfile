@@ -17,6 +17,10 @@ RUN --mount=type=cache,target=/root/.cache/uv \
 
 FROM python:3.13-slim-bookworm AS development
 
+RUN apt-get update \
+    && apt-get install -y --no-install-recommends curl \
+    && rm -rf /var/lib/apt/lists/*
+
 COPY --from=build /opt/backend/.venv /opt/backend/.venv
 
 WORKDIR /opt/backend
@@ -32,6 +36,10 @@ ENV PYTHONPATH="/opt/backend/src"
 ENV PATH="/opt/backend/.venv/bin:${PATH}"
 
 FROM python:3.13-slim-bookworm AS production
+
+RUN apt-get update \
+    && apt-get install -y --no-install-recommends curl \
+    && rm -rf /var/lib/apt/lists/*
 
 WORKDIR /opt/backend
 
