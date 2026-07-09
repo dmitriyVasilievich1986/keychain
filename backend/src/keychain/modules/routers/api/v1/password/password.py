@@ -51,11 +51,10 @@ async def get_passwords(
 
     """
     password_dao = PasswordDAO(db)
-    query_filters = password_dao.parse_filters(query.filters)
-    filters = password_dao.concat_filters([Password.user_id == user.id], query_filters)
+    filters = password_dao.concat_filters([Password.user_id == user.id], query.parsed_filters)
 
     try:
-        data, total = await password_dao.get_all(filters=filters, **query.model_dump(exclude="filters"))
+        data, total = await password_dao.get_all(filters=filters, **query.model_dump(exclude={"filters"}))
         metadata = PaginationMetadata(total=total, **query.model_dump())
     except SQLAlchemyError as e:
         logger.exception("Error retrieving passwords", exc_info=e)

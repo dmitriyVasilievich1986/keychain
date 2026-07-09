@@ -1,10 +1,12 @@
 """Application information model."""
 
-__all__ = ["AppInfo"]
+__all__ = ("AppInfo",)
 
 from pydantic import BaseModel, Field
 
 from keychain import __version__
+
+from .api import API
 
 
 class AppInfo(BaseModel):
@@ -19,6 +21,9 @@ class AppInfo(BaseModel):
             the APP_NAME environment variable shortcut.
         version: The application version. Defaults to the package version.
             Can be set via the APP_VERSION environment variable shortcut.
+        description: The application description. Defaults to "Keychain Application".
+        debug: The debug mode. Defaults to False.
+        api: The API configuration.
 
     """
 
@@ -26,3 +31,5 @@ class AppInfo(BaseModel):
     version: str = Field(default=__version__, description="Application version")
     description: str = Field(default="Keychain Application", description="Application description")
     debug: bool = Field(default=False, description="Debug mode")
+
+    api: API = Field(..., description="API configuration")

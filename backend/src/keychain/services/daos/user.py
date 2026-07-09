@@ -2,6 +2,8 @@
 
 __all__ = ("UserDAO",)
 
+from typing import Sequence
+
 from sqlalchemy.sql import ColumnElement
 from werkzeug.security import generate_password_hash
 
@@ -19,13 +21,13 @@ class UserDAO(BaseDAO[User]):
     get_all_columns = (User.id, User.name)
     select_in_options_single = (User.passwords,)
 
-    async def get_by_username(self, username: str, filters: list[ColumnElement[bool]] | None = None) -> User:
+    async def get_by_username(self, username: str, filters: Sequence[ColumnElement[bool]] | None = None) -> User:
         """Retrieve a user by their username.
 
         Args:
             username (str): The username to look up (matched against the
                 ``name`` column).
-            filters (list[ColumnElement[bool]], optional): Additional SQL
+            filters (Sequence[ColumnElement[bool]], optional): Additional SQL
                 filters to apply. Defaults to None.
 
         Returns:
@@ -43,7 +45,7 @@ class UserDAO(BaseDAO[User]):
         pk: int | str,
         password: str,
         pk_column_name: str | None = None,
-        filters: list[ColumnElement[bool]] | None = None,
+        filters: Sequence[ColumnElement[bool]] | None = None,
     ) -> User:
         """Reset a user's password by hashing and storing the new value.
 
@@ -52,7 +54,7 @@ class UserDAO(BaseDAO[User]):
             password (str): The new plaintext password to hash and store.
             pk_column_name (str, optional): The column to match ``pk`` against.
                 Defaults to the DAO's ``pk_column_name``.
-            filters (list[ColumnElement[bool]], optional): Additional SQL
+            filters (Sequence[ColumnElement[bool]], optional): Additional SQL
                 filters to apply. Defaults to None.
 
         Returns:

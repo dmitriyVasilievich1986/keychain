@@ -23,7 +23,7 @@ user_token = HTTPBearer(scheme_name="User Token")
 
 def authorize_user(
     config: type[AppConfig],
-) -> Callable[[Annotated[HTTPAuthorizationCredentials, Depends(user_token)]], Coroutine[Any, Any, User]]:
+) -> Callable[[HTTPAuthorizationCredentials, DBClient], Coroutine[Any, Any, User]]:
     """Build a FastAPI dependency that authorizes a user from a bearer token.
 
     Args:

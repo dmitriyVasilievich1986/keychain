@@ -10,7 +10,7 @@ pytestmark = pytest.mark.integration
 
 async def test_create_user(db_session: AsyncSession) -> None:
     """A created user is persisted with a hashed, verifiable password."""
-    dao = UserDAO(session=db_session)
+    dao = UserDAO(session=db_session, database_client=None)
 
     user = await dao.create(name="alice", password="secret123")
 
@@ -22,7 +22,7 @@ async def test_create_user(db_session: AsyncSession) -> None:
 
 async def test_get_by_username(db_session: AsyncSession) -> None:
     """A user can be fetched by its username."""
-    dao = UserDAO(session=db_session)
+    dao = UserDAO(session=db_session, database_client=None)
     await dao.create(name="bob", password="pw")
 
     fetched = await dao.get_by_username("bob")
@@ -32,7 +32,7 @@ async def test_get_by_username(db_session: AsyncSession) -> None:
 
 async def test_get_all_returns_all_users(db_session: AsyncSession) -> None:
     """``get_all`` returns every user and an accurate total count."""
-    dao = UserDAO(session=db_session)
+    dao = UserDAO(session=db_session, database_client=None)
     await dao.create(name="user-1", password="pw")
     await dao.create(name="user-2", password="pw")
 
@@ -44,7 +44,7 @@ async def test_get_all_returns_all_users(db_session: AsyncSession) -> None:
 
 async def test_reset_password(db_session: AsyncSession) -> None:
     """Resetting a password stores a new, verifiable hash."""
-    dao = UserDAO(session=db_session)
+    dao = UserDAO(session=db_session, database_client=None)
     user = await dao.create(name="carol", password="old-password")
 
     await dao.reset_password(user.id, "new-password")
@@ -56,7 +56,7 @@ async def test_reset_password(db_session: AsyncSession) -> None:
 
 async def test_delete_user(db_session: AsyncSession) -> None:
     """A deleted user no longer exists in the database."""
-    dao = UserDAO(session=db_session)
+    dao = UserDAO(session=db_session, database_client=None)
     user = await dao.create(name="dave", password="pw")
 
     assert await dao.delete(user.id) is True

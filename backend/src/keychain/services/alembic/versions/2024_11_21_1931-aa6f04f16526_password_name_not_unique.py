@@ -14,7 +14,7 @@ from collections.abc import Sequence
 
 import sqlalchemy as sa
 from alembic import op
-from sqlalchemy.orm import DeclarativeBase
+from sqlalchemy.orm import DeclarativeBase, Mapped, mapped_column
 
 # revision identifiers, used by Alembic.
 revision: str = "aa6f04f16526"
@@ -47,8 +47,8 @@ class Password(Base):
 
     __tablename__ = "password"
 
-    id: int = sa.Column(sa.Integer, primary_key=True)
-    name: str = sa.Column(sa.String, nullable=False, unique=False)
+    id: Mapped[int] = mapped_column(sa.Integer, primary_key=True)
+    name: Mapped[str] = mapped_column(sa.String, nullable=False, unique=False)
 
 
 def upgrade() -> None:

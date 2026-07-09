@@ -14,7 +14,8 @@ from collections.abc import Sequence
 
 import sqlalchemy as sa
 from alembic import op
-from sqlalchemy.orm import DeclarativeBase, Session
+from sqlalchemy.orm import DeclarativeBase, Mapped, mapped_column, Session
+from sqlalchemy.sql import select
 
 # revision identifiers, used by Alembic.
 revision: str = "56fda1ef4adc"
@@ -46,8 +47,8 @@ class Field(Base):
 
     __tablename__ = "field"
 
-    id: int = sa.Column(sa.Integer, primary_key=True)
-    password_id: int | None = sa.Column(sa.Integer, nullable=False)
+    id: Mapped[int] = mapped_column(sa.Integer, primary_key=True)
+    password_id: Mapped[int | None] = mapped_column(sa.Integer, nullable=False)
 
 
 def upgrade() -> None:
@@ -62,7 +63,8 @@ def upgrade() -> None:
     """
     bind = op.get_bind()
     session = Session(bind=bind)
-    session.query(Field).filter(Field.password_id is None).delete()
+    stmt = select(Field).where(Field.password_id.is_(None))
+    session.execute(stmt)
 
     op.alter_column("field", "password_id", nullable=False, existing_nullable=True)
 

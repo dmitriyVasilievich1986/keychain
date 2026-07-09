@@ -2,6 +2,8 @@
 
 __all__ = ("user",)
 
+from typing import cast
+
 import asyncclick as click
 from colorama import Fore, Style
 
@@ -93,7 +95,11 @@ async def get_user(ctx: click.Context, user_id: int | None, username: str | None
         raise click.BadParameter("Either user ID or username must be provided")
 
     user_dao: UserDAO = ctx.obj["user_dao"]
-    user = await user_dao.get_by_pk(user_id) if user_id is not None else await user_dao.get_by_username(username)
+    user = (
+        await user_dao.get_by_pk(cast(int, user_id))
+        if user_id is not None
+        else await user_dao.get_by_username(cast(str, username))
+    )
     user_response = UserGetResponseModel.model_validate(user)
     click.echo(user_response.model_dump_json(indent=2))
 
@@ -179,7 +185,11 @@ async def verify_password(ctx: click.Context, user_id: int | None, username: str
         raise click.BadParameter("Either user ID or username must be provided")
 
     user_dao: UserDAO = ctx.obj["user_dao"]
-    user = await user_dao.get_by_pk(user_id) if user_id is not None else await user_dao.get_by_username(username)
+    user = (
+        await user_dao.get_by_pk(cast(int, user_id))
+        if user_id is not None
+        else await user_dao.get_by_username(cast(str, username))
+    )
     is_valid = user.verify_password(password)
     is_valid_text = "valid" if is_valid else "invalid"
     is_valid_color = Fore.GREEN if is_valid else Fore.RED
