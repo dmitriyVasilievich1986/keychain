@@ -88,7 +88,7 @@ class FieldDAO(BaseDAO[Field]):
         if c_filters := self.concat_filters(self.base_filters, filters):
             stmt = stmt.where(*c_filters)
 
-        session.execute(stmt)
+        await session.execute(stmt)
 
         obj = self.database_model(**kwargs)
         session.add(obj)
