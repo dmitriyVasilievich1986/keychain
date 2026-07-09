@@ -2,36 +2,33 @@ import AppBar from '@mui/material/AppBar';
 import Container from '@mui/material/Container';
 import Toolbar from '@mui/material/Toolbar';
 import Typography from '@mui/material/Typography';
-import axios from 'axios';
 import classnames from 'classnames/bind';
 import { useEffect } from 'react';
-import { NavLink } from 'react-router';
+import { NavLink, useNavigate } from 'react-router';
+import Cookies from 'js-cookie';
+import LogoutIcon from '@mui/icons-material/Logout';
 
-import { useUserStore, type User } from '@store/user';
+import { useUserStore } from '@store/user';
+import { useUserAPIClient } from '@utils/apiClient/user';
+import IconButton from '@mui/material/IconButton';
+import { Image } from '@components/image';
 
 import * as defaultStyle from './style.scss';
 
 const cx = classnames.bind(defaultStyle);
 
 export function Navbar() {
-  const { user, accessToken, setUser } = useUserStore();
+  const { user, setUser } = useUserStore();
+  const { getUser } = useUserAPIClient();
+  const navigate = useNavigate();
 
   useEffect(() => {
-    if (accessToken) {
-      axios
-        .get<User>(`${import.meta.env.VITE_API_HOST}/api/v1/user/me`, {
-          headers: {
-            Authorization: `Bearer ${accessToken}`,
-          },
-        })
-        .then((response) => {
-          setUser(response.data);
-        })
-        .catch((error) => {
-          console.error(error);
-        });
+    if (user === null && !!Cookies.get('accessToken')) {
+      getUser().then((user) => {
+        setUser(user);
+      });
     }
-  }, [accessToken]);
+  }, [user, Cookies.get('accessToken')]);
 
   return (
     <AppBar position="sticky">
@@ -39,25 +36,28 @@ export function Navbar() {
         <Toolbar disableGutters>
           <div className={cx('navbar-inner')}>
             <div className={cx('navbar-brand')}>
-              <img
+              <Image
                 src={`${import.meta.env.VITE_IMAGES_HOST}/padlock.png`}
                 alt="padlock"
-                width={32}
-                height={32}
+                width={20}
+                height={20}
               />
               <Typography variant="h6" component="div" sx={{ flexGrow: 1 }}>
                 <NavLink to="/password" className={cx('navbar-link')}>
-                  Password
+                  Keychain
                 </NavLink>
               </Typography>
             </div>
-            <div>
-              <Typography variant="h6" component="div" sx={{ flexGrow: 1 }}>
-                <NavLink to="/logout" className={cx('navbar-link')}>
+            {user !== null && (
+              <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                <Typography variant="h6" component="div" sx={{ flexGrow: 1 }}>
                   {user?.name}
-                </NavLink>
-              </Typography>
-            </div>
+                </Typography>
+                <IconButton size="small" onClick={() => navigate('/login')}>
+                  <LogoutIcon />
+                </IconButton>
+              </div>
+            )}
           </div>
         </Toolbar>
       </Container>

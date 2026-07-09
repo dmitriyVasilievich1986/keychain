@@ -55,6 +55,7 @@ services:
     profiles:
       - frontend
     environment:
+      - VITE_SOURCEMAP=false
       - VITE_API_HOST=
       - VITE_IMAGES_HOST=/static/i
     volumes:

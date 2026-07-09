@@ -4,9 +4,9 @@ import TextField from '@mui/material/TextField';
 import { useState } from 'react';
 
 import { FloatingButton } from '@components/floatingButton';
-import { usePasswordsStore, type PasswordField } from '@store/passwords';
+import { usePasswordsStore } from '@store/passwords';
 import { useUserStore } from '@store/user';
-import { useApiClient } from '@utils/apiClient';
+import { useFieldAPIClient } from '@utils/apiClient/field';
 
 export function AddField() {
   const [fieldName, setFieldName] = useState<string>('');
@@ -15,7 +15,7 @@ export function AddField() {
 
   const { currentPassword, addField } = usePasswordsStore();
   const { isLoading } = useUserStore();
-  const { apiPost } = useApiClient();
+  const { postField } = useFieldAPIClient();
 
   const handleAddField = async () => {
     if (isLoading) return;
@@ -23,29 +23,17 @@ export function AddField() {
       setNewFieldError('Please fill in all fields');
       return;
     }
-    try {
-      const response = await apiPost<
-        { name: string; value: string; passwordId: number },
-        PasswordField
-      >('/api/v1/field', {
-        name: fieldName,
-        value: fieldValue,
-        passwordId: currentPassword!.id,
+    postField({ passwordId: currentPassword!.id, name: fieldName, value: fieldValue })
+      .then((response) => {
+        addField(response);
+        setFieldName('');
+        setFieldValue('');
+        setNewFieldError('');
+      })
+      .catch((error) => {
+        console.error(error);
+        setNewFieldError('Failed to add field');
       });
-      addField({
-        id: response.id,
-        name: response.name,
-        valueDecrypted: response.valueDecrypted,
-        createdAt: response.createdAt,
-        isDeleted: false,
-      });
-      setFieldName('');
-      setFieldValue('');
-      setNewFieldError('');
-    } catch (error) {
-      console.error(error);
-      setNewFieldError('Failed to add field');
-    }
   };
 
   return (

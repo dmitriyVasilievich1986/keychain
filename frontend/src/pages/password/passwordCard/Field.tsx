@@ -2,25 +2,24 @@ import ContentCopyIcon from '@mui/icons-material/ContentCopy';
 import EditIcon from '@mui/icons-material/Edit';
 import Stack from '@mui/material/Stack';
 import TextField from '@mui/material/TextField';
-import classnames from 'classnames/bind';
 import { useState } from 'react';
 
 import { FloatingButton } from '@components/floatingButton';
 import { usePasswordsStore, type PasswordField } from '@store/passwords';
 import { useUserStore } from '@store/user';
-import { useApiClient } from '@utils/apiClient';
-
-import * as defaultStyle from './style.scss';
-
-const cx = classnames.bind(defaultStyle);
+import { useFieldAPIClient } from '@utils/apiClient/field';
+import VisibilityIcon from '@mui/icons-material/Visibility';
+import VisibilityOffIcon from '@mui/icons-material/VisibilityOff';
+import IconButton from '@mui/material/IconButton';
 
 export function Field(props: { field: PasswordField }) {
   const [value, setValue] = useState(props.field.valueDecrypted);
   const [updateFieldError, setUpdateFieldError] = useState<string>('');
+  const [show, setShow] = useState<boolean>(false);
 
   const { isLoading } = useUserStore();
-  const { apiPut } = useApiClient();
   const { updateField } = usePasswordsStore();
+  const { putField } = useFieldAPIClient();
 
   const handleUpdateField = async () => {
     if (isLoading) return;
@@ -28,17 +27,15 @@ export function Field(props: { field: PasswordField }) {
       setUpdateFieldError('Please fill in all fields');
       return;
     }
-    try {
-      const response = await apiPut<{ value: string }, PasswordField>(
-        `/api/v1/field/${props.field.id}`,
-        { value }
-      );
-      updateField(props.field.id, response);
-      setValue(props.field.valueDecrypted);
-    } catch (error) {
-      console.error(error);
-      setUpdateFieldError('Failed to update field');
-    }
+    putField(props.field.id, { value })
+      .then((response) => {
+        updateField(props.field.id, response);
+        setValue(response.valueDecrypted);
+      })
+      .catch((error) => {
+        console.error(error);
+        setUpdateFieldError('Failed to update field');
+      });
   };
 
   return (
@@ -46,6 +43,7 @@ export function Field(props: { field: PasswordField }) {
       <TextField
         key={props.field.id}
         label={props.field.name}
+        type={show ? 'text' : 'password'}
         fullWidth
         variant="outlined"
         value={value}
@@ -58,10 +56,20 @@ export function Field(props: { field: PasswordField }) {
         slotProps={{
           input: {
             endAdornment: (
-              <ContentCopyIcon
-                onClick={() => navigator.clipboard.writeText(props.field.valueDecrypted)}
-                className={cx('copy-icon')}
-              />
+              <Stack direction="row" spacing={1}>
+                <IconButton size="small" onClick={() => setShow(!show)}>
+                  {show ? (
+                    <VisibilityIcon onClick={() => setShow(false)} />
+                  ) : (
+                    <VisibilityOffIcon onClick={() => setShow(true)} />
+                  )}
+                </IconButton>
+                <IconButton
+                  onClick={() => navigator.clipboard.writeText(props.field.valueDecrypted)}
+                >
+                  <ContentCopyIcon />
+                </IconButton>
+              </Stack>
             ),
           },
         }}

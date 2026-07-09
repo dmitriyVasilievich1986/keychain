@@ -1,0 +1,1 @@
+export { usePasswordAPIClient } from './client';

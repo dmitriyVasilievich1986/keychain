@@ -8,9 +8,9 @@ import classnames from 'classnames/bind';
 import { useState } from 'react';
 import { useNavigate } from 'react-router';
 
-import { usePasswordsStore, type Password } from '@store/passwords';
+import { usePasswordsStore } from '@store/passwords';
 import { useUserStore } from '@store/user';
-import { useApiClient } from '@utils/apiClient';
+import { usePasswordAPIClient } from '@utils/apiClient/password';
 
 import * as defaultStyle from './style.scss';
 
@@ -24,29 +24,23 @@ export function CreatePassword() {
   const { setCurrentPassword, addPassword } = usePasswordsStore();
   const { isLoading } = useUserStore();
   const navigate = useNavigate();
-  const { apiPost } = useApiClient();
+  const { postPassword } = usePasswordAPIClient();
 
   const handleCreatePassword = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
     if (isLoading) return;
 
     const data = { name, imageUrl };
-    try {
-      const response = await apiPost<{ name: string; imageUrl: string }, Password>(
-        '/api/v1/password',
-        data
-      );
-      addPassword({
-        id: response.id,
-        name: response.name,
-        imageUrl: response.imageUrl,
+    postPassword(data)
+      .then((response) => {
+        addPassword(response);
+        setCurrentPassword(null);
+        navigate(`/password/${response.id}`);
+      })
+      .catch((error) => {
+        setError('Failed to create password');
+        console.error(error);
       });
-      setCurrentPassword(response);
-      navigate(`/password/${response.id}`);
-    } catch (error) {
-      setError('Failed to create password');
-      console.error(error);
-    }
   };
 
   return (

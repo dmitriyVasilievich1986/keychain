@@ -40,6 +40,7 @@ function App() {
             </ProtectedRoute>
           }
         />
+        <Route path="*" element={<Navigate to="/password" replace />} />
       </Routes>
     </>
   );

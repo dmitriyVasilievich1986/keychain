@@ -1,12 +1,16 @@
-import { Navigate } from 'react-router';
-
-import { useUserStore } from '@store/user';
+import Cookies from 'js-cookie';
+import { Navigate, useLocation } from 'react-router';
+import { useClearStore } from '@utils/useClearStore';
 
 export function ProtectedRoute({ children }: { children: React.ReactNode }) {
-  const { accessToken } = useUserStore();
+  const location = useLocation();
+  const accessToken = Cookies.get('accessToken');
+  const { clearAllStores } = useClearStore();
 
   if (!accessToken) {
-    return <Navigate to="/login" replace />;
+    const redirectTo = encodeURIComponent(`${location.pathname}${location.search}`);
+    clearAllStores();
+    return <Navigate to={`/login?redirectTo=${redirectTo}`} replace />;
   }
 
   return <>{children}</>;
