@@ -5,7 +5,7 @@ and configuring the FastAPI application instance with all necessary
 routers, middleware, and lifecycle management.
 """
 
-__all__ = ["get_app"]
+__all__ = ("get_app",)
 
 from fastapi import APIRouter, FastAPI
 from fastapi.middleware.cors import CORSMiddleware
@@ -47,10 +47,10 @@ def get_app(config: AppConfig | None = None) -> FastAPI:
 
     app.add_middleware(
         CORSMiddleware,
-        allow_credentials=True,
-        allow_origins="*",
-        allow_methods="*",
-        allow_headers="*",
+        allow_credentials=config.info.api.allow_credentials,
+        allow_origins=config.info.api.allow_origins,
+        allow_methods=config.info.api.allow_methods,
+        allow_headers=config.info.api.allow_headers,
     )
 
     app_router = APIRouter()
