@@ -10,8 +10,8 @@ pytestmark = pytest.mark.integration
 
 async def test_create_password_for_user(db_session: AsyncSession) -> None:
     """A password is created and linked to its owning user."""
-    user = await UserDAO(session=db_session).create(name="owner", password="pw")
-    password_dao = PasswordDAO(session=db_session)
+    user = await UserDAO(session=db_session, database_client=None).create(name="owner", password="pw")
+    password_dao = PasswordDAO(session=db_session, database_client=None)
 
     password = await password_dao.create(name="github", user_id=user.id)
 
@@ -23,8 +23,8 @@ async def test_create_password_for_user(db_session: AsyncSession) -> None:
 
 async def test_get_all_passwords(db_session: AsyncSession) -> None:
     """``get_all`` returns the created passwords with an accurate total."""
-    user = await UserDAO(session=db_session).create(name="owner", password="pw")
-    password_dao = PasswordDAO(session=db_session)
+    user = await UserDAO(session=db_session, database_client=None).create(name="owner", password="pw")
+    password_dao = PasswordDAO(session=db_session, database_client=None)
     await password_dao.create(name="github", user_id=user.id)
     await password_dao.create(name="gitlab", user_id=user.id)
 

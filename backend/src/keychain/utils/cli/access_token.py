@@ -33,7 +33,7 @@ def generate_access_token(ctx: click.Context, user_id: int) -> None:
     This command generates a new access token for a user and outputs the token.
     """
     auth_client: AuthClient = ctx.obj["auth_client"]
-    access_token = auth_client.encode_token(user_id)
+    access_token = auth_client.encode_token(str(user_id))
     click.echo(access_token.model_dump_json(indent=2))
 
 

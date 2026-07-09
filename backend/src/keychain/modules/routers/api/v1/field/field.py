@@ -46,11 +46,10 @@ async def get_fields(
 
     """
     field_dao = FieldDAO(db)
-    query_filters = field_dao.parse_filters(query.filters)
-    filters = field_dao.concat_filters([*query_filters, Password.user_id == user.id])
+    filters = field_dao.concat_filters([Password.user_id == user.id], query.parsed_filters)
 
     try:
-        data, total = await field_dao.get_all(filters=filters, **query.model_dump(exclude="filters"))
+        data, total = await field_dao.get_all(filters=filters, **query.model_dump(exclude={"filters"}))
         metadata = PaginationMetadata(total=total, **query.model_dump())
     except SQLAlchemyError as e:
         logger.exception("Error retrieving fields", exc_info=e)
