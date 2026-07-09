@@ -1,9 +1,9 @@
 """CLI for managing the access token of the Keychain Application."""
 
-__all__ = ["access_token"]
+__all__ = ("access_token",)
 
 
-import click
+import asyncclick as click
 
 from keychain.config import AppConfig
 from keychain.services.auth.client import AuthClient
@@ -25,20 +25,20 @@ def access_token(ctx: click.Context) -> None:
 
 
 @access_token.command(help="Generate a new access token")
-@click.option("--user-id", prompt="Enter the user ID", help="The ID of the user")
+@click.option("--user-id", help="The ID of the user", type=int, required=True)
 @click.pass_context
-def generate_access_token(ctx: click.Context, user_id: str) -> None:
+def generate_access_token(ctx: click.Context, user_id: int) -> None:
     """Generate a new access token for a user.
 
     This command generates a new access token for a user and outputs the token.
     """
     auth_client: AuthClient = ctx.obj["auth_client"]
-    access_token = auth_client.encode_token(user_id)
+    access_token = auth_client.encode_token(str(user_id))
     click.echo(access_token.model_dump_json(indent=2))
 
 
 @access_token.command(help="Decode an access token")
-@click.option("--token", prompt="Enter the token", help="The token to decode")
+@click.option("--token", help="The token to decode", type=str, required=True)
 @click.pass_context
 def decode_access_token(ctx: click.Context, token: str) -> None:
     """Decode an access token.

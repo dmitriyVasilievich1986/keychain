@@ -1,13 +1,13 @@
-"""Field DAO (Data Access Object) for database operations on Field entities."""
+"""Data access object for the ``Field`` model."""
 
-__all__ = ["FieldDAO"]
+__all__ = ("FieldDAO",)
 
-from loguru import logger
+from typing import Any, Sequence
+
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
-from sqlalchemy.orm import selectinload
+from sqlalchemy.sql import ColumnElement
 
-from keychain.services.db_client.client import DBClient
 from keychain.services.db_client.models.field import Field
 from keychain.services.db_client.models.password import Password
 
@@ -15,128 +15,129 @@ from .base import BaseDAO
 
 
 class FieldDAO(BaseDAO[Field]):
-    """DAO implementation for Field entity database operations.
+    """Data access object providing CRUD operations for ``Field`` records."""
 
-    This class provides concrete implementations of database operations for Field
-    entities, including CRUD operations and field-specific queries. It uses the
-    DBClient to manage database sessions and transactions.
-    """
+    pk_column_name: str = "id"
+    database_model: type[Field] = Field
 
-    def __init__(self, db_client: DBClient, user_id: int):
-        """Initialize the BaseDAO with a database client.
+    join_options_all = (Password,)
+    join_options_single = (Password,)
 
-        Args:
-            db_client: The database client instance used to create sessions.
-            user_id: The unique identifier of the user who owns the fields.
+    async def _update_raw(
+        self,
+        session: AsyncSession,
+        pk: int | str,
+        pk_column_name: str,
+        filters: Sequence[ColumnElement[bool]] | None,
+        **kwargs: Any,
+    ) -> Field:
+        """Update a field by creating a new record and soft-deleting the old one.
 
-        """
-        self.db_client = db_client
-        self.user_id = user_id
-
-    async def get_all(self) -> list[Field]:
-        """Retrieve all fields from the database.
-
-        Returns:
-            A list of all fields in the database.
-
-        """
-        async with self.db_client.session() as session:
-            fields = await session.execute(
-                select(Field.id, Field.name, Field.is_deleted).join(Password).where(Password.user_id == self.user_id)
-            )
-            return fields.all()
-
-    async def _get_by_id_with_session(self, session: AsyncSession, pk: int) -> Field:
-        """Internal method to retrieve a field by ID using the provided session.
+        The existing field is marked as deleted and a new field is created with
+        the updated value while preserving the password association and name.
 
         Args:
-            session: An active AsyncSession for the database.
-            pk: The primary key (ID) of the field to retrieve.
+            session (AsyncSession): The database session to use.
+            pk (int | str): The primary key of the field to update.
+            pk_column_name (str): The name of the primary key column.
+            filters (Sequence[ColumnElement[bool]] | None, optional): Additional
+                filters to apply when locating the field. Defaults to None.
+            **kwargs (Any): Field attributes to update; must include ``value``.
 
         Returns:
-            The Field object with associated password loaded, if found.
+            Field: The newly created field reflecting the updated value.
 
         Raises:
-            ValueError: If no field with the given ID exists.
+            ValueError: If ``value`` is not provided in ``kwargs``.
 
         """
-        field = await session.execute(select(Field).where(Field.id == pk).options(selectinload(Field.password)))
-        field = field.scalar_one_or_none()
-        if field is None:
-            logger.error(f"Field with id '{pk}' not found")
-            raise ValueError(f"Field with id '{pk}' not found")
+        if (value := kwargs.get("value")) is None:
+            raise ValueError("Value is required")
 
-        if field.password.user_id != self.user_id:
-            logger.error(f"Field with id '{pk}' does not belong to user '{self.user_id}'")
-            raise ValueError(f"Field with id '{pk}' does not belong to this user's password")
+        current_field = await self._get_by_pk_raw(session, pk, pk_column_name, filters)
+        current_field.is_deleted = True
+        new_field = Field(value=value, password_id=current_field.password_id, name=current_field.name)
+        session.add(new_field)
+        await session.commit()
 
-        return field
+        return await self._get_by_pk_raw(session, new_field.id, pk_column_name, filters)
 
-    async def create(self, name: str, value: str, password_id: int) -> Field:
-        """Create a new field in the database.
-
-        Creates a new field with the provided name, value, and password_id.
-        After creation, the field is refreshed from the database to ensure all
-        generated fields (e.g., ID, timestamps) are populated.
+    async def _create_raw(
+        self, session: AsyncSession, filters: Sequence[ColumnElement[bool]] | None, **kwargs: Any
+    ) -> Field:
+        """Create a new field associated with an existing password.
 
         Args:
-            name: The name of the field to create.
-            value: The value of the field to create.
-            password_id: The unique identifier of the password that owns the field.
+            session (AsyncSession): The database session to use.
+            filters (Sequence[ColumnElement[bool]] | None, optional): Additional
+                filters to apply when validating the parent password. Defaults
+                to None.
+            **kwargs (Any): Field attributes; must include ``password_id``.
 
         Returns:
-            The created Field object with all fields populated.
+            Field: The newly created field.
+
+        Raises:
+            ValueError: If ``password_id`` is not provided in ``kwargs``.
 
         """
-        async with self.db_client.session() as session:
-            field = Field(
-                name=name,
-                value=value,
-                password_id=password_id,
-            )
-            session.add(field)
-            await session.commit()
-            return await self._get_by_id_with_session(session, field.id)
+        if (password_id := kwargs.get("password_id")) is None:
+            raise ValueError("Password ID is required")
 
-    async def update(self, pk: int, value: str) -> Field:
-        """Update an existing field in the database.
+        stmt = select(Password).where(Password.id == password_id)
+        if c_filters := self.concat_filters(self.base_filters, filters):
+            stmt = stmt.where(*c_filters)
 
-        Updates the field's name and/or value if provided. Only the fields
-        that are not None will be updated. After updating, the field is refreshed
-        from the database to ensure the returned object reflects the current state.
+        await session.execute(stmt)
+
+        obj = self.database_model(**kwargs)
+        session.add(obj)
+        await session.commit()
+        return await self._get_by_pk_raw(session, getattr(obj, self.pk_column_name), self.pk_column_name, filters)
+
+    async def create(self, filters: Sequence[ColumnElement[bool]] | None = None, **kwargs: Any) -> Field:
+        """Create a new field, using an existing session or a new one.
 
         Args:
-            pk: The unique identifier of the field to update.
-            name: The new name for the field.
-            value: The new value for the field.
+            filters (Sequence[ColumnElement[bool]] | None, optional): Additional
+                filters to apply during creation. Defaults to None.
+            **kwargs (Any): Field attributes; must include ``password_id``.
 
         Returns:
-            The updated Field object.
-
-        Raises:
-            ValueError: If no field with the given ID exists.
+            Field: The newly created field.
 
         """
-        async with self.db_client.session() as session:
-            field = await self._get_by_id_with_session(session, pk)
-            field.is_deleted = True
-            new_field = Field(value=value, password_id=field.password_id, name=field.name)
-            session.add(new_field)
+        if self.session is not None:
+            return await self._create_raw(self.session, **kwargs, filters=filters)
 
-            await session.commit()
-            return await self._get_by_id_with_session(session, new_field.id)
+        async with self.database_client.session_factory() as session:  # type: ignore[union-attr]
+            return await self._create_raw(session, **kwargs, filters=filters)
 
-    async def delete(self, pk: int) -> None:
-        """Delete a field from the database by its PK.
+    async def _delete_raw(
+        self,
+        session: AsyncSession,
+        pk: int | str,
+        pk_column_name: str,
+        instance: Field | None,
+        filters: Sequence[ColumnElement[bool]] | None,
+    ) -> bool:
+        """Soft-delete a field by marking it as deleted.
 
         Args:
-            pk: The unique identifier of the field to delete.
+            session (AsyncSession): The database session to use.
+            pk (int | str): The primary key of the field to delete.
+            pk_column_name (str): The name of the primary key column.
+            instance (Field | None): An already-loaded field instance to delete;
+                if None, the field is looked up by primary key.
+            filters (Sequence[ColumnElement[bool]] | None): Additional filters to
+                apply when locating the field.
 
-        Raises:
-            ValueError: If no field with the given PK exists.
+        Returns:
+            bool: True once the field has been marked as deleted.
 
         """
-        async with self.db_client.session() as session:
-            obj = await self._get_by_id_with_session(session, pk)
-            obj.is_deleted = True
-            await session.commit()
+        c_filters = self.concat_filters(self.base_filters, filters)
+        instance = instance or await self._get_by_pk_raw(session, pk, pk_column_name, c_filters)
+        instance.is_deleted = True
+        await session.commit()
+        return True

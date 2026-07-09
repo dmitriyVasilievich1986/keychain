@@ -1,5 +1,6 @@
 """Field response models."""
 
-from .field_get import FieldGetResponseModel, FieldGetResponseModelSimple
+__all__ = ("FieldGetResponseModel", "GetAllFieldsResponse", "SimpleFieldGet")
 
-__all__ = ["FieldGetResponseModel", "FieldGetResponseModelSimple"]
+from .get_all import GetAllFieldsResponse, SimpleFieldGet
+from .get_single import FieldGetResponseModel

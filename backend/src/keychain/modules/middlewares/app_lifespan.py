@@ -1,8 +1,9 @@
-"""Application lifespan management for FastAPI."""
+"""Application lifespan management for initializing and tearing down services."""
 
 __all__ = ["lifespan"]
 
 from contextlib import asynccontextmanager
+from typing import AsyncGenerator
 
 from fastapi import FastAPI
 from loguru import logger
@@ -13,20 +14,18 @@ from keychain.services.db_client.client import DBClient
 
 
 @asynccontextmanager
-async def lifespan(
-    app: FastAPI,
-):
-    """Manage the application lifecycle, initializing and cleaning up services.
+async def lifespan(app: FastAPI) -> AsyncGenerator[None, None]:
+    """Manage startup and shutdown of application services.
+
+    Initializes the database and cryptography clients on startup, yields
+    control while the application runs, and closes the database client on
+    shutdown.
 
     Args:
-        app: The FastAPI application instance.
+        app (FastAPI): The FastAPI application instance being started.
 
     Yields:
-        None: Control returns to the application during its lifetime.
-
-    Raises:
-        ConnectionError: If unable to connect to services.
-        Exception: If services fail to initialize.
+        None: Control is yielded back to the application while it runs.
 
     """
     logger.info("Starting application lifespan...")
@@ -36,7 +35,6 @@ async def lifespan(
     logger.info("Initializing Application services...")
     app_config = AppConfig.get_or_create()
     db_client = DBClient(app_config)
-    await db_client.initialize()
     logger.info("Database client initialized successfully.")
 
     CryptographyClient(config=app_config)

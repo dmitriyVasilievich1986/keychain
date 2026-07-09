@@ -1,6 +1,6 @@
 """Field update request model."""
 
-__all__ = ["FieldUpdateRequestModel"]
+__all__ = ("FieldUpdateRequestModel",)
 
 from pydantic import Field
 

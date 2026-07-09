@@ -29,7 +29,7 @@ class AppConfig(BaseConfig):
     environment: str = Field(
         "local",
         description="Environment name",
-        examples=("local", "dev", "prod"),
+        examples=["local", "dev", "prod"],
     )
     info: AppInfo = Field(description="Application information")
     db: DBConfig = Field(description="Database configuration")

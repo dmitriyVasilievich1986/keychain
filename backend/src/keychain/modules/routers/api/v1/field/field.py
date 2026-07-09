@@ -1,44 +1,63 @@
-"""Field related endpoints.
+"""API v1 routes for managing fields."""
 
-This module provides REST API endpoints for field management operations,
-including creating, reading, updating, and deleting fields.
-"""
-
-__all__ = ["router"]
+__all__ = ("router",)
 
 from typing import Annotated
 
-from fastapi import APIRouter, Depends, HTTPException, Path, status
+from fastapi import APIRouter, Body, Depends, HTTPException, Path, Query, status
 from loguru import logger
+from sqlalchemy.exc import NoResultFound, SQLAlchemyError
 
 from keychain.config import AppConfig
 from keychain.modules.middlewares.dependencies import authorize_user, get_db
-from keychain.modules.routers.models.request.field import FieldCreateRequestModel, FieldUpdateRequestModel
-from keychain.modules.routers.models.response.field import FieldGetResponseModel, FieldGetResponseModelSimple
+from keychain.modules.routers.models.base.metadata import PaginationMetadata
+from keychain.modules.routers.models.request.field import (
+    FieldCreateRequestModel,
+    FieldUpdateRequestModel,
+    GetAllFieldsQuery,
+)
+from keychain.modules.routers.models.response.field import FieldGetResponseModel, GetAllFieldsResponse, SimpleFieldGet
 from keychain.services.daos.field import FieldDAO
 from keychain.services.db_client.client import DBClient
+from keychain.services.db_client.models.password import Password
 from keychain.services.db_client.models.user import User
 
 router = APIRouter(prefix="/field", tags=["Fields Management"])
 
 
-@router.get("", response_model=list[FieldGetResponseModelSimple], description="Get all fields")
+@router.get("", response_model=GetAllFieldsResponse, description="Get all fields")
 async def get_fields(
-    db: Annotated[DBClient, Depends(get_db)], user: Annotated[User, Depends(authorize_user(AppConfig))]
-) -> list[FieldGetResponseModelSimple]:
-    """Retrieve all fields from the database.
+    db: Annotated[DBClient, Depends(get_db)],
+    user: Annotated[User, Depends(authorize_user(AppConfig))],
+    query: Annotated[GetAllFieldsQuery, Query(description="Query parameters for getting all fields")],
+) -> GetAllFieldsResponse:
+    """Retrieve all fields belonging to the authenticated user.
 
     Args:
-        db: Database client dependency for database operations.
-        user: User dependency for the authenticated user.
+        db (DBClient): The database client dependency.
+        user (User): The authenticated user resolved from the request.
+        query (GetAllFieldsQuery): Pagination and filtering query parameters.
 
     Returns:
-        A list of FieldGetResponseModelSimple objects representing all fields.
+        GetAllFieldsResponse: The matching fields along with pagination metadata.
+
+    Raises:
+        HTTPException: With status 500 if a database error occurs.
 
     """
-    field_dao = FieldDAO(db, user.id)
-    fields = await field_dao.get_all()
-    return [FieldGetResponseModelSimple.model_validate(field) for field in fields]
+    field_dao = FieldDAO(db)
+    filters = field_dao.concat_filters([Password.user_id == user.id], query.parsed_filters)
+
+    try:
+        data, total = await field_dao.get_all(filters=filters, **query.model_dump(exclude={"filters"}))
+        metadata = PaginationMetadata(total=total, **query.model_dump())
+    except SQLAlchemyError as e:
+        logger.exception("Error retrieving fields", exc_info=e)
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail="An unexpected error occurred"
+        ) from e
+
+    return GetAllFieldsResponse(data=[SimpleFieldGet.model_validate(field) for field in data], metadata=metadata)
 
 
 @router.get("/{field_id}", response_model=FieldGetResponseModel, description="Get a field by ID")
@@ -47,62 +66,74 @@ async def get_field(
     db: Annotated[DBClient, Depends(get_db)],
     user: Annotated[User, Depends(authorize_user(AppConfig))],
 ) -> FieldGetResponseModel:
-    """Retrieve a specific field by its ID.
+    """Retrieve a single field by its identifier for the authenticated user.
 
     Args:
-        field_id: The unique identifier of the field to retrieve passed as a path parameter.
-        db: Database client dependency for database operations.
-        user: User dependency for the authenticated user.
+        field_id (int): The unique identifier of the field to retrieve.
+        db (DBClient): The database client dependency.
+        user (User): The authenticated user resolved from the request.
 
     Returns:
-        A FieldGetResponseModel object representing the requested field.
+        FieldGetResponseModel: The requested field.
 
     Raises:
-        HTTPException: If the field with the given ID is not found.
+        HTTPException: With status 404 if the field is not found, or status 500
+            if a database error occurs.
 
     """
-    field_dao = FieldDAO(db, user.id)
+    field_dao = FieldDAO(db)
     try:
-        field = await field_dao.get_by_id(field_id)
-    except ValueError as e:
-        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=str(e)) from e
-    except Exception as e:
-        logger.error(f"Error retrieving field {field_id}: {e}")
-        raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail=str(e)) from e
+        field = await field_dao.get_by_pk(field_id, filters=[Password.user_id == user.id])
+    except NoResultFound as e:
+        logger.warning("Field not found")
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Field not found") from e
+    except SQLAlchemyError as e:
+        logger.exception("Error retrieving field", exc_info=e)
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail="An unexpected error occurred"
+        ) from e
 
     return FieldGetResponseModel.model_validate(field)
 
 
 @router.post(
-    "", response_model=FieldGetResponseModel, status_code=status.HTTP_201_CREATED, description="Create a new field"
+    "",
+    response_model=FieldGetResponseModel,
+    status_code=status.HTTP_201_CREATED,
+    description="Create a new field",
+    dependencies=[Depends(authorize_user(AppConfig))],
 )
 async def create_field(
-    field: FieldCreateRequestModel,
+    body: Annotated[FieldCreateRequestModel, Body(description="The field to create")],
     db: Annotated[DBClient, Depends(get_db)],
     user: Annotated[User, Depends(authorize_user(AppConfig))],
 ) -> FieldGetResponseModel:
-    """Create a new field in the database.
+    """Create a new field for the authenticated user.
 
     Args:
-        field: FieldCreateRequestModel containing the field's name, value, and password_id.
-        db: Database client dependency for database operations.
-        user: User dependency for the authenticated user.
+        body (FieldCreateRequestModel): The field data to create.
+        db (DBClient): The database client dependency.
+        user (User): The authenticated user resolved from the request.
 
     Returns:
-        A FieldGetResponseModel object representing the newly created field.
+        FieldGetResponseModel: The newly created field.
 
     Raises:
-        HTTPException: If validation fails or an error occurs during creation.
+        HTTPException: With status 404 if the parent password is not found, or
+            status 500 if a database error occurs.
 
     """
-    field_dao = FieldDAO(db, user.id)
+    field_dao = FieldDAO(db)
     try:
-        field = await field_dao.create(field.name, field.value, field.password_id)
-    except ValueError as e:
-        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(e)) from e
-    except Exception as e:
-        logger.error(f"Error creating field: {e}")
-        raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail=str(e)) from e
+        field = await field_dao.create(**body.model_dump(), filters=[Password.user_id == user.id])
+    except NoResultFound as e:
+        logger.warning("Password not found")
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Password not found") from e
+    except SQLAlchemyError as e:
+        logger.exception("Error creating field", exc_info=e)
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail="An unexpected error occurred"
+        ) from e
 
     return FieldGetResponseModel.model_validate(field)
 
@@ -110,33 +141,37 @@ async def create_field(
 @router.put("/{field_id}", response_model=FieldGetResponseModel, description="Update a field by ID")
 async def update_field(
     field_id: Annotated[int, Path(description="The unique identifier of the field to update")],
-    field: FieldUpdateRequestModel,
+    body: Annotated[FieldUpdateRequestModel, Body(description="The field to update")],
     db: Annotated[DBClient, Depends(get_db)],
     user: Annotated[User, Depends(authorize_user(AppConfig))],
 ) -> FieldGetResponseModel:
-    """Update an existing field's information.
+    """Update an existing field by its identifier for the authenticated user.
 
     Args:
-        field_id: The unique identifier of the field to update passed as a path parameter.
-        field: FieldUpdateRequestModel containing the updated field information.
-        db: Database client dependency for database operations.
-        user: User dependency for the authenticated user.
+        field_id (int): The unique identifier of the field to update.
+        body (FieldUpdateRequestModel): The field data to apply.
+        db (DBClient): The database client dependency.
+        user (User): The authenticated user resolved from the request.
 
     Returns:
-        A FieldGetResponseModel object representing the updated field.
+        FieldGetResponseModel: The updated field.
 
     Raises:
-        HTTPException: If the field with the given ID is not found or validation fails.
+        HTTPException: With status 404 if the field is not found, or status 500
+            if a database error occurs.
 
     """
-    field_dao = FieldDAO(db, user.id)
+    field_dao = FieldDAO(db)
     try:
-        field = await field_dao.update(field_id, field.value)
-    except ValueError as e:
-        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=str(e)) from e
-    except Exception as e:
-        logger.error(f"Error updating field {field_id}: {e}")
-        raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail=str(e)) from e
+        field = await field_dao.update(field_id, **body.model_dump(), filters=[Password.user_id == user.id])
+    except NoResultFound as e:
+        logger.warning("Field not found")
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Field not found") from e
+    except SQLAlchemyError as e:
+        logger.exception("Error updating field", exc_info=e)
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail="An unexpected error occurred"
+        ) from e
 
     return FieldGetResponseModel.model_validate(field)
 
@@ -147,25 +182,29 @@ async def delete_field(
     db: Annotated[DBClient, Depends(get_db)],
     user: Annotated[User, Depends(authorize_user(AppConfig))],
 ) -> None:
-    """Delete a field from the database.
+    """Delete a field by its identifier for the authenticated user.
 
     Args:
-        field_id: The unique identifier of the field to delete passed as a path parameter.
-        db: Database client dependency for database operations.
-        user: User dependency for the authenticated user.
+        field_id (int): The unique identifier of the field to delete.
+        db (DBClient): The database client dependency.
+        user (User): The authenticated user resolved from the request.
 
     Returns:
-        None
+        None.
 
     Raises:
-        HTTPException: If the field with the given ID is not found.
+        HTTPException: With status 404 if the field is not found, or status 500
+            if a database error occurs.
 
     """
-    field_dao = FieldDAO(db, user.id)
+    field_dao = FieldDAO(db)
     try:
-        await field_dao.delete(field_id)
-    except ValueError as e:
-        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=str(e)) from e
-    except Exception as e:
-        logger.error(f"Error deleting field {field_id}: {e}")
-        raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail=str(e)) from e
+        await field_dao.delete(field_id, filters=[Password.user_id == user.id])
+    except NoResultFound as e:
+        logger.warning("Field not found")
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Field not found") from e
+    except SQLAlchemyError as e:
+        logger.exception("Error deleting field", exc_info=e)
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail="An unexpected error occurred"
+        ) from e

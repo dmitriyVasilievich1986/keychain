@@ -4,84 +4,93 @@ A secure RESTful API service for password management built with FastAPI and Pyth
 
 ## Description
 
-Keychain Backend is a robust password management service that provides encrypted storage and retrieval of passwords. It features JWT-based authentication, encrypted field storage using Fernet symmetric encryption, and a clean RESTful API architecture. The service uses SQLite for data persistence and includes comprehensive CLI tooling for database management and administrative tasks.
+Keychain Backend is a robust password management service that provides encrypted storage and retrieval of passwords. It features JWT-based authentication, encrypted field storage using Fernet symmetric encryption, and a clean RESTful API architecture. The service uses PostgreSQL for data persistence and includes comprehensive CLI tooling for database management and administrative tasks.
 
 ## Tech Stack
 
 - **Python 3.13** - Programming language
 - **FastAPI** - Modern web framework for building APIs
-- **SQLAlchemy** - SQL toolkit and ORM
+- **SQLAlchemy** (async) - SQL toolkit and ORM
 - **Alembic** - Database migration tool
-- **Pydantic** - Data validation using Python type annotations
+- **PostgreSQL** - Primary database, accessed asynchronously via **asyncpg**
+- **Pydantic / pydantic-settings** - Data validation and settings management
 - **PyJWT** - JSON Web Token authentication
 - **Cryptography** - Fernet encryption for sensitive data
+- **Werkzeug** - Password hashing utilities
 - **Uvicorn** - ASGI server
-- **Click** - CLI framework
+- **AsyncClick** - Async CLI framework
 - **Loguru** - Logging library
-- **Aiosqlite** - Async SQLite support
 - **Ruff** - Fast Python linter and formatter
 
 ## Project Structure
 
 ```
 backend/
-├──  src/keychain/
-│   ├──  config/                    # Configuration management
-│   │   ├──  app_config.py          # Main application configuration
-│   │   ├──  auth/                  # Authentication configuration
-│   │   ├──  base/                  # Base settings and storage
-│   │   ├──  cryptography/          # Encryption configuration
-│   │   ├──  db/                    # Database configuration
-│   │   └── info/                  # Application info
-│   ├──  modules/                   # Application modules
-│   │   ├──  app.py                 # FastAPI application factory
-│   │   ├──  middlewares/           # Middleware and dependencies
-│   │   │   ├──  app_lifespan.py   # Application lifecycle management
-│   │   │   └── dependencies/     # Dependency injection
-│   │   │       ├──  get_config.py # Configuration dependency
-│   │   │       ├──  get_db.py     # Database dependency
+├── src/keychain/
+│   ├── config/                       # Configuration management
+│   │   ├── app_config.py             # Main application configuration
+│   │   ├── auth/                     # Authentication configuration
+│   │   ├── base/                     # Base settings and settings storage
+│   │   ├── cryptography/             # Encryption configuration
+│   │   ├── db/                       # Database configuration
+│   │   └── info/                     # Application info (name, version, API/CORS)
+│   ├── modules/                      # Application modules
+│   │   ├── app.py                    # FastAPI application factory
+│   │   ├── middlewares/              # Middleware and dependencies
+│   │   │   ├── app_lifespan.py       # Application lifecycle management
+│   │   │   └── dependencies/         # Dependency injection
+│   │   │       ├── get_config.py     # Configuration dependency
+│   │   │       ├── get_db.py         # Database dependency
 │   │   │       └── authorize_user.py # Authorization dependency
-│   │   └── routers/              # API route handlers
-│   │       ├──  api/v1/           # API v1 endpoints
-│   │       │   ├──  user/         # User endpoints
-│   │       │   ├──  password/     # Password endpoints
-│   │       │   └── field/        # Field endpoints
-│   │       ├──  system/           # System endpoints (health, version)
-│   │       └── models/           # Request/response models
-│   ├──  services/                 # Business logic services
-│   │   ├──  alembic/              # Database migrations
-│   │   │   ├──  env.py            # Alembic environment
-│   │   │   └── versions/         # Migration scripts
-│   │   ├──  auth/                 # Authentication service
-│   │   │   ├──  client.py         # JWT token handling
-│   │   │   └── models/           # Token models
-│   │   ├──  cryptography/         # Encryption service
-│   │   │   └── client.py         # Fernet encryption client
-│   │   ├──  db_client/            # Database client
-│   │   │   ├──  client.py         # SQLAlchemy session management
-│   │   │   └── models/           # SQLAlchemy models
-│   │   │       ├──  user.py       # User model
-│   │   │       ├──  password.py   # Password model
-│   │   │       └── field.py      # Field model
-│   │   └── daos/                 # Data Access Objects
-│   │       ├──  user.py           # User DAO
-│   │       ├──  password.py       # Password DAO
-│   │       └── field.py          # Field DAO
-│   └── utils/                    # Utility modules
-│       ├──  cli/                  # CLI commands
-│       │   ├──  main.py           # Main CLI entry point
-│       │   ├──  db.py             # Database commands
-│       │   ├──  db_client/        # Database client commands
-│       │   ├──  cryptography.py   # Encryption commands
-│       │   └── access_token.py   # Token generation commands
-│       └── singleton.py          # Singleton pattern utility
-├──  configurations/               # Configuration files
-│   ├──  local.yaml                # Local development config
-│   └── production.yaml           # Production config
-├──  Dockerfile                    # Multi-stage Docker build
-├──  pyproject.toml                # Project metadata and dependencies
-├──  uv.lock                       # Dependency lock file
-└── .env                          # Environment variables
+│   │   └── routers/                  # API route handlers
+│   │       ├── api/v1/               # API v1 endpoints
+│   │       │   ├── user/             # User + login endpoints
+│   │       │   ├── password/         # Password endpoints
+│   │       │   └── field/            # Field endpoints
+│   │       ├── system/               # System endpoints (health, version)
+│   │       └── models/               # Request/response models
+│   ├── services/                     # Business logic services
+│   │   ├── alembic/                  # Database migrations
+│   │   │   ├── env.py                # Alembic environment
+│   │   │   └── versions/             # Migration scripts
+│   │   ├── auth/                     # Authentication service
+│   │   │   ├── client.py             # JWT token handling
+│   │   │   └── models/               # Token models
+│   │   ├── cryptography/             # Encryption service
+│   │   │   └── client.py             # Fernet encryption client
+│   │   ├── db_client/                # Database client
+│   │   │   ├── client.py             # SQLAlchemy async session management
+│   │   │   └── models/               # SQLAlchemy models
+│   │   │       ├── base.py           # Declarative base
+│   │   │       ├── user.py           # User model
+│   │   │       ├── password.py       # Password model
+│   │   │       └── field.py          # Field model
+│   │   └── daos/                     # Data Access Objects
+│   │       ├── base/                 # Base DAO and shared types
+│   │       ├── user.py               # User DAO
+│   │       ├── password.py           # Password DAO
+│   │       └── field.py              # Field DAO
+│   └── utils/                        # Utility modules
+│       ├── cli/                      # CLI commands
+│       │   ├── main.py               # Main CLI entry point
+│       │   ├── db/                   # Database + data management commands
+│       │   │   ├── db.py             # Migration commands (upgrade/downgrade/current)
+│       │   │   ├── user.py           # User management commands
+│       │   │   ├── password.py       # Password management commands
+│       │   │   └── field.py          # Field management commands
+│       │   ├── cryptography.py       # Encryption commands
+│       │   └── access_token.py       # Token generation commands
+│       ├── singleton.py              # Singleton pattern utility
+│       └── filter.py                 # Query filter parsing utility
+├── configurations/                   # Configuration files
+│   ├── local.yaml                    # Local development config
+│   ├── production.yaml               # Production config
+│   └── test.yaml                     # Test config
+├── Dockerfile                        # Multi-stage Docker build
+├── pyproject.toml                    # Project metadata and dependencies
+├── uv.lock                           # Dependency lock file
+├── .env                              # Environment variables (secrets)
+└── db.env                            # PostgreSQL container environment variables
 ```
 
 ## Database Schema
@@ -89,8 +98,7 @@ backend/
 ### User
 
 - `id`: Primary key
-- `username`: Unique username
-- `email`: User email
+- `name`: Username (used for login)
 - `password_hash`: Hashed password
 - `created_at`: Timestamp
 - `passwords`: Relationship to Password model
@@ -100,7 +108,7 @@ backend/
 - `id`: Primary key
 - `name`: Password name/title
 - `created_at`: Timestamp
-- `image_url`: Optional image URL
+- `image_url`: Optional image URL (defaults to `/static/i/no-photo.png`)
 - `user_id`: Foreign key to User
 - `fields`: Relationship to Field model
 
@@ -109,6 +117,8 @@ backend/
 - `id`: Primary key
 - `name`: Field name (e.g., "username", "password")
 - `value`: Encrypted field value
+- `created_at`: Timestamp
+- `is_deleted`: Soft-delete flag
 - `password_id`: Foreign key to Password
 
 ## Getting Started
@@ -117,6 +127,7 @@ backend/
 
 - Python 3.13 or higher
 - uv (Python package manager) or pip
+- A running PostgreSQL instance (or use the provided Docker Compose setup)
 
 ### Installation with uv (recommended)
 
@@ -161,34 +172,50 @@ pip install -e .
 CONFIG_FILE_PATH=/path/to/backend/configurations/local.yaml
 CRYPTOGRAPHY__SECRET_KEY=your_fernet_key_here
 AUTH__JWT_SECRET_KEY=your_jwt_secret_here
+DB__USER=your_db_user
+DB__PASSWORD=your_db_password
 ```
 
-2. Generate encryption keys:
+2. Generate the required keys:
 
 ```bash
-# Generate Fernet key for encryption
-keychain cryptography generate-key
+# Generate a Fernet key for field encryption
+python -c "from cryptography.fernet import Fernet; print(Fernet.generate_key().decode())"
 
-# Generate JWT secret key
-keychain access-token generate-key
+# Generate a JWT secret key
+python -c "import secrets; print(secrets.token_urlsafe(32))"
 ```
 
-3. Configure `configurations/local.yaml` as needed (see example in project)
+3. Configure `configurations/local.yaml` as needed. The database section selects the
+   PostgreSQL provider and connection details:
+
+```yaml
+db:
+  alembic_ini_path: src/keychain/services/alembic/alembic.ini
+  provider: postgresql
+  host: db
+  port: 5432
+  name: keychain_local
+```
+
+Credentials (`DB__USER` / `DB__PASSWORD`) are supplied via environment variables.
 
 ### Database Setup
 
-Initialize the database and run migrations:
+Apply migrations to create the schema:
 
 ```bash
-# Create database tables
+# Upgrade to the latest revision
 keychain db upgrade
 
-# Check migration status
+# Check the current revision
 keychain db current
 
-# Create a new migration (after model changes)
-keychain db revision --autogenerate -m "description"
+# Roll back one revision
+keychain db downgrade --revision -1
 ```
+
+> Note: Creating new migrations is done with Alembic directly (see [Creating Migrations](#creating-migrations)).
 
 ## Running the Application
 
@@ -198,12 +225,11 @@ keychain db revision --autogenerate -m "description"
 # Development mode with auto-reload
 keychain run --reload
 
-# Production mode
-keychain run --host 0.0.0.0 --port 8000
-
 # Custom host and port
-keychain run --host 127.0.0.1 --port 8080
+keychain run --host 0.0.0.0 --port 8000
 ```
+
+Defaults are `--host 0.0.0.0` and `--port 8000`.
 
 ### Using uvicorn directly
 
@@ -213,12 +239,23 @@ uvicorn keychain.modules.app:get_app --factory --reload
 
 ### Using Docker
 
+The provided multi-stage `Dockerfile` can be built directly:
+
 ```bash
 # Build the image
 docker build -t keychain-backend .
 
 # Run the container
 docker run -p 8000:8000 keychain-backend
+```
+
+### Using Docker Compose
+
+From the repository root, a full stack (PostgreSQL, backend, nginx, optional frontend)
+is defined in `docker-compose.yaml`:
+
+```bash
+docker compose up --build
 ```
 
 The API will be available at `http://localhost:8000`
@@ -233,53 +270,58 @@ keychain show-config             # Display current configuration
 keychain run                     # Start the server
 ```
 
-### Database Commands
+### Database Migration Commands
 
 ```bash
-keychain db upgrade              # Run migrations
-keychain db downgrade            # Rollback migrations
-keychain db current              # Show current revision
-keychain db history              # Show migration history
-keychain db revision             # Create new migration
+keychain db upgrade                       # Upgrade to the latest revision (default: head)
+keychain db upgrade --revision <rev>      # Upgrade to a specific revision
+keychain db downgrade --revision -1       # Roll back one revision
+keychain db current                       # Show the current revision
 ```
 
-### Database Client Commands
+### User Management Commands
 
 ```bash
-# User management
-keychain db-client user create --username admin --email admin@example.com --password secret
-keychain db-client user list
-keychain db-client user get --user-id 1
-keychain db-client user delete --user-id 1
+keychain db user create-user --username admin           # Prompts for a password
+keychain db user get-user --user-id 1                   # Or --username admin
+keychain db user update-user --user-id 1 --username newname
+keychain db user delete-user --user-id 1
+keychain db user verify-password --user-id 1            # Prompts for a password
+keychain db user reset-password --user-id 1            # Prompts for a new password
+```
 
-# Password management
-keychain db-client password create --name "Gmail" --user-id 1
-keychain db-client password list --user-id 1
-keychain db-client password get --password-id 1
-keychain db-client password delete --password-id 1
+### Password Management Commands
 
-# Field management
-keychain db-client field create --name "username" --value "user@example.com" --password-id 1
-keychain db-client field list --password-id 1
-keychain db-client field get --field-id 1
-keychain db-client field update --field-id 1 --value "newvalue"
-keychain db-client field delete --field-id 1
+```bash
+keychain db password create-password --name "Gmail" --user-id 1 --image-url "/static/i/gmail.png"
+keychain db password list-passwords --user-id 1
+keychain db password get-password --password-id 1
+keychain db password update-password --password-id 1 --name "Gmail Work"
+keychain db password delete-password --password-id 1
+```
+
+### Field Management Commands
+
+```bash
+keychain db field create-field --name "username" --password-id 1   # Prompts for the value
+keychain db field list-fields --user-id 1
+keychain db field get-field --field-id 1
+keychain db field update-field --field-id 1                        # Prompts for the new value
+keychain db field delete-field --field-id 1
 ```
 
 ### Cryptography Commands
 
 ```bash
-keychain cryptography generate-key    # Generate a new Fernet encryption key
-keychain cryptography encrypt TEXT    # Encrypt text
-keychain cryptography decrypt TOKEN   # Decrypt token
+keychain cryptography encrypt --string TEXT    # Encrypt a string
+keychain cryptography decrypt --string TOKEN   # Decrypt a token
 ```
 
 ### Access Token Commands
 
 ```bash
-keychain access-token generate-key        # Generate JWT secret key
-keychain access-token generate USER_ID   # Generate access token for user
-keychain access-token decode TOKEN       # Decode and verify token
+keychain access-token generate-access-token --user-id 1   # Generate an access token for a user
+keychain access-token decode-access-token --token TOKEN   # Decode and verify a token
 ```
 
 ## API Documentation
@@ -294,40 +336,41 @@ Once the server is running, interactive API documentation is available at:
 ### System Endpoints
 
 ```
-GET  /health                # Health check
+GET  /health                # Health check (verifies database connectivity)
 GET  /version               # Version information
 ```
 
 ### Authentication
 
 ```
-POST /api/v1/login          # User login (returns JWT token)
+POST /api/v1/user/login     # User login (returns JWT token)
 ```
 
 ### User Management
 
 ```
-POST   /api/v1/user         # Create user
-GET    /api/v1/user         # Get current user (requires auth)
-PATCH  /api/v1/user         # Update user (requires auth)
-DELETE /api/v1/user         # Delete user (requires auth)
+GET    /api/v1/user/me      # Get current user (requires auth)
+PUT    /api/v1/user         # Update current user (requires auth)
 ```
 
 ### Password Management
 
 ```
-POST   /api/v1/password                # Create password (requires auth)
 GET    /api/v1/password                # List passwords (requires auth)
 GET    /api/v1/password/{password_id}  # Get password details (requires auth)
-PATCH  /api/v1/password/{password_id}  # Update password (requires auth)
+POST   /api/v1/password                # Create password (requires auth)
+PUT    /api/v1/password/{password_id}  # Replace password (requires auth)
+PATCH  /api/v1/password/{password_id}  # Partially update password (requires auth)
 DELETE /api/v1/password/{password_id}  # Delete password (requires auth)
 ```
 
 ### Field Management
 
 ```
+GET    /api/v1/field                   # List fields (requires auth)
+GET    /api/v1/field/{field_id}        # Get field details (requires auth)
 POST   /api/v1/field                   # Create field (requires auth)
-PATCH  /api/v1/field/{field_id}        # Update field (requires auth)
+PUT    /api/v1/field/{field_id}        # Update field (requires auth)
 DELETE /api/v1/field/{field_id}        # Delete field (requires auth)
 ```
 
@@ -340,7 +383,7 @@ import requests
 
 # Login and get access token
 response = requests.post(
-    "http://localhost:8000/api/v1/login",
+    "http://localhost:8000/api/v1/user/login",
     json={"username": "admin", "password": "secret"}
 )
 token = response.json()["access_token"]
@@ -402,7 +445,7 @@ response = requests.get(
     f"http://localhost:8000/api/v1/password/{password_id}",
     headers=headers
 )
-password_details = response.json()  # Fields are automatically decrypted
+password_details = response.json()  # Field values are returned decrypted
 ```
 
 ## Security Features
@@ -428,13 +471,20 @@ ruff format .
 ruff check --fix .
 ```
 
+### Testing
+
+```bash
+# Run the test suite (pytest is configured in pyproject.toml)
+pytest
+```
+
 ### Creating Migrations
 
-After modifying database models:
+After modifying database models, generate a new migration with Alembic directly:
 
 ```bash
 # Generate migration
-keychain db revision --autogenerate -m "description of changes"
+alembic -c src/keychain/services/alembic/alembic.ini revision --autogenerate -m "description of changes"
 
 # Review the generated migration in src/keychain/services/alembic/versions/
 
@@ -444,19 +494,25 @@ keychain db upgrade
 
 ## Environment Variables
 
-- `CONFIG_FILE_PATH`: Path to YAML configuration file
+- `CONFIG_FILE_PATH`: Path to YAML configuration file (defaults to `configurations/production.yaml`)
 - `CRYPTOGRAPHY__SECRET_KEY`: Fernet encryption key (base64 encoded)
 - `AUTH__JWT_SECRET_KEY`: JWT signing secret
 
-Configuration can also be set via environment variables using double underscore notation:
+Nested configuration values can be set via environment variables using the double
+underscore (`__`) delimiter. For example:
 
-- `DB__DB_URI`: Database connection string
-- `AUTH__ACCESS_TOKEN_EXPIRE_MINUTES`: Token expiration time
+- `DB__PROVIDER`: Database provider (`postgresql`)
+- `DB__HOST`: Database host
+- `DB__PORT`: Database port
+- `DB__NAME`: Database name
+- `DB__USER`: Database user
+- `DB__PASSWORD`: Database password
+- `AUTH__ACCESS_TOKEN_EXPIRE_MINUTES`: Token expiration time (minutes)
 - `INFO__DEBUG`: Enable debug mode
 
 ## Docker Support
 
-Multi-stage Dockerfile included for optimized builds:
+A multi-stage `Dockerfile` is included for optimized builds:
 
 - **Build stage**: Installs dependencies using uv
 - **Development stage**: Includes source code and configurations

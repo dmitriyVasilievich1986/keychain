@@ -1,4 +1,8 @@
-import click
+"""CLI for the Keychain Application."""
+
+__all__ = ("main",)
+
+import asyncclick as click
 import uvicorn
 
 from keychain.config import AppConfig
@@ -6,7 +10,6 @@ from keychain.config import AppConfig
 from .access_token import access_token
 from .cryptography import cryptography
 from .db import db
-from .db_client import db_client
 
 
 @click.group(help="CLI for managing the Keychain Application.")
@@ -98,6 +101,5 @@ def run(host: str, port: int, reload: bool) -> None:
 
 
 main.add_command(db)
-main.add_command(db_client)
 main.add_command(cryptography)
 main.add_command(access_token)

@@ -14,7 +14,8 @@ from collections.abc import Sequence
 
 import sqlalchemy as sa
 from alembic import op
-from sqlalchemy.orm import DeclarativeBase, Session
+from sqlalchemy.orm import DeclarativeBase, Mapped, mapped_column, Session
+from sqlalchemy.sql import select
 
 # revision identifiers, used by Alembic.
 revision: str = "56fda1ef4adc"
@@ -46,36 +47,36 @@ class Field(Base):
 
     __tablename__ = "field"
 
-    id: int = sa.Column(sa.Integer, primary_key=True)
-    password_id: int | None = sa.Column(sa.Integer, nullable=False)
+    id: Mapped[int] = mapped_column(sa.Integer, primary_key=True)
+    password_id: Mapped[int | None] = mapped_column(sa.Integer, nullable=False)
 
 
 def upgrade() -> None:
-    """Upgrade the database schema.
+    """Delete orphan fields and make ``password_id`` non-nullable.
 
-    Performs the following operations:
-    1. Deletes all field records with null password_id values
-    2. Changes the 'value' column data type from BINARY to String
-    3. Makes the 'password_id' column non-nullable
+    Removes all ``field`` records with a null ``password_id`` and then alters
+    the ``password_id`` column so it can no longer be null.
+
+    Returns:
+        None
+
     """
     bind = op.get_bind()
     session = Session(bind=bind)
-    session.query(Field).filter(Field.password_id is None).delete()
+    stmt = select(Field).where(Field.password_id.is_(None))
+    session.execute(stmt)
 
-    with op.batch_alter_table("field", recreate="always") as batch_op:
-        batch_op.alter_column("value", type_=sa.String, existing_type=sa.BINARY)
-        batch_op.alter_column("password_id", nullable=False, existing_nullable=True)
+    op.alter_column("field", "password_id", nullable=False, existing_nullable=True)
 
 
 def downgrade() -> None:
-    """Downgrade the database schema.
+    """Make the ``password_id`` column nullable again.
 
-    Reverses the upgrade changes:
-    1. Changes the 'value' column data type back from String to BINARY
-    2. Makes the 'password_id' column nullable again
+    Reverts the column change from the upgrade. The previously deleted records
+    with a null ``password_id`` are not restored.
 
-    Note: This does not restore deleted records with null password_id values.
+    Returns:
+        None
+
     """
-    with op.batch_alter_table("field", recreate="always") as batch_op:
-        batch_op.alter_column("value", type_=sa.BINARY, existing_type=sa.String)
-        batch_op.alter_column("password_id", nullable=True, existing_nullable=False)
+    op.alter_column("field", "password_id", nullable=True, existing_nullable=False)

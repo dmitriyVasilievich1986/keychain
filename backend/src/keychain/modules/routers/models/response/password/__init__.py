@@ -1,5 +1,6 @@
 """Password response models."""
 
-from .password_get import PasswordGetResponseModel, PasswordGetResponseModelSimple
+__all__ = ("GetAllPasswordsResponse", "PasswordGetResponseModel", "SimplePasswordGet")
 
-__all__ = ["PasswordGetResponseModel", "PasswordGetResponseModelSimple"]
+from .get_all import GetAllPasswordsResponse, SimplePasswordGet
+from .get_single import PasswordGetResponseModel

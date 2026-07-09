@@ -1,2 +1,19 @@
 info:
   name: keychain
+
+  api:
+    allow_credentials: true
+    allow_origins: ["*"]
+    allow_methods: ["*"]
+    allow_headers: ["*"]
+
+db:
+  alembic_ini_path: src/keychain/services/alembic/alembic.ini
+  provider: postgresql
+  host: db
+  port: 5432
+  name: keychain
+
+auth:
+  algorithm: HS256
+  access_token_expire_minutes: 30

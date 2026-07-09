@@ -1,166 +1,128 @@
-"""Base database client for async database operations."""
+"""Async SQLAlchemy engine and session management for the application."""
 
-__all__ = ["DBClient"]
+__all__ = ("DBClient",)
 
-from contextlib import asynccontextmanager
-from typing import AsyncGenerator, Self
+from typing import AsyncGenerator
 
 from loguru import logger
-from sqlalchemy import text
+from sqlalchemy import event, text
+from sqlalchemy.exc import SQLAlchemyError
 from sqlalchemy.ext.asyncio import async_sessionmaker, AsyncEngine, AsyncSession, create_async_engine
+from sqlalchemy.pool import ConnectionPoolEntry
 
 from keychain.config import AppConfig
-from keychain.utils import Singleton
+from keychain.utils.singleton import Singleton
 
 
 class DBClient(metaclass=Singleton):
-    """Base database client for async database operations."""
+    """Singleton that owns the async engine and session factory."""
 
-    def __init__(self, config: AppConfig | None = None) -> None:
-        """Initialize the database client.
+    _engine: AsyncEngine
+    _session_factory: async_sessionmaker[AsyncSession]
+
+    def __init__(self, app_config: AppConfig | None = None) -> None:
+        """Build the async engine and session factory from app configuration.
+
+        For SQLite, registers a connect hook that enables ``PRAGMA foreign_keys``.
 
         Args:
-            config: The application configuration. If None, the default configuration will be used.
-
-        """
-        self.config = config or AppConfig.get_or_create()
-        self._engine: AsyncEngine | None = None
-        self._session_factory: async_sessionmaker[AsyncSession] | None = None
-
-    @property
-    def engine(self) -> AsyncEngine:
-        """Get or create the async database engine.
+            app_config (AppConfig | None, optional): Application config with
+                database URL and options. Defaults to None.
 
         Returns:
-            The async SQLAlchemy engine instance.
+            None
 
         Raises:
-            RuntimeError: If the engine has been closed.
+            RuntimeError: If ``app_config`` is None.
 
         """
-        if self._engine is None:
-            raise RuntimeError("Database engine has not been initialized. Call initialize() first.")
-        return self._engine
-
-    @property
-    def session_factory(self) -> async_sessionmaker[AsyncSession]:
-        """Get or create the session factory.
-
-        Returns:
-            The async session factory instance.
-
-        Raises:
-            RuntimeError: If the session factory has not been initialized.
-
-        """
-        if self._session_factory is None:
-            raise RuntimeError("Session factory has not been initialized. Call initialize() first.")
-        return self._session_factory
-
-    async def initialize(self) -> None:
-        """Initialize the database engine and session factory.
-
-        This method should be called before using the database client.
-        It creates the async engine and session factory based on the configuration.
-
-        """
-        if self._engine is not None:
-            return
-
-        connect_args = {}
-
-        # SQLite-specific async configuration
-        if self.config.db.db_provider == "sqlite":
-            connect_args = {"check_same_thread": False}
+        if app_config is None:
+            raise RuntimeError("App config is required")
+        logger.info(f"Initializing database client with URL: {app_config.db.sqlalchemy_uri}")
 
         self._engine = create_async_engine(
-            self.config.db.sqlalchemy_url,
-            echo=False,  # Set to True for SQL query logging
-            connect_args=connect_args,
-            pool_pre_ping=True,  # Verify connections before using them
+            app_config.db.sqlalchemy_uri,
+            echo=app_config.info.debug,
+            future=True,
         )
+        if app_config.db.provider == "sqlite":
+            event.listen(self._engine.sync_engine, "connect", self._set_sqlite_pragma)
         self._session_factory = async_sessionmaker[AsyncSession](
             self._engine,
             class_=AsyncSession,
             expire_on_commit=False,
-            autoflush=False,
-            autocommit=False,
         )
-        logger.info(
-            f"Database client({self.config.db.db_provider}) initialized with url: {self.config.db.sqlalchemy_url}"
-        )
+        logger.info("Database client initialized successfully.")
 
-    @asynccontextmanager
-    async def session(self) -> AsyncGenerator[AsyncSession, None]:
-        """Create an async database session context manager.
+    @staticmethod
+    def _set_sqlite_pragma(dbapi_connection: object, _connection_record: ConnectionPoolEntry) -> None:
+        """Enable foreign-key enforcement for a new SQLite connection.
 
-        Yields:
-            An async database session that will be automatically committed
-            on successful completion or rolled back on exception.
-
-        Example:
-            ```python
-            async with db_client.session() as session:
-                result = await session.execute(select(User))
-                users = result.scalars().all()
-            ```
-
-        """
-        if self._session_factory is None:
-            await self.initialize()
-
-        async with self._session_factory() as session:
-            try:
-                yield session
-                await session.commit()
-            except Exception:
-                await session.rollback()
-                raise
-
-    async def close(self) -> None:
-        """Close the database engine and cleanup resources.
-
-        This method should be called when the database client is no longer needed,
-        typically during application shutdown.
-
-        """
-        if self._engine is not None:
-            await self._engine.dispose()
-            self._engine = None
-            self._session_factory = None
-
-    async def health_check(self) -> bool:
-        """Check the health of the database.
+        Args:
+            dbapi_connection (object): DBAPI connection from the pool.
+            _connection_record (ConnectionPoolEntry): Pool entry (unused).
 
         Returns:
-            True if the database is healthy, False otherwise.
+            None
+
+        """
+        cursor = dbapi_connection.cursor()  # type: ignore[attr-defined]
+        cursor.execute("PRAGMA foreign_keys=ON")
+        cursor.close()
+
+    @property
+    def engine(self) -> AsyncEngine:
+        """Return the shared async SQLAlchemy engine.
+
+        Returns:
+            AsyncEngine: The configured engine instance.
+
+        """
+        return self._engine
+
+    @property
+    def session_factory(self) -> async_sessionmaker[AsyncSession]:
+        """Return the factory used to create async sessions.
+
+        Returns:
+            async_sessionmaker[AsyncSession]: Session factory with
+                ``expire_on_commit=False``.
+
+        """
+        return self._session_factory
+
+    async def get_session(self) -> AsyncGenerator[AsyncSession, None]:
+        """Yield a context-managed async session for request-scoped work.
+
+        Yields:
+            AsyncSession: A session that is closed when the async context exits.
+
+        """
+        async with self._session_factory() as session:
+            yield session
+
+    async def close(self) -> None:
+        """Dispose of the engine and release pool connections.
+
+        Returns:
+            None
+
+        """
+        await self._engine.dispose()
+        logger.info("Database client closed successfully.")
+
+    async def healthcheck(self) -> bool:
+        """Run a simple ``SELECT 1`` to verify the database is reachable.
+
+        Returns:
+            bool: True if the query succeeds, False on ``SQLAlchemyError``.
 
         """
         try:
-            async with self.session() as session:
+            async with self._session_factory() as session:
                 await session.execute(text("SELECT 1"))
-                return True
-        except Exception as e:
+        except SQLAlchemyError as e:
             logger.error(f"Database health check failed: {e}")
             return False
 
-    async def __aenter__(self) -> Self:
-        """Async context manager entry.
-
-        Returns:
-            The database client instance.
-
-        """
-        await self.initialize()
-        return self
-
-    async def __aexit__(self, exc_type, exc_val, exc_tb) -> None:
-        """Async context manager exit.
-
-        Args:
-            exc_type: Exception type if an exception occurred.
-            exc_val: Exception value if an exception occurred.
-            exc_tb: Exception traceback if an exception occurred.
-
-        """
-        await self.close()
+        return True

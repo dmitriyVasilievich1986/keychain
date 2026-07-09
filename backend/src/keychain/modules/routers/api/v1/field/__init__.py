@@ -1,5 +1,5 @@
 """Field related endpoints."""
 
-from .field import router
+__all__ = ("router",)
 
-__all__ = ["router"]
+from .field import router

@@ -1,6 +1,13 @@
 """Password request models."""
 
-from .password_create import PasswordCreateRequestModel
-from .password_update import PasswordUpdateRequestModel
+__all__ = (
+    "GetAllPasswordsQuery",
+    "PasswordCreateRequestModel",
+    "PasswordPatchRequestModel",
+    "PasswordUpdateRequestModel",
+)
 
-__all__ = ["PasswordCreateRequestModel", "PasswordUpdateRequestModel"]
+from .get_all_passwords_query import GetAllPasswordsQuery
+from .password_create import PasswordCreateRequestModel
+from .password_patch import PasswordPatchRequestModel
+from .password_update import PasswordUpdateRequestModel

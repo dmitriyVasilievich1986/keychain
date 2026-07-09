@@ -1,3 +1,6 @@
-import { Login } from './login';
+/**
+ * This file is the entry point for the login page.
+ * It exports the login page for the application.
+ */
 
-export { Login };
+export { Login } from './login';

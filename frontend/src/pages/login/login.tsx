@@ -1,3 +1,8 @@
+/**
+ * This file contains the Login component.
+ * It is used to render the login page.
+ */
+
 import Visibility from '@mui/icons-material/Visibility';
 import VisibilityOff from '@mui/icons-material/VisibilityOff';
 import Box from '@mui/material/Box';
@@ -9,48 +14,72 @@ import InputAdornment from '@mui/material/InputAdornment';
 import Paper from '@mui/material/Paper';
 import Stack from '@mui/material/Stack';
 import TextField from '@mui/material/TextField';
-import axios from 'axios';
 import classnames from 'classnames/bind';
-import { useState } from 'react';
-import { useNavigate } from 'react-router';
+import dayjs from 'dayjs';
+import Cookies from 'js-cookie';
+import { useState, useEffect } from 'react';
+import { useNavigate, useSearchParams } from 'react-router';
 
+import { Image } from '@components/image';
 import { useUserStore } from '@store/user';
+import { useAuthAPIClient } from '@utils/apiClient/auth';
+import { useClearStore } from '@utils/useClearStore';
 
 import * as defaultStyle from './style.scss';
 
-import type { LoginResponse } from './types';
-
 const cx = classnames.bind(defaultStyle);
 
+/**
+ * Login page.
+ *
+ * Renders the username/password form with a show/hide password toggle, clears
+ * any existing store state on mount, authenticates on submit, and redirects to
+ * the `redirectTo` query param (defaulting to `/`) on success.
+ *
+ * @returns The login page.
+ */
 export function Login() {
   const [username, setUsername] = useState<string>('');
   const [password, setPassword] = useState<string>('');
-  const [isLoading, setIsLoading] = useState<boolean>(false);
   const [showPassword, setShowPassword] = useState<boolean>(false);
   const [error, setError] = useState<string>('');
+  const { clearAllStores } = useClearStore();
 
-  const { setAccessToken } = useUserStore();
+  const { isLoading } = useUserStore();
+
+  const [searchParams] = useSearchParams();
+  const redirectTo = searchParams.get('redirectTo') ?? '/';
+
+  const { login } = useAuthAPIClient();
+
   const navigate = useNavigate();
 
-  const handleLogin = async (e: React.FormEvent<HTMLFormElement>) => {
-    e.preventDefault();
-    if (isLoading) return;
+  // Reset all stores on mount so no stale session data leaks into a new login.
+  useEffect(() => {
+    clearAllStores();
+  }, []);
 
-    setIsLoading(true);
-    const data = { username, password };
-    try {
-      const response = await axios.post<LoginResponse>(
-        `${import.meta.env.VITE_API_HOST}/api/v1/user/login`,
-        data
-      );
-      setAccessToken(response.data.accessToken);
-      navigate('/');
-    } catch (error) {
-      console.error(error);
-      setError('Invalid username or password');
-    } finally {
-      setIsLoading(false);
-    }
+  /**
+   * Authenticates the user on form submit.
+   *
+   * Prevents the default form navigation, and on success stores the access
+   * token cookie and navigates to the redirect target; on failure shows the
+   * server-provided error message.
+   *
+   * @param e - The form submit event.
+   */
+  const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
+    e.preventDefault();
+    login(username, password)
+      .then((response) => {
+        Cookies.set('accessToken', response.accessToken, {
+          expires: dayjs(response.expiresAt).toDate(),
+        });
+        navigate(redirectTo);
+      })
+      .catch((error) => {
+        setError(error.response.data.detail || 'An unknown error occurred');
+      });
   };
 
   return (
@@ -64,14 +93,14 @@ export function Login() {
               alignItems: 'center',
             }}
           >
-            <img
+            <Image
               src={`${import.meta.env.VITE_IMAGES_HOST}/avatar.svg`}
               alt="avatar"
               width={100}
               height={100}
             />
           </Box>
-          <form onSubmit={handleLogin}>
+          <form onSubmit={handleSubmit}>
             <Stack spacing={2} sx={{ marginTop: '1rem' }}>
               <TextField
                 label="Login"

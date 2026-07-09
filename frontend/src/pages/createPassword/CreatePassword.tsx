@@ -1,3 +1,8 @@
+/**
+ * This file contains the CreatePassword component.
+ * It is used to render the create password page.
+ */
+
 import Box from '@mui/material/Box';
 import Button from '@mui/material/Button';
 import CircularProgress from '@mui/material/CircularProgress';
@@ -8,14 +13,22 @@ import classnames from 'classnames/bind';
 import { useState } from 'react';
 import { useNavigate } from 'react-router';
 
-import { usePasswordsStore, type Password } from '@store/passwords';
+import { usePasswordsStore } from '@store/passwords';
 import { useUserStore } from '@store/user';
-import { useApiClient } from '@utils/apiClient';
+import { usePasswordAPIClient } from '@utils/apiClient/password';
 
 import * as defaultStyle from './style.scss';
 
 const cx = classnames.bind(defaultStyle);
 
+/**
+ * Page for creating a new password entry.
+ *
+ * Renders a form with name and image URL inputs, submits the new entry to the
+ * API, and on success adds it to the store and navigates to its detail view.
+ *
+ * @returns The create-password page.
+ */
 export function CreatePassword() {
   const [name, setName] = useState<string>('');
   const [imageUrl, setImageUrl] = useState<string>('');
@@ -24,29 +37,33 @@ export function CreatePassword() {
   const { setCurrentPassword, addPassword } = usePasswordsStore();
   const { isLoading } = useUserStore();
   const navigate = useNavigate();
-  const { apiPost } = useApiClient();
+  const { postPassword } = usePasswordAPIClient();
 
+  /**
+   * Creates the password on form submit.
+   *
+   * Prevents the default form navigation and does nothing while a request is in
+   * flight. On success the new password is added to the store, the current
+   * selection is reset, and the user is navigated to the new entry; on failure
+   * an error message is shown.
+   *
+   * @param e - The form submit event.
+   */
   const handleCreatePassword = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
     if (isLoading) return;
 
     const data = { name, imageUrl };
-    try {
-      const response = await apiPost<{ name: string; imageUrl: string }, Password>(
-        '/api/v1/password',
-        data
-      );
-      addPassword({
-        id: response.id,
-        name: response.name,
-        imageUrl: response.imageUrl,
+    postPassword(data)
+      .then((response) => {
+        addPassword(response);
+        setCurrentPassword(null);
+        navigate(`/password/${response.id}`);
+      })
+      .catch((error) => {
+        setError('Failed to create password');
+        console.error(error);
       });
-      setCurrentPassword(response);
-      navigate(`/password/${response.id}`);
-    } catch (error) {
-      setError('Failed to create password');
-      console.error(error);
-    }
   };
 
   return (

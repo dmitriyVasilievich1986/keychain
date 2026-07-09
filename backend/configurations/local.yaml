@@ -3,10 +3,18 @@ info:
   debug: true
   description: Keychain Application to store and retrieve secrets
 
+  api:
+    allow_credentials: true
+    allow_origins: ["*"]
+    allow_methods: ["*"]
+    allow_headers: ["*"]
+
 db:
   alembic_ini_path: src/keychain/services/alembic/alembic.ini
-  db_provider: sqlite
-  db_uri: ./keychain.sqlite
+  provider: postgresql
+  host: db
+  port: 5432
+  name: keychain_local
 
 cryptography:
   pass: ignore

@@ -1,51 +1,72 @@
+/**
+ * This file contains the Field component.
+ * It is used to render a single password field.
+ */
+
 import ContentCopyIcon from '@mui/icons-material/ContentCopy';
 import EditIcon from '@mui/icons-material/Edit';
+import VisibilityIcon from '@mui/icons-material/Visibility';
+import VisibilityOffIcon from '@mui/icons-material/VisibilityOff';
+import IconButton from '@mui/material/IconButton';
 import Stack from '@mui/material/Stack';
 import TextField from '@mui/material/TextField';
-import classnames from 'classnames/bind';
 import { useState } from 'react';
 
 import { FloatingButton } from '@components/floatingButton';
 import { usePasswordsStore, type PasswordField } from '@store/passwords';
 import { useUserStore } from '@store/user';
-import { useApiClient } from '@utils/apiClient';
+import { useFieldAPIClient } from '@utils/apiClient/field';
 
-import * as defaultStyle from './style.scss';
-
-const cx = classnames.bind(defaultStyle);
-
+/**
+ * Editable row for a single password field.
+ *
+ * Renders the field value as a masked input with actions to toggle visibility,
+ * copy the decrypted value to the clipboard, and save edits. Deleted fields are
+ * shown struck through and read-only.
+ *
+ * @param props - Component props.
+ * @param props.field - The password field to display and edit.
+ * @returns The field row.
+ */
 export function Field(props: { field: PasswordField }) {
   const [value, setValue] = useState(props.field.valueDecrypted);
   const [updateFieldError, setUpdateFieldError] = useState<string>('');
+  const [show, setShow] = useState<boolean>(false);
 
   const { isLoading } = useUserStore();
-  const { apiPut } = useApiClient();
   const { updateField } = usePasswordsStore();
+  const { putField } = useFieldAPIClient();
 
+  /**
+   * Persists the edited field value to the API.
+   *
+   * Does nothing while a request is in flight and requires a non-empty value.
+   * On success the store and local input are synced with the response, and on
+   * failure an error message is shown.
+   */
   const handleUpdateField = async () => {
     if (isLoading) return;
     if (!value) {
       setUpdateFieldError('Please fill in all fields');
       return;
     }
-    try {
-      const response = await apiPut<{ value: string }, PasswordField>(
-        `/api/v1/field/${props.field.id}`,
-        { value }
-      );
-      updateField(props.field.id, response);
-      setValue(props.field.valueDecrypted);
-    } catch (error) {
-      console.error(error);
-      setUpdateFieldError('Failed to update field');
-    }
+    putField(props.field.id, { value })
+      .then((response) => {
+        updateField(props.field.id, response);
+        setValue(response.valueDecrypted);
+      })
+      .catch((error) => {
+        console.error(error);
+        setUpdateFieldError('Failed to update field');
+      });
   };
 
   return (
-    <Stack spacing={2} sx={{ marginTop: '2rem' }} direction="row" alignItems="center">
+    <Stack spacing={2} sx={{ marginTop: '2rem', alignItems: 'center' }} direction="row">
       <TextField
         key={props.field.id}
         label={props.field.name}
+        type={show ? 'text' : 'password'}
         fullWidth
         variant="outlined"
         value={value}
@@ -58,10 +79,20 @@ export function Field(props: { field: PasswordField }) {
         slotProps={{
           input: {
             endAdornment: (
-              <ContentCopyIcon
-                onClick={() => navigator.clipboard.writeText(props.field.valueDecrypted)}
-                className={cx('copy-icon')}
-              />
+              <Stack direction="row" spacing={1}>
+                <IconButton size="small" onClick={() => setShow(!show)}>
+                  {show ? (
+                    <VisibilityIcon onClick={() => setShow(false)} />
+                  ) : (
+                    <VisibilityOffIcon onClick={() => setShow(true)} />
+                  )}
+                </IconButton>
+                <IconButton
+                  onClick={() => navigator.clipboard.writeText(props.field.valueDecrypted)}
+                >
+                  <ContentCopyIcon />
+                </IconButton>
+              </Stack>
             ),
           },
         }}

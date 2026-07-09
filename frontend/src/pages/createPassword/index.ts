@@ -1,3 +1,6 @@
-import { CreatePassword } from './CreatePassword';
+/**
+ * This file is the entry point for the create password page.
+ * It exports the create password page for the application.
+ */
 
-export { CreatePassword };
+export { CreatePassword } from './CreatePassword';

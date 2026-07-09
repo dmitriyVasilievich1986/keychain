@@ -1,13 +1,26 @@
+/**
+ * This file contains the AddField component.
+ * It is used to render a form for adding a new custom field to the currently selected password.
+ */
+
 import AddIcon from '@mui/icons-material/Add';
 import Stack from '@mui/material/Stack';
 import TextField from '@mui/material/TextField';
 import { useState } from 'react';
 
 import { FloatingButton } from '@components/floatingButton';
-import { usePasswordsStore, type PasswordField } from '@store/passwords';
+import { usePasswordsStore } from '@store/passwords';
 import { useUserStore } from '@store/user';
-import { useApiClient } from '@utils/apiClient';
+import { useFieldAPIClient } from '@utils/apiClient/field';
 
+/**
+ * Form row for adding a new custom field to the currently selected password.
+ *
+ * Renders name/value inputs plus a submit button, manages the local input and
+ * validation state, and persists the new field via the API.
+ *
+ * @returns The add-field form.
+ */
 export function AddField() {
   const [fieldName, setFieldName] = useState<string>('');
   const [fieldValue, setFieldValue] = useState<string>('');
@@ -15,41 +28,36 @@ export function AddField() {
 
   const { currentPassword, addField } = usePasswordsStore();
   const { isLoading } = useUserStore();
-  const { apiPost } = useApiClient();
+  const { postField } = useFieldAPIClient();
 
+  /**
+   * Validates the inputs and submits the new field to the API.
+   *
+   * Does nothing while a request is in flight. Requires both name and value to
+   * be present; on success the field is added to the store and the form is
+   * reset, and on failure an error message is shown.
+   */
   const handleAddField = async () => {
     if (isLoading) return;
     if (!fieldName || !fieldValue) {
       setNewFieldError('Please fill in all fields');
       return;
     }
-    try {
-      const response = await apiPost<
-        { name: string; value: string; passwordId: number },
-        PasswordField
-      >('/api/v1/field', {
-        name: fieldName,
-        value: fieldValue,
-        passwordId: currentPassword!.id,
+    postField({ passwordId: currentPassword!.id, name: fieldName, value: fieldValue })
+      .then((response) => {
+        addField(response);
+        setFieldName('');
+        setFieldValue('');
+        setNewFieldError('');
+      })
+      .catch((error) => {
+        console.error(error);
+        setNewFieldError('Failed to add field');
       });
-      addField({
-        id: response.id,
-        name: response.name,
-        valueDecrypted: response.valueDecrypted,
-        createdAt: response.createdAt,
-        isDeleted: false,
-      });
-      setFieldName('');
-      setFieldValue('');
-      setNewFieldError('');
-    } catch (error) {
-      console.error(error);
-      setNewFieldError('Failed to add field');
-    }
   };
 
   return (
-    <Stack spacing={2} sx={{ marginTop: '2rem' }} direction="row" alignItems="center">
+    <Stack spacing={2} sx={{ marginTop: '2rem', alignItems: 'center' }} direction="row">
       <TextField
         label="New field name"
         variant="outlined"
