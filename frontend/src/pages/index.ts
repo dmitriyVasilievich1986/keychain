@@ -6,5 +6,6 @@
 import { CreatePassword } from './createPassword';
 import { Login } from './login';
 import { Password } from './password';
+import { Profile } from './profile';
 
-export { Login, Password, CreatePassword };
+export { Login, Password, CreatePassword, Profile };

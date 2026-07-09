@@ -3,21 +3,16 @@
  * It is used to render the application top navigation bar.
  */
 
-import LogoutIcon from '@mui/icons-material/Logout';
 import AppBar from '@mui/material/AppBar';
 import Container from '@mui/material/Container';
-import IconButton from '@mui/material/IconButton';
 import Toolbar from '@mui/material/Toolbar';
 import Typography from '@mui/material/Typography';
 import classnames from 'classnames/bind';
-import Cookies from 'js-cookie';
-import { useEffect } from 'react';
-import { NavLink, useNavigate } from 'react-router';
+import { NavLink } from 'react-router';
 
 import { Image } from '@components/image';
-import { useUserStore } from '@store/user';
-import { useUserAPIClient } from '@utils/apiClient/user';
 
+import { LogoutMenu } from './components';
 import * as defaultStyle from './style.scss';
 
 const cx = classnames.bind(defaultStyle);
@@ -34,18 +29,6 @@ const cx = classnames.bind(defaultStyle);
  * `accessToken` cookie exists but the store is still empty.
  */
 export function Navbar() {
-  const { user, setUser } = useUserStore();
-  const { getUser } = useUserAPIClient();
-  const navigate = useNavigate();
-
-  useEffect(() => {
-    if (user === null && !!Cookies.get('accessToken')) {
-      getUser().then((user) => {
-        setUser(user);
-      });
-    }
-  }, [user, Cookies.get('accessToken')]);
-
   return (
     <AppBar position="sticky">
       <Container maxWidth="xl">
@@ -64,16 +47,7 @@ export function Navbar() {
                 </NavLink>
               </Typography>
             </div>
-            {user !== null && (
-              <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-                <Typography variant="h6" component="div" sx={{ flexGrow: 1 }}>
-                  {user?.name}
-                </Typography>
-                <IconButton size="small" onClick={() => navigate('/login')}>
-                  <LogoutIcon />
-                </IconButton>
-              </div>
-            )}
+            <LogoutMenu />
           </div>
         </Toolbar>
       </Container>
