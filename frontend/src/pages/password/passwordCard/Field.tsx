@@ -1,3 +1,8 @@
+/**
+ * This file contains the Field component.
+ * It is used to render a single password field.
+ */
+
 import ContentCopyIcon from '@mui/icons-material/ContentCopy';
 import EditIcon from '@mui/icons-material/Edit';
 import VisibilityIcon from '@mui/icons-material/Visibility';
@@ -12,6 +17,17 @@ import { usePasswordsStore, type PasswordField } from '@store/passwords';
 import { useUserStore } from '@store/user';
 import { useFieldAPIClient } from '@utils/apiClient/field';
 
+/**
+ * Editable row for a single password field.
+ *
+ * Renders the field value as a masked input with actions to toggle visibility,
+ * copy the decrypted value to the clipboard, and save edits. Deleted fields are
+ * shown struck through and read-only.
+ *
+ * @param props - Component props.
+ * @param props.field - The password field to display and edit.
+ * @returns The field row.
+ */
 export function Field(props: { field: PasswordField }) {
   const [value, setValue] = useState(props.field.valueDecrypted);
   const [updateFieldError, setUpdateFieldError] = useState<string>('');
@@ -21,6 +37,13 @@ export function Field(props: { field: PasswordField }) {
   const { updateField } = usePasswordsStore();
   const { putField } = useFieldAPIClient();
 
+  /**
+   * Persists the edited field value to the API.
+   *
+   * Does nothing while a request is in flight and requires a non-empty value.
+   * On success the store and local input are synced with the response, and on
+   * failure an error message is shown.
+   */
   const handleUpdateField = async () => {
     if (isLoading) return;
     if (!value) {

@@ -1,3 +1,6 @@
-import { Password } from './Password';
+/**
+ * This file is the entry point for the password page.
+ * It exports the password page for the application.
+ */
 
-export { Password };
+export { Password } from './Password';

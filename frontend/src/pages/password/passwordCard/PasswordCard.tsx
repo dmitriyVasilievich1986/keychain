@@ -1,3 +1,8 @@
+/**
+ * This file contains the PasswordCard component.
+ * It is used to render the detail card for the password selected via the `:passwordId` route param.
+ */
+
 import ExpandMoreIcon from '@mui/icons-material/ExpandMore';
 import Accordion from '@mui/material/Accordion';
 import AccordionDetails from '@mui/material/AccordionDetails';
@@ -22,12 +27,24 @@ import * as defaultStyle from './style.scss';
 
 const cx = classnames.bind(defaultStyle);
 
+/**
+ * Detail card for the password selected via the `:passwordId` route param.
+ *
+ * Fetches the password when the route changes, shows a skeleton while loading,
+ * and renders the password header, its active fields, an add-field form, and a
+ * collapsible section listing deleted fields. Renders nothing when no password
+ * is selected.
+ *
+ * @returns The password detail card, a loading skeleton, or `null`.
+ */
 export function PasswordCard() {
   const { passwordId } = useParams();
   const { currentPassword, setCurrentPassword } = usePasswordsStore();
   const { isLoading } = useUserStore();
   const { getPassword } = usePasswordAPIClient();
 
+  // Loads the selected password when the route param changes, clearing it when
+  // no id is present and skipping the fetch when one is already loaded.
   useEffect(() => {
     if (!passwordId) {
       setCurrentPassword(null);

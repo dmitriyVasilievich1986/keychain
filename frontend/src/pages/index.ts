@@ -1,6 +1,10 @@
+/**
+ * This file is the entry point for the pages.
+ * It exports the pages for the application.
+ */
+
 import { CreatePassword } from './createPassword';
 import { Login } from './login';
-import { Logout } from './logout';
 import { Password } from './password';
 
-export { Login, Password, CreatePassword, Logout };
+export { Login, Password, CreatePassword };
