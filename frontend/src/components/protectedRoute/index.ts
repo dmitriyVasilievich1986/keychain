@@ -1,3 +1,5 @@
-import { ProtectedRoute } from './ProtectedRoute';
-
-export { ProtectedRoute };
+/**
+ * This file is the entry point for the protected route.
+ * It exports the protected route for the application.
+ */
+export { ProtectedRoute } from './ProtectedRoute';
