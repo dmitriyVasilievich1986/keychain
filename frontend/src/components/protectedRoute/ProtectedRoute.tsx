@@ -1,5 +1,6 @@
 import Cookies from 'js-cookie';
 import { Navigate, useLocation } from 'react-router';
+
 import { useClearStore } from '@utils/useClearStore';
 
 export function ProtectedRoute({ children }: { children: React.ReactNode }) {

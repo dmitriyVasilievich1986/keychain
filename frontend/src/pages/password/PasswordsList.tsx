@@ -7,11 +7,12 @@ import classnames from 'classnames/bind';
 import { useNavigate } from 'react-router';
 
 import { FloatingButton } from '@components/floatingButton';
+import { Image } from '@components/image';
 import { usePasswordsStore } from '@store/passwords';
 import { useUserStore } from '@store/user';
 import { usePasswordAPIClient } from '@utils/apiClient/password';
+
 import * as defaultStyle from './style.scss';
-import { Image } from '@components/image';
 
 const cx = classnames.bind(defaultStyle);
 

@@ -1,5 +1,8 @@
 import ContentCopyIcon from '@mui/icons-material/ContentCopy';
 import EditIcon from '@mui/icons-material/Edit';
+import VisibilityIcon from '@mui/icons-material/Visibility';
+import VisibilityOffIcon from '@mui/icons-material/VisibilityOff';
+import IconButton from '@mui/material/IconButton';
 import Stack from '@mui/material/Stack';
 import TextField from '@mui/material/TextField';
 import { useState } from 'react';
@@ -8,9 +11,6 @@ import { FloatingButton } from '@components/floatingButton';
 import { usePasswordsStore, type PasswordField } from '@store/passwords';
 import { useUserStore } from '@store/user';
 import { useFieldAPIClient } from '@utils/apiClient/field';
-import VisibilityIcon from '@mui/icons-material/Visibility';
-import VisibilityOffIcon from '@mui/icons-material/VisibilityOff';
-import IconButton from '@mui/material/IconButton';
 
 export function Field(props: { field: PasswordField }) {
   const [value, setValue] = useState(props.field.valueDecrypted);

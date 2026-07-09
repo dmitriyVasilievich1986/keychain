@@ -1,6 +1,7 @@
-import { useUserStore } from '@store/user';
-import { usePasswordsStore } from '@store/passwords';
 import Cookies from 'js-cookie';
+
+import { usePasswordsStore } from '@store/passwords';
+import { useUserStore } from '@store/user';
 
 export function useClearStore() {
   const userStore = useUserStore();
