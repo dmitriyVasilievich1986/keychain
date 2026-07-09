@@ -21,6 +21,9 @@ const Password = lazy(() =>
 const CreatePassword = lazy(() =>
   import('@pages/createPassword').then((module) => ({ default: module.CreatePassword }))
 );
+const Profile = lazy(() =>
+  import('@pages/profile').then((module) => ({ default: module.Profile }))
+);
 
 /**
  * Root application component.
@@ -61,6 +64,14 @@ function App() {
             element={
               <ProtectedRoute>
                 <Password />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/profile"
+            element={
+              <ProtectedRoute>
+                <Profile />
               </ProtectedRoute>
             }
           />
