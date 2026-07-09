@@ -55,12 +55,7 @@ function PasswordsList() {
 
   return (
     <Box className={cx('passwords-list-container')}>
-      <Stack
-        spacing={2}
-        direction="row"
-        alignItems="center"
-        className={cx('passwords-list-autocomplete-container')}
-      >
+      <Stack spacing={2} direction="row" className={cx('passwords-list-autocomplete-container')}>
         <Autocomplete
           fullWidth
           options={passwords}

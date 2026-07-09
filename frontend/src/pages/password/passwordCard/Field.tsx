@@ -62,7 +62,7 @@ export function Field(props: { field: PasswordField }) {
   };
 
   return (
-    <Stack spacing={2} sx={{ marginTop: '2rem' }} direction="row" alignItems="center">
+    <Stack spacing={2} sx={{ marginTop: '2rem' }} direction="row">
       <TextField
         key={props.field.id}
         label={props.field.name}
