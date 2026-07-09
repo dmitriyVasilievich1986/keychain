@@ -1,5 +1,5 @@
 /**
- * Product REST API client hook: HTTP calls to `/api/v1/product` and syncing results into the product store.
+ * Field REST API client hook: HTTP calls to `/api/v1/field` and syncing results into the field store.
  */
 
 import { type PasswordField } from '@store/passwords';
@@ -9,7 +9,7 @@ import { apiClientInstance, useApiClientWrapper } from '../base';
 import type { FieldPostRequest, FieldPutRequest } from './types';
 
 /**
- * Hook that returns field API functions wired to the global field store.
+ * Hook that exposes field API functions wired to the global field store.
  *
  * @returns Object with `postField`, `putField` methods.
  */

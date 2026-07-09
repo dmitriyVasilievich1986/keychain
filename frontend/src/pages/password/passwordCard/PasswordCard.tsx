@@ -20,7 +20,6 @@ import { AddField } from './AddField';
 import { Field } from './Field';
 import * as defaultStyle from './style.scss';
 
-
 const cx = classnames.bind(defaultStyle);
 
 export function PasswordCard() {
