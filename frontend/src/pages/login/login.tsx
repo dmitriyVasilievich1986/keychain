@@ -15,6 +15,7 @@ import Paper from '@mui/material/Paper';
 import Stack from '@mui/material/Stack';
 import TextField from '@mui/material/TextField';
 import classnames from 'classnames/bind';
+import dayjs from 'dayjs';
 import Cookies from 'js-cookie';
 import { useState, useEffect } from 'react';
 import { useNavigate, useSearchParams } from 'react-router';
@@ -71,7 +72,9 @@ export function Login() {
     e.preventDefault();
     login(username, password)
       .then((response) => {
-        Cookies.set('accessToken', response.accessToken);
+        Cookies.set('accessToken', response.accessToken, {
+          expires: dayjs(response.expiresAt).toDate(),
+        });
         navigate(redirectTo);
       })
       .catch((error) => {

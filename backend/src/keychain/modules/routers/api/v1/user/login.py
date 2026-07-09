@@ -70,4 +70,4 @@ async def login_user(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail="An unexpected error occurred"
         ) from e
 
-    return AccessTokenResponseModel(access_token=access_token.access_token)
+    return AccessTokenResponseModel(access_token=access_token.access_token, expires_at=access_token.expires_at)
