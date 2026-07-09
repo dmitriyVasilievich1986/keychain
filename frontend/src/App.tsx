@@ -1,3 +1,12 @@
+/**
+ * @fileoverview Root application component.
+ *
+ * Renders the persistent {@link Navbar} and declares the client-side routes,
+ * lazily loading page components to keep the initial bundle small. Password
+ * routes are guarded by {@link ProtectedRoute}, and unknown or root paths
+ * redirect to `/password`.
+ */
+
 import './App.css';
 import { lazy, Suspense } from 'react';
 import { Routes, Route, Navigate } from 'react-router';
@@ -13,6 +22,16 @@ const CreatePassword = lazy(() =>
   import('@pages/createPassword').then((module) => ({ default: module.CreatePassword }))
 );
 
+/**
+ * Root application component.
+ *
+ * Renders the persistent {@link Navbar} and declares the client-side routes,
+ * lazily loading page components to keep the initial bundle small. Password
+ * routes are guarded by {@link ProtectedRoute}, and unknown or root paths
+ * redirect to `/password`.
+ *
+ * @returns The application's navbar and routed page content.
+ */
 function App() {
   return (
     <>
