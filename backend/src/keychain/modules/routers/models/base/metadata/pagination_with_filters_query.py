@@ -7,6 +7,8 @@ from typing import Any, cast
 
 from pydantic import Field, Json
 
+from keychain.services.daos.base import BaseDAO
+from keychain.services.daos.base.types import AcceptableFiltersType
 from keychain.utils.filter import Filter
 
 from .pagination_query import PaginationQuery
@@ -37,3 +39,13 @@ class PaginationWithFiltersQuery[SortByType: str, FilterColumnsType: str](Pagina
             return []
 
         return cast(list[dict[str, Any]], self.filters)
+
+    @property
+    def parsed_filters(self) -> AcceptableFiltersType:
+        """Expose parsed filters as acceptable filters type for DAO layers.
+
+        Returns:
+            AcceptableFiltersType: Parsed filters as acceptable filters type.
+
+        """
+        return None if self.filters is None else BaseDAO.parse_filters(cast(list[Filter[str]], self.filters))
