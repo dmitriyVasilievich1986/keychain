@@ -26,7 +26,8 @@ frontend/
 │   ├── components/          # Reusable UI components
 │   │   ├── navbar/          # Navigation bar component
 │   │   ├── protectedRoute/  # Route protection wrapper
-│   │   └── floatingButton/  # Floating action button
+│   │   ├── floatingButton/  # Floating action button
+│   │   └── image/           # Image wrapper component
 │   ├── pages/               # Page components
 │   │   ├── login/           # Login page
 │   │   ├── password/        # Password list and detail pages
@@ -36,7 +37,7 @@ frontend/
 │   │   ├── user/            # User authentication store
 │   │   └── passwords/       # Passwords data store
 │   ├── utils/               # Utility functions
-│   │   └── apiClient/       # API client configuration
+│   │   └── apiClient/       # API client hooks (auth, user, password, field)
 │   ├── App.tsx              # Main application component
 │   └── main.tsx             # Application entry point
 ├── index.html               # HTML template
@@ -59,7 +60,7 @@ The project uses path aliases for cleaner imports:
 
 ### Prerequisites
 
-- Node.js (v18 or higher)
+- Node.js (v20.19+ or v22.12+, as required by Vite 7)
 - npm or yarn
 
 ### Installation
@@ -122,41 +123,48 @@ npm run format:fix    # Format code automatically
 
 ### Authentication
 
+Login is performed via the `useAuthAPIClient` hook, and the returned token is persisted with the user store (which syncs it to the `accessToken` cookie):
+
 ```typescript
+import { useAuthAPIClient } from '@utils/apiClient';
 import { useUserStore } from '@store/user';
 
 function LoginComponent() {
-  const { login, isAuthenticated } = useUserStore();
+  const { login } = useAuthAPIClient();
+  const { setAccessToken } = useUserStore();
 
   const handleLogin = async (username: string, password: string) => {
-    await login(username, password);
+    const { access_token } = await login(username, password);
+    setAccessToken(access_token);
   };
 
-  return (
-    // Login form implementation
-  );
+  // Login form implementation
 }
 ```
 
 ### Managing Passwords
 
+Data is fetched through the `usePasswordAPIClient` hook, which populates the `usePasswordsStore` state:
+
 ```typescript
+import { usePasswordAPIClient } from '@utils/apiClient';
 import { usePasswordsStore } from '@store/passwords';
 
 function PasswordsList() {
-  const { passwords, fetchPasswords, deletePassword } = usePasswordsStore();
+  const { getPasswords } = usePasswordAPIClient();
+  const { passwords, setPasswords, removePassword } = usePasswordsStore();
 
   useEffect(() => {
-    fetchPasswords();
+    getPasswords(20, 0).then(({ data }) => setPasswords(data));
   }, []);
 
   return (
     <div>
-      {passwords.map(password => (
+      {passwords.map((password) => (
         <PasswordCard
           key={password.id}
           password={password}
-          onDelete={deletePassword}
+          onDelete={() => removePassword(password.id)}
         />
       ))}
     </div>
@@ -188,28 +196,33 @@ function App() {
 
 ### API Client
 
+The API layer is exposed as hooks (not a bare client). Each hook returns typed methods that call the backend and, where relevant, sync the corresponding store. See `src/utils/apiClient/Readme.md` for details.
+
 ```typescript
-import { apiClient } from '@utils/apiClient';
+import { usePasswordAPIClient } from '@utils/apiClient';
 
-// GET request
-const passwords = await apiClient.get('/api/passwords');
+function Example() {
+  const { getPassword, getPasswords, postPassword } = usePasswordAPIClient();
 
-// POST request
-const newPassword = await apiClient.post('/api/passwords', {
-  title: 'My Password',
-  username: 'user@example.com',
-  password: 'securepass123',
-});
+  // Fetch a single password by id
+  const password = await getPassword(1);
 
-// DELETE request
-await apiClient.delete(`/api/passwords/${passwordId}`);
+  // Fetch a paginated, sorted list
+  const { data, metadata } = await getPasswords(20, 0, 'name', 'asc');
+
+  // Create a new password
+  const created = await postPassword({
+    name: 'My Password',
+    imageUrl: 'https://example.com/icon.png',
+  });
+}
 ```
 
 ## Features
 
 - User authentication and authorization
 - Secure password storage and management
-- Create, read, update, and delete passwords
+- Create and view passwords, with support for custom fields
 - Protected routes for authenticated users
 - Responsive Material-UI design
 - Type-safe development with TypeScript
