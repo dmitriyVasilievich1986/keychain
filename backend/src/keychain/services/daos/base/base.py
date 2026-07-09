@@ -42,12 +42,12 @@ class BaseDAO[DatabaseModel: Base](ABC):
     pk_column_name: str = "id"
     database_model: type[DatabaseModel]
 
-    get_all_columns: tuple[InstrumentedAttribute, ...] | None = None
-    select_in_options_single: tuple[InstrumentedAttribute, ...] | None = None
-    select_in_options_all: tuple[InstrumentedAttribute, ...] | None = None
-    join_options_single: tuple[type[Base], ...] | None = None
-    join_options_all: tuple[type[Base], ...] | None = None
-    base_filters: list[ColumnElement[bool]] | None = None
+    get_all_columns: Sequence[InstrumentedAttribute] | None = None
+    select_in_options_single: Sequence[InstrumentedAttribute] | None = None
+    select_in_options_all: Sequence[InstrumentedAttribute] | None = None
+    join_options_single: Sequence[type[Base]] | None = None
+    join_options_all: Sequence[type[Base]] | None = None
+    base_filters: AcceptableFiltersType = None
 
     @overload
     def __init__(
@@ -149,7 +149,7 @@ class BaseDAO[DatabaseModel: Base](ABC):
         session: AsyncSession,
         pk: int | str,
         pk_column_name: str,
-        filters: list[ColumnElement[bool]] | None,
+        filters: Sequence[ColumnElement[bool]] | None,
     ) -> DatabaseModel:
         """Load one row by primary key on the given session.
 
@@ -157,7 +157,7 @@ class BaseDAO[DatabaseModel: Base](ABC):
             session (AsyncSession): Active async session.
             pk (int | str): Primary key value.
             pk_column_name (str): Attribute name of the PK column on the model.
-            filters (list[ColumnElement[bool]] | None): Extra WHERE clauses
+            filters (Sequence[ColumnElement[bool]] | None): Extra WHERE clauses
                 merged with ``base_filters``.
 
         Returns:
@@ -183,7 +183,7 @@ class BaseDAO[DatabaseModel: Base](ABC):
         self,
         pk: int | str,
         pk_column_name: str | None = None,
-        filters: list[ColumnElement[bool]] | None = None,
+        filters: Sequence[ColumnElement[bool]] | None = None,
     ) -> DatabaseModel:
         """Load one row by primary key.
 
@@ -191,7 +191,7 @@ class BaseDAO[DatabaseModel: Base](ABC):
             pk (int | str): Primary key value.
             pk_column_name (str | None, optional): PK column attribute name.
                 Defaults to :attr:`pk_column_name`.
-            filters (list[ColumnElement[bool]] | None, optional): Extra WHERE
+            filters (Sequence[ColumnElement[bool]] | None, optional): Extra WHERE
                 clauses merged with ``base_filters``. Defaults to None.
 
         Returns:
@@ -206,12 +206,12 @@ class BaseDAO[DatabaseModel: Base](ABC):
         async with self.database_client.session_factory() as session:  # type: ignore[union-attr]
             return await self._get_by_pk_raw(session, pk, pk_column_name, filters)
 
-    async def _get_total_raw(self, session: AsyncSession, filters: list[ColumnElement[bool]] | None = None) -> int:
+    async def _get_total_raw(self, session: AsyncSession, filters: Sequence[ColumnElement[bool]] | None = None) -> int:
         """Count rows matching filters on the given session.
 
         Args:
             session (AsyncSession): Active async session.
-            filters (list[ColumnElement[bool]] | None, optional): Extra WHERE
+            filters (Sequence[ColumnElement[bool]] | None, optional): Extra WHERE
                 clauses merged with ``base_filters``. Defaults to None.
 
         Returns:
@@ -230,11 +230,11 @@ class BaseDAO[DatabaseModel: Base](ABC):
         result = await session.execute(stmt)
         return result.scalar_one()
 
-    async def get_total(self, filters: list[ColumnElement[bool]] | None = None) -> int:
+    async def get_total(self, filters: Sequence[ColumnElement[bool]] | None = None) -> int:
         """Count rows matching filters.
 
         Args:
-            filters (list[ColumnElement[bool]] | None, optional): Extra WHERE
+            filters (Sequence[ColumnElement[bool]] | None, optional): Extra WHERE
                 clauses merged with ``base_filters``. Defaults to None.
 
         Returns:
@@ -254,7 +254,7 @@ class BaseDAO[DatabaseModel: Base](ABC):
         offset: int | None,
         sort_by: str | None,
         sort_order: Literal["asc", "desc"],
-        filters: list[ColumnElement[bool]] | None,
+        filters: Sequence[ColumnElement[bool]] | None,
     ) -> tuple[Sequence[DatabaseModel], int]:
         """List rows with pagination, sorting, and eager-load options.
 
@@ -264,7 +264,7 @@ class BaseDAO[DatabaseModel: Base](ABC):
             offset (int | None): Rows to skip, or no offset if None.
             sort_by (str | None): Model attribute name to sort by, or no sort.
             sort_order (Literal["asc", "desc"]): Sort direction.
-            filters (list[ColumnElement[bool]] | None): Extra WHERE clauses
+            filters (Sequence[ColumnElement[bool]] | None): Extra WHERE clauses
                 merged with ``base_filters``.
 
         Returns:
@@ -305,7 +305,7 @@ class BaseDAO[DatabaseModel: Base](ABC):
         offset: int | None = 0,
         sort_by: str = "id",
         sort_order: Literal["asc", "desc"] = "asc",
-        filters: list[ColumnElement[bool]] | None = None,
+        filters: Sequence[ColumnElement[bool]] | None = None,
     ) -> tuple[Sequence[DatabaseModel], int]:
         """List rows with pagination, sorting, and optional filters.
 
@@ -317,7 +317,7 @@ class BaseDAO[DatabaseModel: Base](ABC):
                 ``"id"``.
             sort_order (Literal["asc", "desc"], optional): Sort direction.
                 Defaults to ``"asc"``.
-            filters (list[ColumnElement[bool]] | None, optional): Extra WHERE
+            filters (Sequence[ColumnElement[bool]] | None, optional): Extra WHERE
                 clauses merged with ``base_filters``. Defaults to None.
 
         Returns:
@@ -367,7 +367,7 @@ class BaseDAO[DatabaseModel: Base](ABC):
         session: AsyncSession,
         pk: int | str,
         pk_column_name: str,
-        filters: list[ColumnElement[bool]] | None,
+        filters: Sequence[ColumnElement[bool]] | None,
         **kwargs: Any,
     ) -> DatabaseModel:
         """Update columns for one row on the given session.
@@ -376,7 +376,7 @@ class BaseDAO[DatabaseModel: Base](ABC):
             session (AsyncSession): Active async session.
             pk (int | str): Primary key value.
             pk_column_name (str): Attribute name of the PK column.
-            filters (list[ColumnElement[bool]] | None): Extra WHERE clauses
+            filters (Sequence[ColumnElement[bool]] | None): Extra WHERE clauses
                 applied to the UPDATE statement.
             **kwargs (Any): Column values to set; if empty, only loads the row.
 
@@ -402,7 +402,7 @@ class BaseDAO[DatabaseModel: Base](ABC):
         self,
         pk: int | str,
         pk_column_name: str | None = None,
-        filters: list[ColumnElement[bool]] | None = None,
+        filters: Sequence[ColumnElement[bool]] | None = None,
         **kwargs: Any,
     ) -> DatabaseModel:
         """Update one row by primary key.
@@ -411,7 +411,7 @@ class BaseDAO[DatabaseModel: Base](ABC):
             pk (int | str): Primary key value.
             pk_column_name (str | None, optional): PK column attribute name.
                 Defaults to :attr:`pk_column_name`.
-            filters (list[ColumnElement[bool]] | None, optional): Extra WHERE
+            filters (Sequence[ColumnElement[bool]] | None, optional): Extra WHERE
                 clauses for the UPDATE. Defaults to None.
             **kwargs (Any): Column values to set.
 
@@ -432,7 +432,7 @@ class BaseDAO[DatabaseModel: Base](ABC):
         pk: int | str,
         pk_column_name: str,
         instance: DatabaseModel | None,
-        filters: list[ColumnElement[bool]] | None,
+        filters: Sequence[ColumnElement[bool]] | None,
     ) -> bool:
         """Delete one row on the given session.
 
@@ -442,7 +442,7 @@ class BaseDAO[DatabaseModel: Base](ABC):
             pk_column_name (str): Attribute name of the PK column.
             instance (DatabaseModel | None): Pre-loaded row to delete, or None
                 to fetch by primary key.
-            filters (list[ColumnElement[bool]] | None): Extra WHERE clauses
+            filters (Sequence[ColumnElement[bool]] | None): Extra WHERE clauses
                 when loading by primary key.
 
         Returns:
@@ -460,7 +460,7 @@ class BaseDAO[DatabaseModel: Base](ABC):
         pk: int | str,
         pk_column_name: str | None = None,
         instance: DatabaseModel | None = None,
-        filters: list[ColumnElement[bool]] | None = None,
+        filters: Sequence[ColumnElement[bool]] | None = None,
     ) -> bool:
         """Delete one row by primary key.
 
@@ -470,7 +470,7 @@ class BaseDAO[DatabaseModel: Base](ABC):
                 Defaults to :attr:`pk_column_name`.
             instance (DatabaseModel | None, optional): Pre-loaded row to
                 delete instead of fetching. Defaults to None.
-            filters (list[ColumnElement[bool]] | None, optional): Extra WHERE
+            filters (Sequence[ColumnElement[bool]] | None, optional): Extra WHERE
                 clauses when loading by primary key. Defaults to None.
 
         Returns:

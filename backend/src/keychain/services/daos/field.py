@@ -2,7 +2,7 @@
 
 __all__ = ("FieldDAO",)
 
-from typing import Any
+from typing import Any, Sequence
 
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -28,7 +28,7 @@ class FieldDAO(BaseDAO[Field]):
         session: AsyncSession,
         pk: int | str,
         pk_column_name: str,
-        filters: list[ColumnElement[bool]] | None,
+        filters: Sequence[ColumnElement[bool]] | None,
         **kwargs: Any,
     ) -> Field:
         """Update a field by creating a new record and soft-deleting the old one.
@@ -40,7 +40,7 @@ class FieldDAO(BaseDAO[Field]):
             session (AsyncSession): The database session to use.
             pk (int | str): The primary key of the field to update.
             pk_column_name (str): The name of the primary key column.
-            filters (list[ColumnElement[bool]] | None, optional): Additional
+            filters (Sequence[ColumnElement[bool]] | None, optional): Additional
                 filters to apply when locating the field. Defaults to None.
             **kwargs (Any): Field attributes to update; must include ``value``.
 
@@ -63,13 +63,13 @@ class FieldDAO(BaseDAO[Field]):
         return await self._get_by_pk_raw(session, new_field.id, pk_column_name, filters)
 
     async def _create_raw(
-        self, session: AsyncSession, filters: list[ColumnElement[bool]] | None, **kwargs: Any
+        self, session: AsyncSession, filters: Sequence[ColumnElement[bool]] | None, **kwargs: Any
     ) -> Field:
         """Create a new field associated with an existing password.
 
         Args:
             session (AsyncSession): The database session to use.
-            filters (list[ColumnElement[bool]] | None, optional): Additional
+            filters (Sequence[ColumnElement[bool]] | None, optional): Additional
                 filters to apply when validating the parent password. Defaults
                 to None.
             **kwargs (Any): Field attributes; must include ``password_id``.
@@ -95,11 +95,11 @@ class FieldDAO(BaseDAO[Field]):
         await session.commit()
         return await self._get_by_pk_raw(session, getattr(obj, self.pk_column_name), self.pk_column_name, filters)
 
-    async def create(self, filters: list[ColumnElement[bool]] | None = None, **kwargs: Any) -> Field:
+    async def create(self, filters: Sequence[ColumnElement[bool]] | None = None, **kwargs: Any) -> Field:
         """Create a new field, using an existing session or a new one.
 
         Args:
-            filters (list[ColumnElement[bool]] | None, optional): Additional
+            filters (Sequence[ColumnElement[bool]] | None, optional): Additional
                 filters to apply during creation. Defaults to None.
             **kwargs (Any): Field attributes; must include ``password_id``.
 
@@ -119,7 +119,7 @@ class FieldDAO(BaseDAO[Field]):
         pk: int | str,
         pk_column_name: str,
         instance: Field | None,
-        filters: list[ColumnElement[bool]] | None,
+        filters: Sequence[ColumnElement[bool]] | None,
     ) -> bool:
         """Soft-delete a field by marking it as deleted.
 
@@ -129,7 +129,7 @@ class FieldDAO(BaseDAO[Field]):
             pk_column_name (str): The name of the primary key column.
             instance (Field | None): An already-loaded field instance to delete;
                 if None, the field is looked up by primary key.
-            filters (list[ColumnElement[bool]] | None): Additional filters to
+            filters (Sequence[ColumnElement[bool]] | None): Additional filters to
                 apply when locating the field.
 
         Returns:

@@ -2,7 +2,7 @@
 
 __all__ = ("AcceptableFiltersType",)
 
-from typing import Any
+from typing import Any, Sequence
 
 from sqlalchemy.sql import ColumnElement
 from sqlalchemy.sql.elements import BinaryExpression
@@ -10,5 +10,9 @@ from sqlalchemy.sql.elements import BinaryExpression
 from keychain.utils.filter import Filter
 
 AcceptableFiltersType = (
-    list[ColumnElement[bool]] | list[BinaryExpression[bool]] | list[dict[str, Any]] | list[Filter[str]] | None
+    Sequence[ColumnElement[bool]]
+    | Sequence[BinaryExpression[bool]]
+    | Sequence[dict[str, Any]]
+    | Sequence[Filter[str]]
+    | None
 )
