@@ -57,7 +57,7 @@ export function AddField() {
   };
 
   return (
-    <Stack spacing={2} sx={{ marginTop: '2rem' }} direction="row">
+    <Stack spacing={2} sx={{ marginTop: '2rem', alignItems: 'center' }} direction="row">
       <TextField
         label="New field name"
         variant="outlined"
