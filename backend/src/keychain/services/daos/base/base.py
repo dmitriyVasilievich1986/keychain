@@ -45,8 +45,8 @@ class BaseDAO[DatabaseModel: Base](ABC):
     get_all_columns: tuple[InstrumentedAttribute, ...] | None = None
     select_in_options_single: tuple[InstrumentedAttribute, ...] | None = None
     select_in_options_all: tuple[InstrumentedAttribute, ...] | None = None
-    join_options_single: tuple[InstrumentedAttribute, ...] | None = None
-    join_options_all: tuple[InstrumentedAttribute, ...] | None = None
+    join_options_single: tuple[type[Base], ...] | None = None
+    join_options_all: tuple[type[Base], ...] | None = None
     base_filters: list[ColumnElement[bool]] | None = None
 
     @overload
