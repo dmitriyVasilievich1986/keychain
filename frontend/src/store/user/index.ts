@@ -1,5 +1,7 @@
-import { useUserStore } from './userStore';
+/**
+ * This file is the entry point for the user store.
+ * It exports the store for the user.
+ */
 
-import type { User } from './types';
-
-export { useUserStore, type User };
+export { useUserStore } from './userStore';
+export type { User } from './types';

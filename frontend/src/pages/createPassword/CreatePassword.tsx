@@ -1,3 +1,8 @@
+/**
+ * This file contains the CreatePassword component.
+ * It is used to render the create password page.
+ */
+
 import Box from '@mui/material/Box';
 import Button from '@mui/material/Button';
 import CircularProgress from '@mui/material/CircularProgress';
@@ -16,6 +21,14 @@ import * as defaultStyle from './style.scss';
 
 const cx = classnames.bind(defaultStyle);
 
+/**
+ * Page for creating a new password entry.
+ *
+ * Renders a form with name and image URL inputs, submits the new entry to the
+ * API, and on success adds it to the store and navigates to its detail view.
+ *
+ * @returns The create-password page.
+ */
 export function CreatePassword() {
   const [name, setName] = useState<string>('');
   const [imageUrl, setImageUrl] = useState<string>('');
@@ -26,6 +39,16 @@ export function CreatePassword() {
   const navigate = useNavigate();
   const { postPassword } = usePasswordAPIClient();
 
+  /**
+   * Creates the password on form submit.
+   *
+   * Prevents the default form navigation and does nothing while a request is in
+   * flight. On success the new password is added to the store, the current
+   * selection is reset, and the user is navigated to the new entry; on failure
+   * an error message is shown.
+   *
+   * @param e - The form submit event.
+   */
   const handleCreatePassword = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
     if (isLoading) return;

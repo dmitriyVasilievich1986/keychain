@@ -1,3 +1,6 @@
-import { PasswordCard } from './PasswordCard';
+/**
+ * This file is the entry point for the password card.
+ * It exports the password card for the application.
+ */
 
-export { PasswordCard };
+export { PasswordCard } from './PasswordCard';

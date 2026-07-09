@@ -1,3 +1,8 @@
+/**
+ * This file contains the FloatingButton component.
+ * It is used to render a floating action button with a built-in loading state.
+ */
+
 import Box from '@mui/material/Box';
 import CircularProgress from '@mui/material/CircularProgress';
 import Fab from '@mui/material/Fab';
@@ -9,6 +14,17 @@ import * as defaultStyle from './style.scss';
 
 const cx = classnames.bind(defaultStyle);
 
+/**
+ * A floating action button (FAB) with a built-in loading state.
+ *
+ * While the user store reports a loading state, it renders a circular progress
+ * spinner in place of the button; otherwise it renders a small MUI `Fab`.
+ *
+ * @param props.color - The FAB color theme, either `primary` or `secondary`.
+ * @param props.children - The content rendered inside the FAB (typically an icon).
+ * @param props.onClick - Handler invoked when the FAB is clicked.
+ * @param props.disabled - When true, disables the FAB.
+ */
 export function FloatingButton(props: {
   color: 'primary' | 'secondary';
   children: React.ReactNode;

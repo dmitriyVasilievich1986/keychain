@@ -1,5 +1,8 @@
-import { usePasswordsStore } from './passwordsStore';
+/**
+ * This file is the entry point for the passwords store.
+ * It exports the store for the passwords.
+ */
 
-import type { Password, PasswordSimple, PasswordField } from './types';
+export { usePasswordsStore } from './passwordsStore';
 
-export { usePasswordsStore, type Password, type PasswordSimple, type PasswordField };
+export type { Password, PasswordSimple, PasswordField } from './types';

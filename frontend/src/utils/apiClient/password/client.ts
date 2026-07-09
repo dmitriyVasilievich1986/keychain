@@ -1,5 +1,5 @@
 /**
- * Product REST API client hook: HTTP calls to `/api/v1/product` and syncing results into the product store.
+ * Password REST API client hook: HTTP calls to `/api/v1/password` and syncing results into the password store.
  */
 
 import { usePasswordsStore, type PasswordSimple, type Password } from '@store/passwords';
@@ -10,7 +10,7 @@ import type { PasswordPostRequest } from './types';
 import type { FilterType, PaginationMetadata } from '../types';
 
 /**
- * Hook that returns password API functions wired to the global password store.
+ * Hook that exposes password API functions wired to the global password store.
  *
  * @returns Object with `getPassword`, `getPasswords`, `postPassword`, and `deletePassword` methods.
  */

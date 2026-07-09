@@ -1,4 +1,7 @@
-import { usePasswordsStore } from './passwords';
-import { useUserStore } from './user';
+/**
+ * This file is the entry point for the store.
+ * It exports the stores for the application.
+ */
 
-export { useUserStore, usePasswordsStore };
+export { usePasswordsStore } from './passwords';
+export { useUserStore } from './user';

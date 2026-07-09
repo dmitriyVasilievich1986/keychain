@@ -1,7 +1,6 @@
 import './App.css';
 import { CreatePassword } from '@pages/createPassword';
 import { Login } from '@pages/login';
-import { Logout } from '@pages/logout';
 import { Password } from '@pages/password';
 import { Routes, Route, Navigate } from 'react-router';
 
@@ -14,7 +13,6 @@ function App() {
       <Navbar />
       <Routes>
         <Route path="/login" element={<Login />} />
-        <Route path="/logout" element={<Logout />} />
         <Route path="/" element={<Navigate to="/password" replace />} />
         <Route
           path="/password"

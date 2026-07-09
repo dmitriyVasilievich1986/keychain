@@ -1,3 +1,8 @@
+/**
+ * This file contains the Login component.
+ * It is used to render the login page.
+ */
+
 import Visibility from '@mui/icons-material/Visibility';
 import VisibilityOff from '@mui/icons-material/VisibilityOff';
 import Box from '@mui/material/Box';
@@ -10,19 +15,28 @@ import Paper from '@mui/material/Paper';
 import Stack from '@mui/material/Stack';
 import TextField from '@mui/material/TextField';
 import classnames from 'classnames/bind';
+import Cookies from 'js-cookie';
 import { useState, useEffect } from 'react';
 import { useNavigate, useSearchParams } from 'react-router';
-import Cookies from 'js-cookie';
-import { useAuthAPIClient } from '@utils/apiClient/auth';
-import { Image } from '@components/image';
-import { useClearStore } from '@utils/useClearStore';
 
+import { Image } from '@components/image';
 import { useUserStore } from '@store/user';
+import { useAuthAPIClient } from '@utils/apiClient/auth';
+import { useClearStore } from '@utils/useClearStore';
 
 import * as defaultStyle from './style.scss';
 
 const cx = classnames.bind(defaultStyle);
 
+/**
+ * Login page.
+ *
+ * Renders the username/password form with a show/hide password toggle, clears
+ * any existing store state on mount, authenticates on submit, and redirects to
+ * the `redirectTo` query param (defaulting to `/`) on success.
+ *
+ * @returns The login page.
+ */
 export function Login() {
   const [username, setUsername] = useState<string>('');
   const [password, setPassword] = useState<string>('');
@@ -39,10 +53,20 @@ export function Login() {
 
   const navigate = useNavigate();
 
+  // Reset all stores on mount so no stale session data leaks into a new login.
   useEffect(() => {
     clearAllStores();
   }, []);
 
+  /**
+   * Authenticates the user on form submit.
+   *
+   * Prevents the default form navigation, and on success stores the access
+   * token cookie and navigates to the redirect target; on failure shows the
+   * server-provided error message.
+   *
+   * @param e - The form submit event.
+   */
   const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
     login(username, password)

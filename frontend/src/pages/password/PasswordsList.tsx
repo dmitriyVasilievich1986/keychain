@@ -1,3 +1,8 @@
+/**
+ * This file contains the PasswordsList component.
+ * It is used to render a searchable list of the user's saved passwords.
+ */
+
 import AddIcon from '@mui/icons-material/Add';
 import Autocomplete from '@mui/material/Autocomplete';
 import Box from '@mui/material/Box';
@@ -7,21 +12,36 @@ import classnames from 'classnames/bind';
 import { useNavigate } from 'react-router';
 
 import { FloatingButton } from '@components/floatingButton';
+import { Image } from '@components/image';
 import { usePasswordsStore } from '@store/passwords';
 import { useUserStore } from '@store/user';
 import { usePasswordAPIClient } from '@utils/apiClient/password';
+
 import * as defaultStyle from './style.scss';
-import { Image } from '@components/image';
 
 const cx = classnames.bind(defaultStyle);
 
+/**
+ * Page component that renders a searchable list of the user's saved passwords.
+ *
+ * Displays an autocomplete field for selecting a password (navigating to its
+ * detail view on selection) alongside a floating button for creating a new one.
+ *
+ * @returns The passwords list page.
+ */
 function PasswordsList() {
   const { passwords, setPasswords, currentPassword } = usePasswordsStore();
   const { isLoading } = useUserStore();
   const navigate = useNavigate();
   const { getPasswords } = usePasswordAPIClient();
 
-  const fetchPasswords = async () => {
+  /**
+   * Lazily loads the passwords from the API and stores them.
+   *
+   * Only performs the request when no passwords have been fetched yet, avoiding
+   * redundant calls each time the autocomplete is opened. Errors are logged.
+   */
+  const fetchPasswords = () => {
     if (passwords.length === 0) {
       getPasswords()
         .then((response) => {
