@@ -2,10 +2,13 @@
 
 __all__ = ("db",)
 
+from pathlib import Path
+
 import asyncclick as click
 from alembic import command
 from alembic.config import Config
 
+from keychain.commands import BackupDBCommand
 from keychain.config import AppConfig
 from keychain.services.db_client.client import DBClient
 
@@ -103,6 +106,44 @@ def downgrade(ctx: click.Context, revision: str) -> None:
     """
     alembic_cfg: Config = ctx.obj["alembic_cfg"]
     command.downgrade(alembic_cfg, revision)
+
+
+@db.command()
+@click.option(
+    "--backup-folder-path",
+    required=True,
+    type=click.Path(exists=True, file_okay=False, dir_okay=True, writable=True),
+    help="The path to the backup file. If not specified, the backup will be created in the default backup directory.",
+)
+@click.option(
+    "--backup-count",
+    required=False,
+    type=int,
+    default=5,
+    help="The number of backups to keep. If not specified, the default backup count will be used.",
+)
+@click.pass_context
+async def backup(ctx: click.Context, backup_folder_path: str, backup_count: int) -> None:
+    """Create a database dump and prune older backups.
+
+    Overrides the app config backup settings with the provided CLI options,
+    then validates and runs ``BackupDBCommand``.
+
+    Args:
+        ctx (click.Context): Click context object containing the app config.
+        backup_folder_path (str): Directory where the dump file will be written.
+        backup_count (int): Maximum number of backup files to retain.
+
+    Returns:
+        None
+
+    """
+    app_config: AppConfig = ctx.obj["config"]
+    app_config.db.backup_folder_path = Path(backup_folder_path)
+    app_config.db.backup_count = backup_count
+    cmd = BackupDBCommand(app_config)
+    await cmd.validate()
+    await cmd.execute()
 
 
 db.add_command(user)
