@@ -62,6 +62,9 @@ keychain = "keychain.utils.cli.main:main"
 [tool.ruff]
 line-length = 120
 
+# exclude ipynb files
+extend-exclude = ["*.ipynb"]
+
 [tool.ruff.format]
 # Like Black, use double quotes for strings.
 quote-style = "double"
@@ -227,7 +230,7 @@ directory = "htmlcov"
 
 [tool.pyright]
 include = ["src", "tests"]
-exclude = ["**/__pycache__"]
+exclude = ["**/__pycache__", "*.ipynb"]
 venvPath = "."
 venv = ".venv"
 pythonVersion = "3.13"
