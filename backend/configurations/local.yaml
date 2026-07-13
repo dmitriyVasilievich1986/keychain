@@ -15,6 +15,8 @@ db:
   host: db
   port: 5432
   name: keychain_local
+  backup_folder_path: backups
+  backup_count: 5
 
 cryptography:
   pass: ignore
