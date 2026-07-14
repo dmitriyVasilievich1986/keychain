@@ -40,6 +40,8 @@ services:
         required: false
     environment:
       - CONFIG_FILE_PATH=/opt/backend/configurations/production.yaml
+    volumes:
+      - ./backup:/opt/backend/backup
     networks:
       - keychain-network
     healthcheck:
