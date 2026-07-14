@@ -2,13 +2,14 @@
 
 __all__ = ("db",)
 
+import asyncio
 from pathlib import Path
 
 import asyncclick as click
 from alembic import command
 from alembic.config import Config
 
-from keychain.commands import BackupDBCommand
+from keychain.commands import BackupDBCommand, RestoreDBCommand
 from keychain.config import AppConfig
 from keychain.services.db_client.client import DBClient
 
@@ -41,7 +42,7 @@ def db(ctx: click.Context) -> None:
 
 @db.command()
 @click.pass_context
-def current(ctx: click.Context) -> None:
+async def current(ctx: click.Context) -> None:
     """Display the current database revision.
 
     Retrieves the current database revision from the Alembic configuration and displays
@@ -55,7 +56,7 @@ def current(ctx: click.Context) -> None:
 
     """
     alembic_cfg: Config = ctx.obj["alembic_cfg"]
-    command.current(alembic_cfg)
+    await asyncio.to_thread(command.current, alembic_cfg)
 
 
 @db.command()
@@ -65,7 +66,7 @@ def current(ctx: click.Context) -> None:
     help="The target revision to upgrade to. Use 'head' to upgrade to the latest revision.",
 )
 @click.pass_context
-def upgrade(ctx: click.Context, revision: str) -> None:
+async def upgrade(ctx: click.Context, revision: str) -> None:
     """Upgrade the database to a specific revision.
 
     Applies pending migrations to upgrade the database schema to the specified
@@ -80,7 +81,7 @@ def upgrade(ctx: click.Context, revision: str) -> None:
 
     """
     alembic_cfg: Config = ctx.obj["alembic_cfg"]
-    command.upgrade(alembic_cfg, revision)
+    await asyncio.to_thread(command.upgrade, alembic_cfg, revision)
 
 
 @db.command()
@@ -90,7 +91,7 @@ def upgrade(ctx: click.Context, revision: str) -> None:
     help="The target revision to downgrade to. Use '-1' to downgrade one revision, or a specific revision ID.",
 )
 @click.pass_context
-def downgrade(ctx: click.Context, revision: str) -> None:
+async def downgrade(ctx: click.Context, revision: str) -> None:
     """Downgrade the database to a specific revision.
 
     Reverts database migrations to downgrade the schema to the specified revision.
@@ -105,7 +106,7 @@ def downgrade(ctx: click.Context, revision: str) -> None:
 
     """
     alembic_cfg: Config = ctx.obj["alembic_cfg"]
-    command.downgrade(alembic_cfg, revision)
+    await asyncio.to_thread(command.downgrade, alembic_cfg, revision)
 
 
 @db.command()
