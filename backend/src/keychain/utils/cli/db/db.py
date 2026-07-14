@@ -112,7 +112,7 @@ async def downgrade(ctx: click.Context, revision: str) -> None:
 @db.command()
 @click.option(
     "--backup-folder-path",
-    required=True,
+    required=False,
     type=click.Path(exists=True, file_okay=False, dir_okay=True, writable=True),
     help="The path to the backup file. If not specified, the backup will be created in the default backup directory.",
 )
@@ -124,7 +124,7 @@ async def downgrade(ctx: click.Context, revision: str) -> None:
     help="The number of backups to keep. If not specified, the default backup count will be used.",
 )
 @click.pass_context
-async def backup(ctx: click.Context, backup_folder_path: str, backup_count: int) -> None:
+async def backup(ctx: click.Context, backup_folder_path: str | None, backup_count: int) -> None:
     """Create a database dump and prune older backups.
 
     Overrides the app config backup settings with the provided CLI options,
@@ -140,7 +140,8 @@ async def backup(ctx: click.Context, backup_folder_path: str, backup_count: int)
 
     """
     app_config: AppConfig = ctx.obj["config"]
-    app_config.db.backup_folder_path = Path(backup_folder_path)
+    if backup_folder_path is not None:
+        app_config.db.backup_folder_path = Path(backup_folder_path)
     app_config.db.backup_count = backup_count
     cmd = BackupDBCommand(app_config)
     await cmd.validate()
