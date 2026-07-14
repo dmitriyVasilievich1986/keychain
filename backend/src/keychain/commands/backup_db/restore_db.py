@@ -91,13 +91,12 @@ class RestoreDBCommand(BaseCommand[DBBackup]):
         if self.app_config.db.provider not in self.available_db_types:
             raise ValueError(f"Invalid database provider: {self.app_config.db.provider}")
 
-        if not self.db_backup_path.is_dir() or not self.db_backup_path.exists():
-            raise ValueError(f"Database backup path does not exist: {self.db_backup_path}")
-
         db_name = cast(str, self.app_config.db.name)
         provider = self.app_config.db.provider
 
         if self.dump_file_path is None:
+            if not self.db_backup_path.is_dir() or not self.db_backup_path.exists():
+                raise ValueError(f"Database backup path does not exist: {self.db_backup_path}")
             backup_files = find_backup_files(self.db_backup_path, provider, db_name)
             if not backup_files:
                 raise ValueError(
