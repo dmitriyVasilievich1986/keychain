@@ -37,8 +37,9 @@ services:
     build:
       context: ./backend
       dockerfile: Dockerfile
+      target: development
     container_name: keychain-backend
-    image: keychain:latest
+    image: keychain-development:latest
     env_file:
       - path: ./backend/.env
         required: true
@@ -51,7 +52,8 @@ services:
     volumes:
       - ./backend/configurations:/opt/backend/configurations
       - ./backend/src:/opt/backend/src
-      - ./backend/keychain.sqlite:/opt/backend/keychain.sqlite
+      - ./backup:/opt/backend/backup
+    command: ["keychain", "run", "--reload"]
     networks:
       - keychain-network
     healthcheck:
