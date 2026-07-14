@@ -15,7 +15,41 @@ COPY ./uv.lock ./
 RUN --mount=type=cache,target=/root/.cache/uv \
     uv sync --no-dev --no-install-project --link-mode=copy --no-editable
 
-FROM python:3.13-slim-bookworm AS development
+FROM postgres:18 AS development
+
+ENV UV_COMPILE_BYTECODE=1
+ENV UV_LINK_MODE=copy
+ENV UV_PYTHON_DOWNLOADS=0
+
+USER root
+ENTRYPOINT []
+
+COPY --from=ghcr.io/astral-sh/uv:0.6 /uv /bin/uv
+COPY --from=build /usr/local /usr/local
+
+RUN apt-get update \
+    && apt-get install -y --no-install-recommends curl \
+    && ldconfig \
+    && python3 --version \
+    && pg_restore --version \
+    && pg_dump --version \
+    && rm -rf /var/lib/apt/lists/*
+
+WORKDIR /opt/backend
+
+COPY ./pyproject.toml ./uv.lock ./README.md ./LICENSE ./
+COPY ./src ./src
+
+RUN --mount=type=cache,target=/root/.cache/uv \
+    uv sync --all-extras --link-mode=copy
+
+# Add configurations
+COPY ./configurations ./configurations
+
+ENV PYTHONPATH="/opt/backend/src"
+ENV PATH="/opt/backend/.venv/bin:/usr/local/bin:${PATH}"
+
+FROM python:3.13-slim-bookworm AS production
 
 RUN apt-get update \
     && apt-get install -y --no-install-recommends curl \
@@ -31,19 +65,6 @@ COPY ./pyproject.toml ./
 
 # Add configurations
 COPY ./configurations ./configurations
-
-ENV PYTHONPATH="/opt/backend/src"
-ENV PATH="/opt/backend/.venv/bin:${PATH}"
-
-FROM python:3.13-slim-bookworm AS production
-
-RUN apt-get update \
-    && apt-get install -y --no-install-recommends curl \
-    && rm -rf /var/lib/apt/lists/*
-
-WORKDIR /opt/backend
-
-COPY --from=development /opt/backend /opt/backend
 
 # Add binaries for run inside container
 ENV PYTHONPATH="/opt/backend/src"

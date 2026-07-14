@@ -17,6 +17,8 @@ db:
   name: test_db
   user: root
   password: root
+  backup_folder_path: backup
+  backup_count: 5
 
 auth:
   jwt_secret_key: test-secret
