@@ -114,13 +114,13 @@ async def downgrade(ctx: click.Context, revision: str) -> None:
     "--backup-folder-path",
     required=False,
     type=click.Path(exists=True, file_okay=False, dir_okay=True, writable=True),
-    help="The path to the backup file. If not specified, the backup will be created in the default backup directory.",
+    help="The directory where the dump file will be written.",
 )
 @click.option(
     "--backup-count",
     required=False,
     type=int,
-    default=5,
+    default=None,
     help="The number of backups to keep. If not specified, the default backup count will be used.",
 )
 @click.option(
@@ -131,7 +131,9 @@ async def downgrade(ctx: click.Context, revision: str) -> None:
     help="The name of the database to backup.",
 )
 @click.pass_context
-async def backup(ctx: click.Context, backup_folder_path: str | None, backup_count: int, db_name: str | None) -> None:
+async def backup(
+    ctx: click.Context, backup_folder_path: str | None, backup_count: int | None, db_name: str | None
+) -> None:
     """Create a database dump and prune older backups.
 
     Overrides the app config backup settings with the provided CLI options,
@@ -140,7 +142,8 @@ async def backup(ctx: click.Context, backup_folder_path: str | None, backup_coun
     Args:
         ctx (click.Context): Click context object containing the app config.
         backup_folder_path (str): Directory where the dump file will be written.
-        backup_count (int): Maximum number of backup files to retain.
+        backup_count (int | None): Maximum number of backup files to retain.
+            If not specified, the default backup count will be used.
         db_name (str | None): The name of the database to backup.
 
     Returns:
@@ -152,7 +155,8 @@ async def backup(ctx: click.Context, backup_folder_path: str | None, backup_coun
         app_config.db.backup_folder_path = Path(backup_folder_path)
     if db_name is not None:
         app_config.db.name = db_name
-    app_config.db.backup_count = backup_count
+    if backup_count is not None:
+        app_config.db.backup_count = backup_count
     cmd = BackupDBCommand(app_config)
     await cmd.validate()
     await cmd.execute()
