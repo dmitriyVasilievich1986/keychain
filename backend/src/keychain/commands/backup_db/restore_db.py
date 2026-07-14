@@ -2,9 +2,10 @@
 
 __all__ = ("RestoreDBCommand",)
 
+import asyncio
 from os import environ
 from pathlib import Path
-from subprocess import run
+from subprocess import CalledProcessError
 from typing import cast
 
 from loguru import logger
@@ -126,15 +127,9 @@ class RestoreDBCommand(BaseCommand[DBBackup]):
 
         """
         command, env = self._get_bash_command(self.backup_file_model.backup_path)
-        run(  # noqa: ASYNC221
-            command,
-            check=True,
-            timeout=(60 * 1),
-            env=environ | env,
-            shell=False,
-            capture_output=False,
-            text=True,
-        )
+        process = await asyncio.create_subprocess_shell(" ".join(command), env=environ | env, text=False)
+        await process.wait()
+        if process.returncode != 0:
+            raise CalledProcessError(process.returncode or -1, " ".join(command))
         logger.info(f"Database restored from backup file: {self.backup_file_model.backup_path}")
-
         return self.backup_file_model

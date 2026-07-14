@@ -2,10 +2,11 @@
 
 __all__ = ("BackupDBCommand",)
 
+import asyncio
 from datetime import datetime
 from os import environ
 from pathlib import Path
-from subprocess import run
+from subprocess import CalledProcessError
 from typing import cast
 
 from loguru import logger
@@ -114,15 +115,10 @@ class BackupDBCommand(BaseCommand[DBBackup]):
 
         """
         command, env = self._get_bash_command(self.new_backup_file_model.backup_path)
-        run(  # noqa: ASYNC221
-            command,
-            check=True,
-            timeout=(60 * 1),
-            env=environ | env,
-            shell=False,
-            capture_output=False,
-            text=True,
-        )
+        process = await asyncio.create_subprocess_shell(" ".join(command), env=environ | env, text=False)
+        await process.wait()
+        if process.returncode != 0:
+            raise CalledProcessError(process.returncode or -1, " ".join(command))
         logger.info(f"Backup file created: {self.new_backup_file_model.backup_path}")
         backup_files = find_backup_files(
             self.db_backup_path, self.app_config.db.provider, cast(str, self.app_config.db.name)
