@@ -123,8 +123,15 @@ async def downgrade(ctx: click.Context, revision: str) -> None:
     default=5,
     help="The number of backups to keep. If not specified, the default backup count will be used.",
 )
+@click.option(
+    "--db-name",
+    required=False,
+    default=None,
+    type=str,
+    help="The name of the database to backup.",
+)
 @click.pass_context
-async def backup(ctx: click.Context, backup_folder_path: str | None, backup_count: int) -> None:
+async def backup(ctx: click.Context, backup_folder_path: str | None, backup_count: int, db_name: str | None) -> None:
     """Create a database dump and prune older backups.
 
     Overrides the app config backup settings with the provided CLI options,
@@ -134,6 +141,7 @@ async def backup(ctx: click.Context, backup_folder_path: str | None, backup_coun
         ctx (click.Context): Click context object containing the app config.
         backup_folder_path (str): Directory where the dump file will be written.
         backup_count (int): Maximum number of backup files to retain.
+        db_name (str | None): The name of the database to backup.
 
     Returns:
         None
@@ -142,6 +150,8 @@ async def backup(ctx: click.Context, backup_folder_path: str | None, backup_coun
     app_config: AppConfig = ctx.obj["config"]
     if backup_folder_path is not None:
         app_config.db.backup_folder_path = Path(backup_folder_path)
+    if db_name is not None:
+        app_config.db.name = db_name
     app_config.db.backup_count = backup_count
     cmd = BackupDBCommand(app_config)
     await cmd.validate()
@@ -162,8 +172,17 @@ async def backup(ctx: click.Context, backup_folder_path: str | None, backup_coun
     type=click.Path(exists=True, file_okay=True, dir_okay=False, readable=True),
     help="Specific dump file to restore. If omitted, the latest matching backup is used.",
 )
+@click.option(
+    "--db-name",
+    required=False,
+    default=None,
+    type=str,
+    help="The name of the database to restore.",
+)
 @click.pass_context
-async def restore(ctx: click.Context, backup_folder_path: str | None, backup_file_path: str | None) -> None:
+async def restore(
+    ctx: click.Context, backup_folder_path: str | None, backup_file_path: str | None, db_name: str | None
+) -> None:
     """Restore the database from a dump backup.
 
     Overrides the app config backup folder with the provided CLI option,
@@ -173,6 +192,7 @@ async def restore(ctx: click.Context, backup_folder_path: str | None, backup_fil
         ctx (click.Context): Click context object containing the app config.
         backup_folder_path (str): Directory that contains dump backups.
         backup_file_path (str | None): Optional explicit dump file to restore.
+        db_name (str | None): The name of the database to restore.
 
     Returns:
         None
@@ -181,6 +201,8 @@ async def restore(ctx: click.Context, backup_folder_path: str | None, backup_fil
     app_config: AppConfig = ctx.obj["config"]
     if backup_folder_path is not None:
         app_config.db.backup_folder_path = Path(backup_folder_path)
+    if db_name is not None:
+        app_config.db.name = db_name
     cmd = RestoreDBCommand(app_config, dump_file_path=backup_file_path)
     await cmd.validate()
     await cmd.execute()
