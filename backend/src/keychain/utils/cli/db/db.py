@@ -148,6 +148,44 @@ async def backup(ctx: click.Context, backup_folder_path: str | None, backup_coun
     await cmd.execute()
 
 
+@db.command()
+@click.option(
+    "--backup-folder-path",
+    required=False,
+    type=click.Path(exists=True, file_okay=False, dir_okay=True, readable=True),
+    help="The directory that contains database dump backups.",
+)
+@click.option(
+    "--backup-file-path",
+    required=False,
+    default=None,
+    type=click.Path(exists=True, file_okay=True, dir_okay=False, readable=True),
+    help="Specific dump file to restore. If omitted, the latest matching backup is used.",
+)
+@click.pass_context
+async def restore(ctx: click.Context, backup_folder_path: str | None, backup_file_path: str | None) -> None:
+    """Restore the database from a dump backup.
+
+    Overrides the app config backup folder with the provided CLI option,
+    then validates and runs ``RestoreDBCommand``.
+
+    Args:
+        ctx (click.Context): Click context object containing the app config.
+        backup_folder_path (str): Directory that contains dump backups.
+        backup_file_path (str | None): Optional explicit dump file to restore.
+
+    Returns:
+        None
+
+    """
+    app_config: AppConfig = ctx.obj["config"]
+    if backup_folder_path is not None:
+        app_config.db.backup_folder_path = Path(backup_folder_path)
+    cmd = RestoreDBCommand(app_config, dump_file_path=backup_file_path)
+    await cmd.validate()
+    await cmd.execute()
+
+
 db.add_command(user)
 db.add_command(password)
 db.add_command(field)
