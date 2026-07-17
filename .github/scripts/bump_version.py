@@ -451,7 +451,7 @@ def main():
     # If only getting version, print and exit
     if args.get_version:
         for handler in handlers:
-            logger.debug(f"{handler.name}. Path: {handler.file_path}. Version: {handler.version}")
+            logger.info(f"{handler.name}. Path: {handler.file_path}. Version: {handler.version}")
         return
 
     # Validate branch argument is provided for bumping
