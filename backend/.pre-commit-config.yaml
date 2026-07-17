@@ -7,6 +7,7 @@ repos:
         stages: [pre-commit]
       - id: end-of-file-fixer
         stages: [pre-commit]
+        exclude: ".*?\\.svg"
       - id: check-yaml
         stages: [pre-commit]
       - id: check-added-large-files
