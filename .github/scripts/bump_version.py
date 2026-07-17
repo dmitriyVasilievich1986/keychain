@@ -22,7 +22,7 @@ from typing import Any, cast, Dict, List, Tuple
 # region Logging
 
 logger = logging.getLogger("BumpVersion")
-logger.setLevel(logging.DEBUG)
+logger.setLevel(logging.INFO)
 handler = logging.StreamHandler()
 handler.setFormatter(logging.Formatter("%(asctime)s - %(name)s - %(levelname)s - %(message)s"))
 logger.addHandler(handler)
@@ -43,6 +43,8 @@ APPLICATION_VERSION_FILE = BASE_FOLDER_PATH / "frontend" / "src" / "utils" / "ap
 
 
 class VersionType(StrEnum):
+    """Semantic version component to increment when bumping."""
+
     patch = "PATCH"
     minor = "MINOR"
     major = "MAJOR"
@@ -63,6 +65,7 @@ class Arguments:
     type: FileType
     version_type: VersionType
     get_version: bool
+    verbose: bool
 
 
 # endregion Enums
@@ -118,7 +121,7 @@ class Version:
             raise ValueError(f"Invalid version format: {line}")
 
         payload = int(matched_version.group(1)), int(matched_version.group(2)), int(matched_version.group(3))
-        logger.info(f"Parsed version: {payload}")
+        logger.debug(f"Parsed version: {payload}")
         return payload
 
     def bump_patch(self) -> None:
@@ -262,7 +265,7 @@ class FileHandler(ABC):
             logger.error(f"Invalid version type: {version_type}")
             raise ValueError(f"Invalid version type: {version_type}")
         logger.info(f"Bumped version: {self.version.current_version} -> {self.version}")
-        logger.info(f"{self.name} version set: {self.file_path} -> {self.version}")
+        logger.debug(f"{self.name} version set: {self.file_path} -> {self.version}")
 
 
 class JSONFileHandler(FileHandler):
@@ -402,6 +405,7 @@ def _get_namespace() -> Namespace:
     parser.add_argument("--type", required=True, choices=FileType, help="Type of file to update")
     parser.add_argument("--version-type", required=False, choices=VersionType, help="Version type to bump")
     parser.add_argument("--get-version", action="store_true", help="Only get current version without bumping")
+    parser.add_argument("--verbose", action="store_true", help="Verbose output", default=False)
     return parser.parse_args()
 
 
@@ -416,6 +420,12 @@ def main():
 
     """
     args = cast(Arguments, _get_namespace())
+
+    if args.verbose:
+        logger.setLevel(logging.DEBUG)
+    else:
+        logger.setLevel(logging.INFO)
+
     file_type_handlers: Dict[FileType, List[FileHandler]] = {
         FileType.backend: [PythonFileHandler(PYTHON_FILE_PATH)],
         FileType.frontend: [JSONFileHandler(PACKAGE_JSON_FILE_PATH), JSONFileHandler(PACKAGE_LOCK_JSON_FILE_PATH)],
@@ -441,7 +451,7 @@ def main():
     # If only getting version, print and exit
     if args.get_version:
         for handler in handlers:
-            logger.info(f"{handler.name}. Path: {handler.file_path}. Version: {handler.version}")
+            logger.debug(f"{handler.name}. Path: {handler.file_path}. Version: {handler.version}")
         return
 
     # Validate branch argument is provided for bumping
