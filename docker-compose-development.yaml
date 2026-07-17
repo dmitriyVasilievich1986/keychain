@@ -1,6 +1,9 @@
 services:
   nginx:
-    image: nginx:latest
+    build:
+      context: .
+      dockerfile: ./nginx/Dockerfile
+    image: keychain-nginx:development
     container_name: keychain-nginx
     ports:
       - 80:80
@@ -13,6 +16,21 @@ services:
       - keychain-network
     depends_on:
       - backend
+    healthcheck:
+      test:
+        [
+          "CMD",
+          "wget",
+          "--no-verbose",
+          "--tries=1",
+          "--spider",
+          "--no-check-certificate",
+          "https://127.0.0.1/",
+        ]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+      start_period: 10s
 
   db:
     image: postgres:18
@@ -20,6 +38,8 @@ services:
     env_file:
       - path: ./backend/db.env
         required: true
+    ports:
+      - 5432:5432
     volumes:
       - ./db/data:/var/lib/postgresql
     networks:
@@ -32,16 +52,26 @@ services:
       start_period: 10s
 
   backend:
-    image: keychain:latest
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+      target: development
+    container_name: keychain-backend
+    image: keychain:development
     env_file:
       - path: ./backend/.env
         required: true
       - path: ./backend/db.env
         required: false
     environment:
-      - CONFIG_FILE_PATH=/opt/backend/configurations/production.yaml
+      - CONFIG_FILE_PATH=/opt/backend/configurations/local.yaml
+    ports:
+      - 8000:8000
     volumes:
+      - ./backend/configurations:/opt/backend/configurations
+      - ./backend/src:/opt/backend/src
       - ./backup:/opt/backend/backup
+    command: ["keychain", "run", "--reload"]
     networks:
       - keychain-network
     healthcheck:
@@ -57,7 +87,7 @@ services:
     profiles:
       - frontend
     environment:
-      - VITE_SOURCEMAP=false
+      - VITE_SOURCEMAP=true
       - VITE_API_HOST=
       - VITE_IMAGES_HOST=/static/i
     volumes:
@@ -79,8 +109,4 @@ services:
 
 networks:
   keychain-network:
-    external: false
-
-volumes:
-  keychain-static:
     external: false
