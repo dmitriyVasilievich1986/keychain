@@ -23,6 +23,8 @@ class DBConfig(BaseModel):
         name: The database name.
         user: The database user.
         password: The database password.
+        backup_folder_path: The path to the backup folder.
+        backup_count: The number of backups to keep.
 
     """  # noqa: E501
 
@@ -34,6 +36,9 @@ class DBConfig(BaseModel):
     name: str | None = Field(None, description="The name of the database")
     user: SecretStr | None = Field(None, description="The user of the database")
     password: SecretStr | None = Field(None, description="The password of the database")
+
+    backup_folder_path: Path = Field(..., description="The path to the backup folder")
+    backup_count: int = Field(5, description="The number of backups to keep")
 
     @property
     def sqlalchemy_uri(self) -> str:

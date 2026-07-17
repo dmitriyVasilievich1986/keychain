@@ -13,6 +13,8 @@ db:
   host: db
   port: 5432
   name: keychain
+  backup_folder_path: backup
+  backup_count: 5
 
 auth:
   algorithm: HS256
