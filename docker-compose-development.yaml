@@ -1,0 +1,112 @@
+services:
+  nginx:
+    build:
+      context: .
+      dockerfile: ./nginx/Dockerfile
+    image: keychain-nginx:development
+    container_name: keychain-nginx
+    ports:
+      - 80:80
+      - 443:443
+    volumes:
+      - ./nginx/config/nginx.conf:/etc/nginx/nginx.conf
+      - ./static:/usr/share/nginx/html/static
+      - ./nginx/ssl:/etc/nginx/ssl
+    networks:
+      - keychain-network
+    depends_on:
+      - backend
+    healthcheck:
+      test:
+        [
+          "CMD",
+          "wget",
+          "--no-verbose",
+          "--tries=1",
+          "--spider",
+          "--no-check-certificate",
+          "https://127.0.0.1/",
+        ]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+      start_period: 10s
+
+  db:
+    image: postgres:18
+    container_name: keychain-db
+    env_file:
+      - path: ./backend/db.env
+        required: true
+    ports:
+      - 5432:5432
+    volumes:
+      - ./db/data:/var/lib/postgresql
+    networks:
+      - keychain-network
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U $${POSTGRES_USER} -d $${POSTGRES_DB}"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 10s
+
+  backend:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+      target: development
+    container_name: keychain-backend
+    image: keychain:development
+    env_file:
+      - path: ./backend/.env
+        required: true
+      - path: ./backend/db.env
+        required: false
+    environment:
+      - CONFIG_FILE_PATH=/opt/backend/configurations/local.yaml
+    ports:
+      - 8000:8000
+    volumes:
+      - ./backend/configurations:/opt/backend/configurations
+      - ./backend/src:/opt/backend/src
+      - ./backup:/opt/backend/backup
+    command: ["keychain", "run", "--reload"]
+    networks:
+      - keychain-network
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8000/health"]
+      interval: 60s
+      timeout: 5s
+      retries: 3
+      start_period: 10s
+
+  frontend:
+    image: node:24
+    container_name: keychain-frontend
+    profiles:
+      - frontend
+    environment:
+      - VITE_SOURCEMAP=true
+      - VITE_API_HOST=
+      - VITE_IMAGES_HOST=/static/i
+    volumes:
+      - ./static:/opt/static
+      - ./frontend/src:/opt/frontend/src
+      - ./frontend/package.json:/opt/frontend/package.json
+      - ./frontend/scripts:/opt/frontend/scripts
+      - ./frontend/tsconfig.app.json:/opt/frontend/tsconfig.app.json
+      - ./frontend/tsconfig.json:/opt/frontend/tsconfig.json
+      - ./frontend/tsconfig.node.json:/opt/frontend/tsconfig.node.json
+      - ./frontend/vite.config.ts:/opt/frontend/vite.config.ts
+      - ./frontend/index.html:/opt/frontend/index.html
+    networks:
+      - keychain-network
+    working_dir: /opt/frontend
+    command: ["/bin/bash", "scripts/start.sh"]
+    depends_on:
+      - backend
+
+networks:
+  keychain-network:
+    external: false
