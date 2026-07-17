@@ -21,7 +21,7 @@ from typing import Any, cast, Dict, List, Tuple
 
 # region Logging
 
-logger = logging.getLogger(__name__)
+logger = logging.getLogger("BumpVersion")
 logger.setLevel(logging.DEBUG)
 handler = logging.StreamHandler()
 handler.setFormatter(logging.Formatter("%(asctime)s - %(name)s - %(levelname)s - %(message)s"))
