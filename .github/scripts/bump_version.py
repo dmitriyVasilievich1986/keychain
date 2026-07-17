@@ -15,7 +15,7 @@ from abc import ABC, abstractmethod
 from argparse import Namespace
 from enum import StrEnum
 from pathlib import Path
-from typing import Any, Dict, List, Tuple
+from typing import Any, cast, Dict, List, Tuple
 
 # endregion Import libraries
 
@@ -55,6 +55,14 @@ class FileType(StrEnum):
     frontend = "frontend"
     application = "application"
     all = "all"
+
+
+class Arguments:
+    """Class for CLI arguments."""
+
+    type: FileType
+    version_type: VersionType
+    get_version: bool
 
 
 # endregion Enums
@@ -399,7 +407,7 @@ def main():
         None
 
     """
-    args = _get_namespace()
+    args = cast(Arguments, _get_namespace())
     file_type_handlers: Dict[FileType, List[FileHandler]] = {
         FileType.backend: [PythonFileHandler(PYTHON_FILE_PATH)],
         FileType.frontend: [JSONFileHandler(PACKAGE_JSON_FILE_PATH), JSONFileHandler(PACKAGE_LOCK_JSON_FILE_PATH)],
