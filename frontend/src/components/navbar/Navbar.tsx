@@ -3,6 +3,7 @@
  * It is used to render the application top navigation bar.
  */
 
+import padlock from '@assets/padlock.svg';
 import AppBar from '@mui/material/AppBar';
 import Container from '@mui/material/Container';
 import Toolbar from '@mui/material/Toolbar';
@@ -35,12 +36,7 @@ export function Navbar() {
         <Toolbar disableGutters>
           <div className={cx('navbar-inner')}>
             <div className={cx('navbar-brand')}>
-              <Image
-                src={`${import.meta.env.VITE_IMAGES_HOST}/padlock.png`}
-                alt="padlock"
-                width={20}
-                height={20}
-              />
+              <Image src={padlock} alt="padlock" width={25} height={25} />
               <Typography variant="h6" component="div" sx={{ flexGrow: 1 }}>
                 <NavLink to="/password" className={cx('navbar-link')}>
                   Keychain
