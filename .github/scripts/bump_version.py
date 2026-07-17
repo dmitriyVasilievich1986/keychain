@@ -35,6 +35,7 @@ BASE_FOLDER_PATH = Path(__file__).parent.parent.parent
 PYTHON_FILE_PATH = BASE_FOLDER_PATH / "backend" / "src" / "keychain" / "__init__.py"
 PACKAGE_JSON_FILE_PATH = BASE_FOLDER_PATH / "frontend" / "package.json"
 PACKAGE_LOCK_JSON_FILE_PATH = BASE_FOLDER_PATH / "frontend" / "package-lock.json"
+APPLICATION_VERSION_FILE = BASE_FOLDER_PATH / "frontend" / "src" / "utils" / "application-version.json"
 
 # endregion Constants
 
@@ -52,7 +53,8 @@ class FileType(StrEnum):
 
     backend = "backend"
     frontend = "frontend"
-    both = "both"
+    application = "application"
+    all = "all"
 
 
 # endregion Enums
@@ -401,10 +403,12 @@ def main():
     file_type_handlers: Dict[FileType, List[FileHandler]] = {
         FileType.backend: [PythonFileHandler(PYTHON_FILE_PATH)],
         FileType.frontend: [JSONFileHandler(PACKAGE_JSON_FILE_PATH), JSONFileHandler(PACKAGE_LOCK_JSON_FILE_PATH)],
-        FileType.both: [
+        FileType.application: [JSONFileHandler(APPLICATION_VERSION_FILE)],
+        FileType.all: [
             PythonFileHandler(PYTHON_FILE_PATH),
             JSONFileHandler(PACKAGE_JSON_FILE_PATH),
             JSONFileHandler(PACKAGE_LOCK_JSON_FILE_PATH),
+            JSONFileHandler(APPLICATION_VERSION_FILE),
         ],
     }
 
