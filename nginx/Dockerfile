@@ -10,7 +10,7 @@ COPY ./frontend ./
 
 RUN npm ci
 
-RUN npx tsc -b && npx vite build --outDir="./dist" --emptyOutDir --sourcemap=false
+RUN npx tsc -b && npx vite build --outDir="./dist" --emptyOutDir --sourcemap=$VITE_SOURCEMAP
 
 FROM nginx:stable-alpine AS nginx
 
