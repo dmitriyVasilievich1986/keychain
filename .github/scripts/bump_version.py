@@ -164,12 +164,20 @@ class FileHandler(ABC):
         Args:
             file_path (Path): Path to the version-bearing file.
 
-        Raises:
-            FileNotFoundError: If ``file_path`` does not exist.
-            ValueError: If the file suffix does not match the handler extension.
-
         """
         self.file_path = file_path
+
+    def validate(self) -> None:
+        """Ensure the target file exists, has the expected extension, and load its version.
+
+        Returns:
+            None
+
+        Raises:
+            FileNotFoundError: If ``self.file_path`` does not exist.
+            ValueError: If the file suffix does not match ``self.extension``.
+
+        """
         if not self.file_path.exists():
             logger.error(f"File {self.file_path} does not exist")
             raise FileNotFoundError(f"File {self.file_path} does not exist")
@@ -178,7 +186,7 @@ class FileHandler(ABC):
             logger.error(f"File {self.file_path} is not a {self.extension} file")
             raise ValueError(f"File {self.file_path} is not a {self.extension} file")
 
-        logger.info(f"Getting {self.name} version from {self.file_path}")
+        logger.debug(f"Getting {self.name} version from {self.file_path}")
         self.version = Version(self._get_version())
 
     @abstractmethod
@@ -426,6 +434,9 @@ def main():
         sys.exit(1)
 
     handlers = file_type_handlers[args.type]
+
+    for handler in handlers:
+        handler.validate()
 
     # If only getting version, print and exit
     if args.get_version:
