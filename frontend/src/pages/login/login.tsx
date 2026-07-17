@@ -3,6 +3,7 @@
  * It is used to render the login page.
  */
 
+import avatar from '@assets/avatar.svg';
 import Visibility from '@mui/icons-material/Visibility';
 import VisibilityOff from '@mui/icons-material/VisibilityOff';
 import Box from '@mui/material/Box';
@@ -93,12 +94,7 @@ export function Login() {
               alignItems: 'center',
             }}
           >
-            <Image
-              src={`${import.meta.env.VITE_IMAGES_HOST}/avatar.svg`}
-              alt="avatar"
-              width={100}
-              height={100}
-            />
+            <Image src={avatar} alt="avatar" width={100} height={100} />
           </Box>
           <form onSubmit={handleSubmit}>
             <Stack spacing={2} sx={{ marginTop: '1rem' }}>
