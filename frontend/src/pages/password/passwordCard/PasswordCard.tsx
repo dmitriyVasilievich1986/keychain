@@ -50,7 +50,7 @@ export function PasswordCard() {
       setCurrentPassword(null);
       return;
     }
-    if (currentPassword !== null) return;
+    if (currentPassword !== null && currentPassword.id === parseInt(passwordId)) return;
     getPassword(parseInt(passwordId))
       .then((response) => {
         setCurrentPassword(response);
