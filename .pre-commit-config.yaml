@@ -33,24 +33,14 @@ repos:
       - id: ruff-format
         stages: [pre-commit]
 
-  - repo: local
+  - repo: https://github.com/RobertCraigie/pyright-python
+    rev: v1.1.411
     hooks:
       - id: pyright
-        name: pyright
-        entry: uv run pyright
-        language: system
-        types: [python]
-        args: [backend/src, backend/tests]
-        require_serial: true
-        pass_filenames: false
+        # Use backend/pyproject.toml [tool.pyright] (include/venv/.venv).
+        args: [--project=backend]
+        files: ^backend/
         stages: [pre-commit]
-
-      - id: unit-tests
-        name: unit tests
-        entry: uv run pytest
-        language: system
-        pass_filenames: false
-        stages: [pre-push]
 
   - repo: https://github.com/pre-commit/mirrors-eslint
     rev: v10.7.0
