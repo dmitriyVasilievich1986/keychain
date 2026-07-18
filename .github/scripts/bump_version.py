@@ -24,7 +24,9 @@ from typing import Any, cast, Dict, List, Tuple
 logger = logging.getLogger("BumpVersion")
 logger.setLevel(logging.INFO)
 handler = logging.StreamHandler()
-handler.setFormatter(logging.Formatter("%(asctime)s - %(name)s - %(levelname)s - %(message)s"))
+handler.setFormatter(
+    logging.Formatter("%(asctime)s - %(name)s - %(levelname)s - %(message)s")
+)
 logger.addHandler(handler)
 
 # endregion Logging
@@ -35,7 +37,9 @@ BASE_FOLDER_PATH = Path(__file__).parent.parent.parent
 PYTHON_FILE_PATH = BASE_FOLDER_PATH / "backend" / "src" / "keychain" / "__init__.py"
 PACKAGE_JSON_FILE_PATH = BASE_FOLDER_PATH / "frontend" / "package.json"
 PACKAGE_LOCK_JSON_FILE_PATH = BASE_FOLDER_PATH / "frontend" / "package-lock.json"
-APPLICATION_VERSION_FILE = BASE_FOLDER_PATH / "frontend" / "src" / "utils" / "application-version.json"
+APPLICATION_VERSION_FILE = (
+    BASE_FOLDER_PATH / "frontend" / "src" / "utils" / "application-version.json"
+)
 
 # endregion Constants
 
@@ -120,7 +124,11 @@ class Version:
             logger.error(f"Invalid version format: {line}")
             raise ValueError(f"Invalid version format: {line}")
 
-        payload = int(matched_version.group(1)), int(matched_version.group(2)), int(matched_version.group(3))
+        payload = (
+            int(matched_version.group(1)),
+            int(matched_version.group(2)),
+            int(matched_version.group(3)),
+        )
         logger.debug(f"Parsed version: {payload}")
         return payload
 
@@ -383,7 +391,11 @@ class PythonFileHandler(FileHandler):
 
         """
         content = self._read_file()
-        content = re.sub(r'(__version__\s*=\s*["\'])[^"\']+(["\'])', rf"\g<1>{self.version}\g<2>", content)
+        content = re.sub(
+            r'(__version__\s*=\s*["\'])[^"\']+(["\'])',
+            rf"\g<1>{self.version}\g<2>",
+            content,
+        )
         self._write_file(content)
         logger.info(f"File updated: {self.file_path}")
 
@@ -402,10 +414,23 @@ def _get_namespace() -> Namespace:
 
     """
     parser = argparse.ArgumentParser(description="Bump version in project files")
-    parser.add_argument("--type", required=True, choices=FileType, help="Type of file to update")
-    parser.add_argument("--version-type", required=False, choices=VersionType, help="Version type to bump")
-    parser.add_argument("--get-version", action="store_true", help="Only get current version without bumping")
-    parser.add_argument("--verbose", action="store_true", help="Verbose output", default=False)
+    parser.add_argument(
+        "--type", required=True, choices=FileType, help="Type of file to update"
+    )
+    parser.add_argument(
+        "--version-type",
+        required=False,
+        choices=VersionType,
+        help="Version type to bump",
+    )
+    parser.add_argument(
+        "--get-version",
+        action="store_true",
+        help="Only get current version without bumping",
+    )
+    parser.add_argument(
+        "--verbose", action="store_true", help="Verbose output", default=False
+    )
     return parser.parse_args()
 
 
@@ -428,7 +453,10 @@ def main():
 
     file_type_handlers: Dict[FileType, List[FileHandler]] = {
         FileType.backend: [PythonFileHandler(PYTHON_FILE_PATH)],
-        FileType.frontend: [JSONFileHandler(PACKAGE_JSON_FILE_PATH), JSONFileHandler(PACKAGE_LOCK_JSON_FILE_PATH)],
+        FileType.frontend: [
+            JSONFileHandler(PACKAGE_JSON_FILE_PATH),
+            JSONFileHandler(PACKAGE_LOCK_JSON_FILE_PATH),
+        ],
         FileType.application: [JSONFileHandler(APPLICATION_VERSION_FILE)],
         FileType.all: [
             PythonFileHandler(PYTHON_FILE_PATH),
@@ -451,7 +479,9 @@ def main():
     # If only getting version, print and exit
     if args.get_version:
         for handler in handlers:
-            logger.info(f"{handler.name}. Path: {handler.file_path}. Version: {handler.version}")
+            logger.info(
+                f"{handler.name}. Path: {handler.file_path}. Version: {handler.version}"
+            )
         return
 
     # Validate branch argument is provided for bumping

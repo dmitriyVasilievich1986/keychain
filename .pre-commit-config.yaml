@@ -1,0 +1,48 @@
+default_stages: [pre-commit]
+repos:
+  - repo: https://github.com/pre-commit/pre-commit-hooks
+    rev: v6.0.0
+    hooks:
+      - id: trailing-whitespace
+        stages: [pre-commit]
+      - id: end-of-file-fixer
+        stages: [pre-commit]
+        exclude: ".*?\\.svg"
+      - id: check-yaml
+        stages: [pre-commit]
+      - id: check-added-large-files
+        stages: [pre-commit]
+      - id: check-json
+        stages: [pre-commit]
+        exclude: "frontend/tsconfig\\.app\\.json|frontend/tsconfig\\.node\\.json"
+      - id: check-toml
+        stages: [pre-commit]
+      - id: check-merge-conflict
+        stages: [pre-commit]
+      - id: debug-statements
+        stages: [pre-commit]
+
+  - repo: https://github.com/astral-sh/ruff-pre-commit
+    rev: v0.15.22
+    hooks:
+      # Run the linter.
+      - id: ruff-check
+        args: [--fix]
+        stages: [pre-commit]
+      # Run the formatter.
+      - id: ruff-format
+        stages: [pre-commit]
+
+  - repo: https://github.com/RobertCraigie/pyright-python
+    rev: v1.1.411
+    hooks:
+      - id: pyright
+        # Use backend/pyproject.toml [tool.pyright] (include/venv/.venv).
+        args: [--project=backend]
+        files: ^backend/
+        stages: [pre-commit]
+
+  - repo: https://github.com/pre-commit/mirrors-eslint
+    rev: v10.7.0
+    hooks:
+      - id: eslint
