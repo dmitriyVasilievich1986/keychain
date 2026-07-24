@@ -46,7 +46,7 @@ repos:
     hooks:
       - id: oxlint
         name: oxlint
-        entry: npm --prefix frontend exec -- oxlint .
+        entry: npm --prefix frontend exec -- oxlint ./frontend
         language: system
         pass_filenames: false
         files: ^frontend/.*\.[jt]sx?$
