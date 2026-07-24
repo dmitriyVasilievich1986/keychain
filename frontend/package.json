@@ -6,10 +6,12 @@
   "scripts": {
     "dev": "vite",
     "build": "tsc -b && vite build",
-    "lint:check": "eslint .",
-    "lint:fix": "eslint . --fix",
+    "lint:check": "oxlint .",
+    "lint:fix": "oxlint . --fix",
     "format:check": "prettier --check .",
     "format:fix": "prettier --write .",
+    "typecheck": "tsc --noEmit --pretty",
+    "lint:all": "oxlint . && prettier --check . && tsc --noEmit --pretty",
     "preview": "vite preview"
   },
   "dependencies": {
@@ -29,21 +31,15 @@
     "zustand": "^5.0.9"
   },
   "devDependencies": {
-    "@eslint/js": "^9.39.1",
     "@types/js-cookie": "^3.0.6",
     "@types/node": "^24.10.1",
     "@types/react": "^19.2.5",
     "@types/react-dom": "^19.2.3",
     "@vitejs/plugin-react": "^5.1.1",
-    "eslint": "^9.39.1",
-    "eslint-config-prettier": "^10.1.8",
     "eslint-plugin-import": "^2.32.0",
-    "eslint-plugin-react-hooks": "^7.0.1",
-    "eslint-plugin-react-refresh": "^0.4.24",
-    "globals": "^16.5.0",
+    "oxlint": "^1.75.0",
     "prettier": "^3.7.4",
     "typescript": "~5.9.3",
-    "typescript-eslint": "^8.46.4",
     "vite": "^7.2.4"
   }
 }

@@ -42,7 +42,12 @@ repos:
         files: ^backend/
         stages: [pre-commit]
 
-  - repo: https://github.com/pre-commit/mirrors-eslint
-    rev: v10.7.0
+  - repo: local
     hooks:
-      - id: eslint
+      - id: oxlint
+        name: oxlint
+        entry: npm --prefix frontend exec -- oxlint .
+        language: system
+        pass_filenames: false
+        files: ^frontend/.*\.[jt]sx?$
+        stages: [pre-commit]
