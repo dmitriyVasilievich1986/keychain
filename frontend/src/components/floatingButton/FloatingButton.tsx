@@ -12,6 +12,8 @@ import { useUserStore } from '@store/user';
 
 import * as defaultStyle from './style.scss';
 
+import type { FloatingButtonProps } from './types';
+
 const cx = classnames.bind(defaultStyle);
 
 /**
@@ -25,12 +27,7 @@ const cx = classnames.bind(defaultStyle);
  * @param props.onClick - Handler invoked when the FAB is clicked.
  * @param props.disabled - When true, disables the FAB.
  */
-export function FloatingButton(props: {
-  color: 'primary' | 'secondary';
-  children: React.ReactNode;
-  onClick: () => void;
-  disabled?: boolean;
-}) {
+export function FloatingButton(props: FloatingButtonProps) {
   const { isLoading } = useUserStore();
 
   return (
