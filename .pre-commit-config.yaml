@@ -44,10 +44,19 @@ repos:
 
   - repo: local
     hooks:
-      - id: oxlint
-        name: oxlint
-        entry: npm --prefix frontend exec -- oxlint ./frontend
+      - id: vp-fmt
+        name: vp fmt
+        entry: bash -c 'cd frontend && vp fmt .'
         language: system
         pass_filenames: false
         files: ^frontend/.*\.[jt]sx?$
+        exclude: /node_modules/
+        stages: [pre-commit]
+      - id: vp-lint
+        name: vp lint
+        entry: bash -c 'cd frontend && vp lint .'
+        language: system
+        pass_filenames: false
+        files: ^frontend/.*\.[jt]sx?$
+        exclude: /node_modules/
         stages: [pre-commit]
