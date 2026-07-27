@@ -6,8 +6,8 @@ import { usePasswordsStore, type PasswordSimple, type Password } from '@store/pa
 
 import { apiClientInstance, useApiClientWrapper } from '../base';
 
-import type { PasswordPostRequest } from './types';
 import type { FilterType, PaginationMetadata } from '../types';
+import type { PasswordPostRequest } from './types';
 
 /**
  * Hook that exposes password API functions wired to the global password store.

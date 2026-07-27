@@ -3,7 +3,6 @@
  * It is used to render the login page.
  */
 
-import avatar from '@assets/avatar.svg';
 import Visibility from '@mui/icons-material/Visibility';
 import VisibilityOff from '@mui/icons-material/VisibilityOff';
 import Box from '@mui/material/Box';
@@ -21,6 +20,7 @@ import Cookies from 'js-cookie';
 import { useState, useEffect } from 'react';
 import { useNavigate, useSearchParams } from 'react-router';
 
+import avatar from '@assets/avatar.svg';
 import { Image } from '@components/image';
 import { useUserStore } from '@store/user';
 import { useAuthAPIClient } from '@utils/apiClient/auth';
