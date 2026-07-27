@@ -188,6 +188,11 @@ export default defineConfig(({ mode }) => {
         '@utils': resolve(__dirname, './src/utils'),
       },
     },
+    test: {
+      environment: 'jsdom',
+      include: ['src/**/*.test.{ts,tsx}'],
+      setupFiles: ['./src/test/setup.ts'],
+    },
     build: {
       outDir: '../static',
       emptyOutDir: false,
