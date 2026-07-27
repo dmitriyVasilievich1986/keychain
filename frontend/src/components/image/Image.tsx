@@ -5,22 +5,18 @@
 import StorefrontIcon from '@mui/icons-material/Storefront';
 import { useState } from 'react';
 
+import type { ImageProps } from './types';
 /**
  * Renders an `<img>` when `src` is present and loads successfully; otherwise shows `StorefrontIcon`.
  *
- * @param {object} props - Component props.
- * @param {string | null | undefined} props.src - Image URL; when empty, the fallback icon is shown.
- * @param {number | string | undefined} props.width - Passed to the image or icon sizing (`style` / `sx`).
- * @param {number | string | undefined} props.height - Passed to the image or icon sizing (`style` / `sx`).
- * @param {string | undefined} props.alt - Accessible label for the image or icon fallback.
- * @returns {JSX.Element} Image or Material UI storefront icon.
+ * @param props - Component props.
+ * @param props.src - Image URL; when empty, the fallback icon is shown.
+ * @param props.width - Passed to the image or icon sizing (`style` / `sx`).
+ * @param props.height - Passed to the image or icon sizing (`style` / `sx`).
+ * @param props.alt - Accessible label for the image or icon fallback.
+ * @returns Image or Material UI storefront icon.
  */
-export function Image(props: {
-  src?: string | null;
-  width?: number | string;
-  height?: number | string;
-  alt?: string;
-}) {
+export function Image(props: ImageProps) {
   const [failed, setFailed] = useState(false);
 
   if (!props.src || failed) {
