@@ -1,7 +1,7 @@
 {
   "name": "keychain",
-  "private": true,
   "version": "0.4.1",
+  "private": true,
   "type": "module",
   "scripts": {
     "dev": "vp dev",
@@ -11,7 +11,7 @@
     "format:check": "vp fmt --check .",
     "format:fix": "vp fmt .",
     "typecheck": "tsc --noEmit --pretty",
-    "lint:all": "vp lint . && vp fmt --check . && tsc --noEmit --pretty",
+    "lint:all": "vp fmt . && vp lint --fix . && tsc --noEmit --pretty",
     "preview": "vp preview"
   },
   "dependencies": {
@@ -41,14 +41,14 @@
     "vite": "npm:@voidzero-dev/vite-plus-core@0.2.6",
     "vite-plus": "0.2.6"
   },
+  "overrides": {
+    "vite": "npm:@voidzero-dev/vite-plus-core@0.2.6"
+  },
   "devEngines": {
     "packageManager": {
       "name": "npm",
       "version": "12.0.1",
       "onFail": "download"
     }
-  },
-  "overrides": {
-    "vite": "npm:@voidzero-dev/vite-plus-core@0.2.6"
   }
 }

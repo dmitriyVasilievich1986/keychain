@@ -139,7 +139,7 @@ export default defineConfig(({ mode }) => {
                 ],
                 pathGroups: [
                   {
-                    pattern: '@{components,store,utils,services,hooks}/**',
+                    pattern: '@{assets,components,pages,store,utils,services,hooks}/**',
                     group: 'internal',
                     position: 'before',
                   },
@@ -185,7 +185,39 @@ export default defineConfig(({ mode }) => {
       tabWidth: 2,
       arrowParens: 'always',
       sortPackageJson: false,
-      ignorePatterns: [],
+      ignorePatterns: ['dist', 'node_modules'],
+      // Keep in sync with lint `import-js/order` groups/pathGroups above.
+      sortImports: {
+        groups: [
+          ['value-builtin', 'value-external'],
+          'value-internal',
+          // `style` matches css/scss; eslint-plugin-import treats those as sibling/parent/index.
+          ['value-parent', 'value-sibling', 'value-index', 'style'],
+          [
+            'type-builtin',
+            'type-external',
+            'type-internal',
+            'type-parent',
+            'type-sibling',
+            'type-index',
+            'type-import',
+          ],
+          'unknown',
+        ],
+        internalPattern: [
+          '@components/',
+          '@store/',
+          '@utils/',
+          '@services/',
+          '@hooks/',
+          '@constants',
+          '@pages/',
+          '@assets/',
+        ],
+        newlinesBetween: true,
+        order: 'asc',
+        ignoreCase: true,
+      },
     },
     plugins: lazyPlugins(() => [react()]),
     resolve: {
