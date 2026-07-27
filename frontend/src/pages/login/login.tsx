@@ -14,19 +14,21 @@ import InputAdornment from '@mui/material/InputAdornment';
 import Paper from '@mui/material/Paper';
 import Stack from '@mui/material/Stack';
 import TextField from '@mui/material/TextField';
+import axios from 'axios';
 import classnames from 'classnames/bind';
 import dayjs from 'dayjs';
 import Cookies from 'js-cookie';
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useActionState } from 'react';
 import { useNavigate, useSearchParams } from 'react-router';
 
 import avatar from '@assets/avatar.svg';
 import { Image } from '@components/image';
-import { useUserStore } from '@store/user';
 import { useAuthAPIClient } from '@utils/apiClient/auth';
 import { useClearStore } from '@utils/useClearStore';
 
 import * as defaultStyle from './style.scss';
+
+import type { LoginFormState } from './types';
 
 const cx = classnames.bind(defaultStyle);
 
@@ -34,25 +36,21 @@ const cx = classnames.bind(defaultStyle);
  * Login page.
  *
  * Renders the username/password form with a show/hide password toggle, clears
- * any existing store state on mount, authenticates on submit, and redirects to
- * the `redirectTo` query param (defaulting to `/`) on success.
+ * any existing store state on mount, authenticates on submit via
+ * `useActionState`, and redirects to the `redirectTo` query param (defaulting
+ * to `/`) on success.
  *
  * @returns The login page.
  */
 export function Login() {
-  const [username, setUsername] = useState<string>('');
-  const [password, setPassword] = useState<string>('');
-  const [showPassword, setShowPassword] = useState<boolean>(false);
-  const [error, setError] = useState<string>('');
+  const [showPassword, setShowPassword] = useState(false);
+  const [isDirty, setIsDirty] = useState(false);
   const { clearAllStores } = useClearStore();
-
-  const { isLoading } = useUserStore();
 
   const [searchParams] = useSearchParams();
   const redirectTo = searchParams.get('redirectTo') ?? '/';
 
   const { login } = useAuthAPIClient();
-
   const navigate = useNavigate();
 
   // Reset all stores on mount so no stale session data leaks into a new login.
@@ -60,28 +58,38 @@ export function Login() {
     clearAllStores();
   }, []);
 
-  /**
-   * Authenticates the user on form submit.
-   *
-   * Prevents the default form navigation, and on success stores the access
-   * token cookie and navigates to the redirect target; on failure shows the
-   * server-provided error message.
-   *
-   * @param e - The form submit event.
-   */
-  const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
-    e.preventDefault();
-    login(username, password)
-      .then((response) => {
+  const [state, formAction, isPending] = useActionState(
+    async (_prevState: LoginFormState, formData: FormData): Promise<LoginFormState> => {
+      const username = String(formData.get('username') ?? '');
+      const password = String(formData.get('password') ?? '');
+
+      try {
+        const response = await login(username, password);
         Cookies.set('accessToken', response.accessToken, {
           expires: dayjs(response.expiresAt).toDate(),
         });
         navigate(redirectTo);
-      })
-      .catch((error) => {
-        setError(error.response.data.detail || 'An unknown error occurred');
-      });
-  };
+        return { error: '' };
+      } catch (error: unknown) {
+        if (axios.isAxiosError(error)) {
+          return {
+            error:
+              (error.response?.data as { detail?: string } | undefined)?.detail ||
+              'An unknown error occurred',
+          };
+        }
+        return { error: 'An unknown error occurred' };
+      }
+    },
+    { error: '' }
+  );
+
+  // Re-show action errors after a fresh submit; typing dismisses them via `isDirty`.
+  useEffect(() => {
+    setIsDirty(false);
+  }, [state]);
+
+  const error = isDirty ? '' : state.error;
 
   return (
     <Box className={cx('login-container')}>
@@ -96,34 +104,28 @@ export function Login() {
           >
             <Image src={avatar} alt="avatar" width={100} height={100} />
           </Box>
-          <form onSubmit={handleSubmit}>
+          <form action={formAction}>
             <Stack spacing={2} sx={{ marginTop: '1rem' }}>
               <TextField
+                name="username"
                 label="Login"
                 variant="outlined"
                 fullWidth
-                value={username}
-                onChange={(e) => {
-                  setUsername(e.target.value);
-                  setError('');
-                }}
                 error={!!error}
                 helperText={error}
-                disabled={isLoading}
+                disabled={isPending}
+                onChange={() => setIsDirty(true)}
               />
               <TextField
+                name="password"
                 label="Password"
                 variant="outlined"
                 fullWidth
                 type={showPassword ? 'text' : 'password'}
-                value={password}
-                onChange={(e) => {
-                  setPassword(e.target.value);
-                  setError('');
-                }}
                 error={!!error}
                 helperText={error}
                 autoComplete="off"
+                onChange={() => setIsDirty(true)}
                 slotProps={{
                   input: {
                     endAdornment: (
@@ -138,7 +140,7 @@ export function Login() {
                     ),
                   },
                 }}
-                disabled={isLoading}
+                disabled={isPending}
               />
             </Stack>
             <Button
@@ -146,9 +148,9 @@ export function Login() {
               fullWidth
               sx={{ marginTop: '2rem' }}
               type="submit"
-              disabled={isLoading}
+              disabled={isPending}
             >
-              {isLoading ? <CircularProgress size={20} /> : 'Login'}
+              {isPending ? <CircularProgress size={20} /> : 'Login'}
             </Button>
           </form>
         </CardContent>
