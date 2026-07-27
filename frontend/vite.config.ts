@@ -20,10 +20,6 @@ export default defineConfig(({ mode }) => {
       ignorePatterns: ['dist', 'node_modules'],
       jsPlugins: [
         {
-          name: 'import-js',
-          specifier: 'eslint-plugin-import',
-        },
-        {
           name: 'vite-plus',
           specifier: 'vite-plus/oxlint-plugin',
         },
@@ -120,44 +116,7 @@ export default defineConfig(({ mode }) => {
             'typescript/prefer-as-const': 'error',
             'typescript/prefer-namespace-keyword': 'error',
             'typescript/triple-slash-reference': 'error',
-            'import/newline-after-import': [
-              'error',
-              {
-                count: 1,
-              },
-            ],
             'import/no-duplicates': 'error',
-            'import-js/order': [
-              'error',
-              {
-                groups: [
-                  ['builtin', 'external'],
-                  'internal',
-                  ['parent', 'sibling', 'index'],
-                  'object',
-                  'type',
-                ],
-                pathGroups: [
-                  {
-                    pattern: '@{assets,components,pages,store,utils,services,hooks}/**',
-                    group: 'internal',
-                    position: 'before',
-                  },
-                  {
-                    pattern: '@constants',
-                    group: 'internal',
-                    position: 'after',
-                  },
-                ],
-                pathGroupsExcludedImportTypes: ['builtin'],
-                'newlines-between': 'always',
-                alphabetize: {
-                  order: 'asc',
-                  caseInsensitive: true,
-                },
-                warnOnUnassignedImports: false,
-              },
-            ],
             'react/rules-of-hooks': 'error',
             'react/exhaustive-deps': 'off',
             'react/only-export-components': [
@@ -186,7 +145,7 @@ export default defineConfig(({ mode }) => {
       arrowParens: 'always',
       sortPackageJson: false,
       ignorePatterns: ['dist', 'node_modules'],
-      // Keep in sync with lint `import-js/order` groups/pathGroups above.
+      // Import grouping previously enforced by eslint-plugin-import/order.
       sortImports: {
         groups: [
           ['value-builtin', 'value-external'],
