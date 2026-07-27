@@ -44,7 +44,7 @@ export function CreatePassword() {
       formData: FormData
     ): Promise<CreatePasswordFormState> => {
       const name = String(formData.get('name') ?? '');
-      const imageUrl = String(formData.get('imageUrl') ?? '');
+      const imageUrl = formData.get('imageUrl') ? String(formData.get('imageUrl')) : null;
 
       try {
         const response = await postPassword({ name, imageUrl });
