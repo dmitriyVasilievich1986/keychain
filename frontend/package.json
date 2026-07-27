@@ -4,15 +4,15 @@
   "version": "0.4.1",
   "type": "module",
   "scripts": {
-    "dev": "vite",
-    "build": "tsc -b && vite build",
-    "lint:check": "oxlint .",
-    "lint:fix": "oxlint . --fix",
-    "format:check": "prettier --check .",
-    "format:fix": "prettier --write .",
+    "dev": "vp dev",
+    "build": "tsc -b && vp build",
+    "lint:check": "vp lint .",
+    "lint:fix": "vp lint . --fix",
+    "format:check": "vp fmt --check .",
+    "format:fix": "vp fmt .",
     "typecheck": "tsc --noEmit --pretty",
-    "lint:all": "oxlint . && prettier --check . && tsc --noEmit --pretty",
-    "preview": "vite preview"
+    "lint:all": "vp lint . && vp fmt --check . && tsc --noEmit --pretty",
+    "preview": "vp preview"
   },
   "dependencies": {
     "@emotion/react": "^11.14.0",
@@ -26,7 +26,7 @@
     "lodash": "^4.18.1",
     "react": "^19.2.0",
     "react-dom": "^19.2.0",
-    "react-router": "^7.10.1",
+    "react-router": "^8.3.0",
     "sass": "^1.96.0",
     "zustand": "^5.0.9"
   },
@@ -37,9 +37,18 @@
     "@types/react-dom": "^19.2.3",
     "@vitejs/plugin-react": "^5.1.1",
     "eslint-plugin-import": "^2.32.0",
-    "oxlint": "^1.75.0",
-    "prettier": "^3.7.4",
     "typescript": "~5.9.3",
-    "vite": "^7.2.4"
+    "vite": "npm:@voidzero-dev/vite-plus-core@0.2.6",
+    "vite-plus": "0.2.6"
+  },
+  "devEngines": {
+    "packageManager": {
+      "name": "npm",
+      "version": "12.0.1",
+      "onFail": "download"
+    }
+  },
+  "overrides": {
+    "vite": "npm:@voidzero-dev/vite-plus-core@0.2.6"
   }
 }
