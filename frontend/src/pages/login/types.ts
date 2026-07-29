@@ -4,10 +4,10 @@
  */
 
 /**
- * The response from the login API.
+ * State returned by the login form action.
  *
- * @property {string} accessToken - The access token for the user.
+ * @property {string} error - Server or fallback error message to show on the form; empty when clear.
  */
-export type LoginResponse = {
-  accessToken: string;
+export type LoginFormState = {
+  error: string;
 };

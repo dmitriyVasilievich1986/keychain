@@ -9,85 +9,93 @@ import CircularProgress from '@mui/material/CircularProgress';
 import Paper from '@mui/material/Paper';
 import Stack from '@mui/material/Stack';
 import TextField from '@mui/material/TextField';
+import Typography from '@mui/material/Typography';
 import classnames from 'classnames/bind';
-import { useState } from 'react';
+import { useActionState, useEffect, useState } from 'react';
 import { useNavigate } from 'react-router';
 
 import { usePasswordsStore } from '@store/passwords';
-import { useUserStore } from '@store/user';
 import { usePasswordAPIClient } from '@utils/apiClient/password';
 
 import * as defaultStyle from './style.scss';
+
+import type { CreatePasswordFormState } from './types';
 
 const cx = classnames.bind(defaultStyle);
 
 /**
  * Page for creating a new password entry.
  *
- * Renders a form with name and image URL inputs, submits the new entry to the
- * API, and on success adds it to the store and navigates to its detail view.
+ * Renders a form with name and image URL inputs, submits the new entry via
+ * `useActionState`, and on success adds it to the store and navigates to its
+ * detail view.
  *
  * @returns The create-password page.
  */
 export function CreatePassword() {
-  const [name, setName] = useState<string>('');
-  const [imageUrl, setImageUrl] = useState<string>('');
-  const [error, setError] = useState<string>('');
-
-  const { setCurrentPassword, addPassword } = usePasswordsStore();
-  const { isLoading } = useUserStore();
+  const [isDirty, setIsDirty] = useState(false);
+  const { setCurrentPassword, addPassword, passwords } = usePasswordsStore();
   const navigate = useNavigate();
   const { postPassword } = usePasswordAPIClient();
 
-  /**
-   * Creates the password on form submit.
-   *
-   * Prevents the default form navigation and does nothing while a request is in
-   * flight. On success the new password is added to the store, the current
-   * selection is reset, and the user is navigated to the new entry; on failure
-   * an error message is shown.
-   *
-   * @param e - The form submit event.
-   */
-  const handleCreatePassword = async (e: React.FormEvent<HTMLFormElement>) => {
-    e.preventDefault();
-    if (isLoading) return;
+  const [state, formAction, isPending] = useActionState(
+    async (
+      _prevState: CreatePasswordFormState,
+      formData: FormData
+    ): Promise<CreatePasswordFormState> => {
+      const name = String(formData.get('name') ?? '');
+      const imageUrl = formData.get('imageUrl') ? String(formData.get('imageUrl')) : null;
 
-    const data = { name, imageUrl };
-    postPassword(data)
-      .then((response) => {
-        addPassword(response);
+      try {
+        const response = await postPassword({ name, imageUrl });
+        if (passwords !== null) {
+          addPassword(response);
+        }
         setCurrentPassword(null);
         navigate(`/password/${response.id}`);
-      })
-      .catch((error) => {
-        setError('Failed to create password');
+        return { error: '' };
+      } catch (error: unknown) {
         console.error(error);
-      });
-  };
+        return { error: 'Failed to create password' };
+      }
+    },
+    { error: '' }
+  );
+
+  // Re-show action errors after a fresh submit; typing dismisses them via `isDirty`.
+  useEffect(() => {
+    setIsDirty(false);
+  }, [state]);
+
+  const error = isDirty ? '' : state.error;
 
   return (
     <Box className={cx('create-password-container')}>
       <Paper elevation={10} className={cx('create-password-paper')}>
-        <form onSubmit={handleCreatePassword}>
+        <form action={formAction}>
+          <Typography variant="h6" align="center" sx={{ marginBottom: '2rem' }}>
+            Create a new password
+          </Typography>
           <Stack spacing={2} sx={{ marginTop: '1rem' }}>
             <TextField
+              name="name"
               label="PasswordName"
               variant="outlined"
               fullWidth
-              value={name}
-              onChange={(e) => setName(e.target.value)}
               error={!!error}
               helperText={error}
+              disabled={isPending}
+              onChange={() => setIsDirty(true)}
             />
             <TextField
+              name="imageUrl"
               label="Password Image URL"
               variant="outlined"
               fullWidth
-              value={imageUrl}
-              onChange={(e) => setImageUrl(e.target.value)}
               error={!!error}
               helperText={error}
+              disabled={isPending}
+              onChange={() => setIsDirty(true)}
             />
             <Box>
               <Button
@@ -95,9 +103,9 @@ export function CreatePassword() {
                 fullWidth
                 sx={{ marginTop: '2rem' }}
                 type="submit"
-                disabled={isLoading}
+                disabled={isPending}
               >
-                {isLoading ? <CircularProgress size={20} /> : 'Create Password'}
+                {isPending ? <CircularProgress size={20} /> : 'Create'}
               </Button>
             </Box>
           </Stack>

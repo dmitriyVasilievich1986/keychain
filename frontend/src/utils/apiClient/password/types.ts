@@ -10,5 +10,5 @@
  */
 export type PasswordPostRequest = {
   name: string;
-  imageUrl: string;
+  imageUrl: string | null;
 };
