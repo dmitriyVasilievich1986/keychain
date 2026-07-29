@@ -2,7 +2,7 @@
  * Password REST API client hook: HTTP calls to `/api/v1/password` and syncing results into the password store.
  */
 
-import { usePasswordsStore, type PasswordSimple, type Password } from '@store/passwords';
+import { type PasswordSimple, type Password } from '@store/passwords';
 
 import { apiClientInstance, useApiClientWrapper } from '../base';
 
@@ -15,7 +15,6 @@ import type { PasswordPostRequest } from './types';
  * @returns Object with `getPassword`, `getPasswords`, `postPassword`, and `deletePassword` methods.
  */
 export const usePasswordAPIClient = () => {
-  const { passwords, addPassword } = usePasswordsStore();
   const { wrapper } = useApiClientWrapper();
 
   return {
@@ -69,9 +68,6 @@ export const usePasswordAPIClient = () => {
     postPassword: async (request: PasswordPostRequest): Promise<Password> => {
       return wrapper(async () => {
         const response = await apiClientInstance.post<Password>(`/api/v1/password`, request);
-        if (passwords !== null) {
-          addPassword(response.data);
-        }
         return response.data;
       });
     },

@@ -34,7 +34,7 @@ const cx = classnames.bind(defaultStyle);
  */
 export function CreatePassword() {
   const [isDirty, setIsDirty] = useState(false);
-  const { setCurrentPassword, addPassword } = usePasswordsStore();
+  const { setCurrentPassword, addPassword, passwords } = usePasswordsStore();
   const navigate = useNavigate();
   const { postPassword } = usePasswordAPIClient();
 
@@ -48,7 +48,9 @@ export function CreatePassword() {
 
       try {
         const response = await postPassword({ name, imageUrl });
-        addPassword(response);
+        if (passwords !== null) {
+          addPassword(response);
+        }
         setCurrentPassword(null);
         navigate(`/password/${response.id}`);
         return { error: '' };
