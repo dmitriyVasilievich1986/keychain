@@ -3,7 +3,6 @@
  * It is used to render the application top navigation bar.
  */
 
-import padlock from '@assets/padlock.svg';
 import AppBar from '@mui/material/AppBar';
 import Container from '@mui/material/Container';
 import Toolbar from '@mui/material/Toolbar';
@@ -11,6 +10,7 @@ import Typography from '@mui/material/Typography';
 import classnames from 'classnames/bind';
 import { NavLink } from 'react-router';
 
+import padlock from '@assets/padlock.svg';
 import { Image } from '@components/image';
 
 import { LogoutMenu } from './components';

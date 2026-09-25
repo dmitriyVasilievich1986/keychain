@@ -62,8 +62,11 @@ class FieldDAO(BaseDAO[Field]):
 
         return await self._get_by_pk_raw(session, new_field.id, pk_column_name, filters)
 
-    async def _create_raw(
-        self, session: AsyncSession, filters: Sequence[ColumnElement[bool]] | None, **kwargs: Any
+    async def _create_raw(  # type: ignore[reportIncompatibleMethodOverride]
+        self,
+        session: AsyncSession,
+        filters: Sequence[ColumnElement[bool]] | None,
+        **kwargs: Any,
     ) -> Field:
         """Create a new field associated with an existing password.
 
@@ -95,7 +98,7 @@ class FieldDAO(BaseDAO[Field]):
         await session.commit()
         return await self._get_by_pk_raw(session, getattr(obj, self.pk_column_name), self.pk_column_name, filters)
 
-    async def create(self, filters: Sequence[ColumnElement[bool]] | None = None, **kwargs: Any) -> Field:
+    async def create(self, filters: Sequence[ColumnElement[bool]] | None = None, **kwargs: Any) -> Field:  # type: ignore[reportIncompatibleMethodOverride]
         """Create a new field, using an existing session or a new one.
 
         Args:

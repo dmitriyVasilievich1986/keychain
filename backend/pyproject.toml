@@ -39,6 +39,7 @@ dependencies = [
 dev = [
     "dotenv>=0.9.9",
     "ipykernel>=7.3.0",
+    "pre-commit>=4.6.0",
     "pyright[nodejs]>=1.1.411",
     "pytest>=9.1.1",
     "pytest-asyncio>=1.4.0",

@@ -10,13 +10,13 @@ Keychain Frontend is a secure password manager interface that allows users to st
 
 - **React 19** - UI library
 - **TypeScript** - Type-safe development
-- **Vite** - Fast build tool and development server
+- **Vite+** - Unified toolchain (`vp`) for Vite, Oxlint, and Oxfmt
 - **Material-UI (MUI)** - Component library
 - **Zustand** - Lightweight state management
 - **React Router** - Client-side routing
 - **Axios** - HTTP client
 - **Sass** - CSS preprocessor
-- **ESLint & Prettier** - Code quality and formatting
+- **Oxlint & Oxfmt** - Linting and formatting (via `vp lint` / `vp fmt`)
 
 ## Project Structure
 
@@ -41,8 +41,9 @@ frontend/
 │   ├── App.tsx              # Main application component
 │   └── main.tsx             # Application entry point
 ├── index.html               # HTML template
-├── vite.config.ts           # Vite configuration
-├── tsconfig.json            # TypeScript configuration
+├── vite.config.ts           # Vite+, lint, fmt, and path aliases
+├── tsconfig.json            # TypeScript project references
+├── types/vite/client.d.ts   # Ambient asset / env typings
 └── package.json             # Dependencies and scripts
 ```
 
@@ -60,8 +61,10 @@ The project uses path aliases for cleaner imports:
 
 ### Prerequisites
 
-- Node.js (v20.19+ or v22.12+, as required by Vite 7)
-- npm or yarn
+- Node.js 24
+- npm 12.0.1 (see `package.json` `devEngines`; install with `npm install -g npm@12.0.1` if needed)
+
+See also [AGENTS.md](./AGENTS.md) for Vite+ agent guidance.
 
 ### Installation
 
@@ -74,7 +77,7 @@ npm install
 2. Start the development server:
 
 ```bash
-npm run dev
+npm run dev   # vp dev
 ```
 
 The application will be available at `http://localhost:5173`
@@ -87,7 +90,7 @@ The application will be available at `http://localhost:5173`
 npm run dev
 ```
 
-Starts the Vite development server with hot module replacement.
+Starts the Vite+ development server (`vp dev`) with hot module replacement.
 
 ### Build
 
@@ -95,7 +98,7 @@ Starts the Vite development server with hot module replacement.
 npm run build
 ```
 
-Compiles TypeScript and builds the application for production. Output is generated in the `../static` directory.
+Runs `tsc -b` then `vp build`. Output is written to `../static`.
 
 ### Preview
 
@@ -103,20 +106,17 @@ Compiles TypeScript and builds the application for production. Output is generat
 npm run preview
 ```
 
-Previews the production build locally.
+Previews the production build locally (`vp preview`).
 
-### Linting
-
-```bash
-npm run lint:check    # Check for linting errors
-npm run lint:fix      # Fix linting errors automatically
-```
-
-### Formatting
+### Lint & format
 
 ```bash
-npm run format:check  # Check code formatting
-npm run format:fix    # Format code automatically
+npm run lint:check     # vp lint .
+npm run lint:fix       # vp lint . --fix
+npm run format:check   # vp fmt --check .
+npm run format:fix     # vp fmt .
+npm run typecheck      # tsc --noEmit
+npm run lint:all       # fmt + lint --fix + typecheck
 ```
 
 ## Usage Examples
@@ -234,7 +234,7 @@ function Example() {
 1. Use TypeScript for all new files
 2. Follow the established folder structure
 3. Use path aliases for imports
-4. Run linting and formatting before committing
+4. Run `npm run lint:all` (or rely on repo pre-commit `vp fmt` / `vp lint`) before committing
 5. Create reusable components in the `components/` directory
 6. Keep business logic in Zustand stores
 7. Use Material-UI components for consistency

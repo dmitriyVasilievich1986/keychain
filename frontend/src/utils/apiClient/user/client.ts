@@ -24,7 +24,7 @@ export const useUserAPIClient = () => {
     /**
      * Fetches the authenticated user (`GET /api/v1/user/me`). Does not update the global store — callers own persistence.
      *
-     * @returns {Promise<User>} Current user payload from the API.
+     * @returns Current user payload from the API.
      */
     getUser: async () => {
       const response = await apiClientInstance.get<User>('/api/v1/user/me');
@@ -34,7 +34,7 @@ export const useUserAPIClient = () => {
      * Sends a full profile update (`PUT /api/v1/user`) and passes the response to `setUser` so the main store matches the server.
      *
      * @param request - Body with `firstName`, `lastName`, and `photoUrl`.
-     * @returns {Promise<UserType>} Updated user returned by the API (also written to the store).
+     * @returns Updated user returned by the API (also written to the store).
      */
     putUser: async (request: UserPutRequest) => {
       return wrapper(async () => {
