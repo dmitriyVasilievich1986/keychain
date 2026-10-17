@@ -45,17 +45,17 @@ class DBConfig(BaseModel):
         """The SQLAlchemy database URL."""
         match self.provider:
             case "sqlite":
-                return URL.create("sqlite+aiosqlite", database=self.host)
+                return URL.create("sqlite+aiosqlite", database=self.host).render_as_string(hide_password=False)
             case "postgresql":
-                if not all((self.user, self.password, self.name)):
+                if self.user is None or self.password is None or self.name is None:
                     raise ValueError("User, password and name are required for PostgreSQL")
                 return URL.create(
                     "postgresql+asyncpg",
-                    username=self.user.get_secret_value(),  # type: ignore[union-attr]
-                    password=self.password.get_secret_value(),  # type: ignore[union-attr]
+                    username=self.user.get_secret_value(),
+                    password=self.password.get_secret_value(),
                     host=self.host,
                     port=self.port,
                     database=self.name,
-                )
+                ).render_as_string(hide_password=False)
             case _:
                 raise ValueError(f"Invalid database provider: {self.provider}")

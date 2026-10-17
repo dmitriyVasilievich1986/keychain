@@ -62,20 +62,14 @@ class FieldDAO(BaseDAO[Field]):
 
         return await self._get_by_pk_raw(session, new_field.id, pk_column_name, filters)
 
-    async def _create_raw(  # type: ignore[reportIncompatibleMethodOverride]
-        self,
-        session: AsyncSession,
-        filters: Sequence[ColumnElement[bool]] | None,
-        **kwargs: Any,
-    ) -> Field:
+    async def _create_raw(self, session: AsyncSession, **kwargs: Any) -> Field:
         """Create a new field associated with an existing password.
 
         Args:
             session (AsyncSession): The database session to use.
-            filters (Sequence[ColumnElement[bool]] | None, optional): Additional
-                filters to apply when validating the parent password. Defaults
-                to None.
             **kwargs (Any): Field attributes; must include ``password_id``.
+                An optional ``filters`` (Sequence[ColumnElement[bool]] | None)
+                restricts which parent passwords are considered valid.
 
         Returns:
             Field: The newly created field.
@@ -84,6 +78,7 @@ class FieldDAO(BaseDAO[Field]):
             ValueError: If ``password_id`` is not provided in ``kwargs``.
 
         """
+        filters: Sequence[ColumnElement[bool]] | None = kwargs.pop("filters", None)
         if (password_id := kwargs.get("password_id")) is None:
             raise ValueError("Password ID is required")
 
@@ -98,7 +93,7 @@ class FieldDAO(BaseDAO[Field]):
         await session.commit()
         return await self._get_by_pk_raw(session, getattr(obj, self.pk_column_name), self.pk_column_name, filters)
 
-    async def create(self, filters: Sequence[ColumnElement[bool]] | None = None, **kwargs: Any) -> Field:  # type: ignore[reportIncompatibleMethodOverride]
+    async def create(self, filters: Sequence[ColumnElement[bool]] | None = None, **kwargs: Any) -> Field:
         """Create a new field, using an existing session or a new one.
 
         Args:
@@ -113,7 +108,7 @@ class FieldDAO(BaseDAO[Field]):
         if self.session is not None:
             return await self._create_raw(self.session, **kwargs, filters=filters)
 
-        async with self.database_client.session_factory() as session:  # type: ignore[union-attr]
+        async with self._session_factory() as session:
             return await self._create_raw(session, **kwargs, filters=filters)
 
     async def _delete_raw(

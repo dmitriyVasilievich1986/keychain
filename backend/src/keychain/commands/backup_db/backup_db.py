@@ -54,7 +54,7 @@ class BackupDBCommand(BaseCommand[DBBackup]):
                 return [
                     "pg_dump",
                     "-U",
-                    cast(str, cast(SecretStr, self.app_config.db.user).get_secret_value()),
+                    cast(SecretStr, self.app_config.db.user).get_secret_value(),
                     "-h",
                     self.app_config.db.host,
                     "-p",
@@ -66,7 +66,7 @@ class BackupDBCommand(BaseCommand[DBBackup]):
                     "-v",
                     "-f",
                     str(backup_file_path),
-                ], {"PGPASSWORD": cast(str, cast(SecretStr, self.app_config.db.password).get_secret_value())}
+                ], {"PGPASSWORD": cast(SecretStr, self.app_config.db.password).get_secret_value()}
             case _:
                 raise ValueError(f"Invalid database provider: {self.app_config.db.provider}")
 
