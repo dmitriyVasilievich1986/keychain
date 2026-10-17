@@ -12,5 +12,9 @@ class VersionResponse(BaseResponseModel):
 
     version: str = Field(
         ...,
-        description="Service version",
+        description="Backend service version",
+    )
+    application_version: str = Field(
+        ...,
+        description="Application-level version, derived from the latest git tag",
     )
