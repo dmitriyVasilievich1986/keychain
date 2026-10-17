@@ -40,11 +40,13 @@ dev = [
     "dotenv>=0.9.9",
     "ipykernel>=7.3.0",
     "pre-commit>=4.6.0",
-    "pyright[nodejs]>=1.1.411",
+    "ruff>=0.14.4",
+    "ty>=0.0.89",
+]
+test = [
     "pytest>=9.1.1",
     "pytest-asyncio>=1.4.0",
     "pytest-cov>=7.1.0",
-    "ruff>=0.14.4",
 ]
 
 [build-system]
@@ -117,15 +119,8 @@ select = [
     "FIX",   # flake8-fixme (FIX)
 ]
 ignore = [
-    "E712",
-    "RUF001",
     "N817",
     "N814",
-    "RUF100",
-    "D100",
-    "D101",
-    "D104",
-    "D401",
     "D203",
     "D213",
     "COM812",
@@ -229,12 +224,14 @@ exclude_lines = [
 [tool.coverage.html]
 directory = "htmlcov"
 
-[tool.pyright]
-include = ["src", "tests"]
-exclude = ["**/__pycache__", "*.ipynb"]
-venvPath = "."
-venv = ".venv"
-pythonVersion = "3.13"
-typeCheckingMode = "basic"
-reportMissingImports = true
-reportMissingTypeStubs = false
+[tool.ty.environment]
+root = ["./src", "./tests"]
+python-version = "3.13"
+python-platform = "linux"
+
+[tool.ty.src]
+exclude = ["**/__pycache__", "**/*.ipynb"]
+
+[tool.ty.rules]
+possibly-missing-import = "error"
+unused-ignore-comment = "warn"

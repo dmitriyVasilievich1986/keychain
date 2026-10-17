@@ -37,7 +37,7 @@ class UserDAO(BaseDAO[User]):
         if self.session is not None:
             return await self._get_by_pk_raw(self.session, username, "name", filters)
 
-        async with self.database_client.session_factory() as session:  # type: ignore[union-attr]
+        async with self._session_factory() as session:
             return await self._get_by_pk_raw(session, username, "name", filters)
 
     async def reset_password(
@@ -67,5 +67,5 @@ class UserDAO(BaseDAO[User]):
         if self.session is not None:
             return await self._update_raw(self.session, pk, col, filters=filters, password_hash=new_password_hash)
 
-        async with self.database_client.session_factory() as session:  # type: ignore[union-attr]
+        async with self._session_factory() as session:
             return await self._update_raw(session, pk, col, filters=filters, password_hash=new_password_hash)
