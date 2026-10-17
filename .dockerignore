@@ -1,0 +1,15 @@
+**/node_modules
+**/__pycache__
+**/*.pyc
+
+backend/.venv
+backend/htmlcov
+backend/.pytest_cache
+backend/.ruff_cache
+
+frontend/dist
+
+static
+db/data
+backup
+nginx/ssl
