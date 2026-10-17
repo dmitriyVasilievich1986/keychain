@@ -26,7 +26,7 @@ class DBConfig(BaseModel):
         backup_folder_path: The path to the backup folder.
         backup_count: The number of backups to keep.
 
-    """  # noqa: E501
+    """
 
     alembic_ini_path: Path = Field(..., description="Path to the Alembic configuration file")
     provider: Literal["postgresql"] = Field(..., description="The database provider")

@@ -117,13 +117,8 @@ select = [
     "FIX",   # flake8-fixme (FIX)
 ]
 ignore = [
-    "E712",
-    "RUF001",
     "N817",
     "N814",
-    "RUF100",
-    "D101",
-    "D104",
     "D203",
     "D213",
     "COM812",
