@@ -61,9 +61,9 @@ jobs:
         if: steps.changes.outputs.backend == 'true'
         run: uv run ruff format --check src/
 
-      - name: Run pyright type checker
+      - name: Run ty type checker
         if: steps.changes.outputs.backend == 'true'
-        run: uv run pyright src/
+        run: uv run ty check src/
 
       - name: Build release distributions
         if: steps.changes.outputs.backend == 'true'

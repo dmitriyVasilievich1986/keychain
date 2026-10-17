@@ -1,3 +1,5 @@
+"""Utilities for locating database backup dump files on disk."""
+
 from pathlib import Path
 
 from keychain.commands.backup_db.models import DBBackup

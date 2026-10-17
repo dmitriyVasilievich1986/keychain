@@ -6,7 +6,7 @@ from abc import ABC
 from typing import Any, Literal, overload, Sequence
 
 from sqlalchemy import asc, desc, func, select, update
-from sqlalchemy.ext.asyncio import AsyncSession
+from sqlalchemy.ext.asyncio import async_sessionmaker, AsyncSession
 from sqlalchemy.orm import load_only, selectinload
 from sqlalchemy.orm.attributes import InstrumentedAttribute
 from sqlalchemy.sql import ColumnElement
@@ -92,6 +92,16 @@ class BaseDAO[DatabaseModel: Base](ABC):
 
         self.database_client = database_client
         self.session = session
+
+    @property
+    def _session_factory(self) -> async_sessionmaker[AsyncSession]:
+        """Return the bound client's session factory.
+
+        The ``database_client is None`` case is ruled out by ``__init__``
+        whenever ``self.session`` is None, which is the only time this is used.
+        """
+        assert self.database_client is not None
+        return self.database_client.session_factory
 
     @classmethod
     def parse_filters(cls, filters: AcceptableFiltersType) -> list[ColumnElement[bool]]:
@@ -203,7 +213,7 @@ class BaseDAO[DatabaseModel: Base](ABC):
         if self.session is not None:
             return await self._get_by_pk_raw(self.session, pk, pk_column_name, filters)
 
-        async with self.database_client.session_factory() as session:  # type: ignore[union-attr]
+        async with self._session_factory() as session:
             return await self._get_by_pk_raw(session, pk, pk_column_name, filters)
 
     async def _get_total_raw(self, session: AsyncSession, filters: Sequence[ColumnElement[bool]] | None = None) -> int:
@@ -244,7 +254,7 @@ class BaseDAO[DatabaseModel: Base](ABC):
         if self.session is not None:
             return await self._get_total_raw(self.session, filters)
 
-        async with self.database_client.session_factory() as session:  # type: ignore[union-attr]
+        async with self._session_factory() as session:
             return await self._get_total_raw(session, filters)
 
     async def _get_all_raw(
@@ -327,7 +337,7 @@ class BaseDAO[DatabaseModel: Base](ABC):
         if self.session is not None:
             return await self._get_all_raw(self.session, limit, offset, sort_by, sort_order, filters)
 
-        async with self.database_client.session_factory() as session:  # type: ignore[union-attr]
+        async with self._session_factory() as session:
             return await self._get_all_raw(session, limit, offset, sort_by, sort_order, filters)
 
     async def _create_raw(self, session: AsyncSession, **kwargs: Any) -> DatabaseModel:
@@ -359,7 +369,7 @@ class BaseDAO[DatabaseModel: Base](ABC):
         if self.session is not None:
             return await self._create_raw(self.session, **kwargs)
 
-        async with self.database_client.session_factory() as session:  # type: ignore[union-attr]
+        async with self._session_factory() as session:
             return await self._create_raw(session, **kwargs)
 
     async def _update_raw(
@@ -423,7 +433,7 @@ class BaseDAO[DatabaseModel: Base](ABC):
         if self.session is not None:
             return await self._update_raw(self.session, pk, col, **kwargs, filters=filters)
 
-        async with self.database_client.session_factory() as session:  # type: ignore[union-attr]
+        async with self._session_factory() as session:
             return await self._update_raw(session, pk, col, **kwargs, filters=filters)
 
     async def _delete_raw(
@@ -481,5 +491,5 @@ class BaseDAO[DatabaseModel: Base](ABC):
         if self.session is not None:
             return await self._delete_raw(self.session, pk, col, instance, filters)
 
-        async with self.database_client.session_factory() as session:  # type: ignore[union-attr]
+        async with self._session_factory() as session:
             return await self._delete_raw(session, pk, col, instance, filters)

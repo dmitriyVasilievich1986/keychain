@@ -96,7 +96,7 @@ async def get_user(ctx: click.Context, user_id: int | None, username: str | None
 
     user_dao: UserDAO = ctx.obj["user_dao"]
     user = (
-        await user_dao.get_by_pk(cast(int, user_id))
+        await user_dao.get_by_pk(user_id)
         if user_id is not None
         else await user_dao.get_by_username(cast(str, username))
     )
@@ -186,7 +186,7 @@ async def verify_password(ctx: click.Context, user_id: int | None, username: str
 
     user_dao: UserDAO = ctx.obj["user_dao"]
     user = (
-        await user_dao.get_by_pk(cast(int, user_id))
+        await user_dao.get_by_pk(user_id)
         if user_id is not None
         else await user_dao.get_by_username(cast(str, username))
     )

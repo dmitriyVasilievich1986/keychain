@@ -61,10 +61,12 @@ def _maintenance_url(config: AppConfig) -> URL:
     the same credentials.
     """
     db = config.db
+    assert db.user is not None
+    assert db.password is not None
     return URL.create(
         "postgresql+asyncpg",
-        username=db.user.get_secret_value(),  # type: ignore[union-attr]
-        password=db.password.get_secret_value(),  # type: ignore[union-attr]
+        username=db.user.get_secret_value(),
+        password=db.password.get_secret_value(),
         host=db.host,
         port=db.port,
         database=MAINTENANCE_DB_NAME,

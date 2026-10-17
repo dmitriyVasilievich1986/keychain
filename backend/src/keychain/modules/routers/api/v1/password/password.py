@@ -185,7 +185,7 @@ async def patch_password(
     db: Annotated[DBClient, Depends(get_db)],
     user: Annotated[User, Depends(authorize_user(AppConfig))],
 ) -> PasswordGetResponseModel:
-    """Partially update a password by its ID for the authenticated user.
+    """Update a password partially by its ID for the authenticated user.
 
     Only the fields explicitly provided in the request body are updated.
 

@@ -6,6 +6,7 @@ from typing import AsyncGenerator
 
 from loguru import logger
 from sqlalchemy import event, text
+from sqlalchemy.engine.interfaces import DBAPIConnection
 from sqlalchemy.exc import SQLAlchemyError
 from sqlalchemy.ext.asyncio import async_sessionmaker, AsyncEngine, AsyncSession, create_async_engine
 from sqlalchemy.pool import ConnectionPoolEntry
@@ -55,7 +56,7 @@ class DBClient(metaclass=Singleton):
         logger.info("Database client initialized successfully.")
 
     @staticmethod
-    def _set_sqlite_pragma(dbapi_connection: object, _connection_record: ConnectionPoolEntry) -> None:
+    def _set_sqlite_pragma(dbapi_connection: DBAPIConnection, _connection_record: ConnectionPoolEntry) -> None:
         """Enable foreign-key enforcement for a new SQLite connection.
 
         Args:
@@ -66,7 +67,7 @@ class DBClient(metaclass=Singleton):
             None
 
         """
-        cursor = dbapi_connection.cursor()  # type: ignore[attr-defined]
+        cursor = dbapi_connection.cursor()
         cursor.execute("PRAGMA foreign_keys=ON")
         cursor.close()
 
