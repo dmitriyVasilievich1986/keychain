@@ -55,7 +55,7 @@ services:
       - path: ./backend/db.env
         required: false
     environment:
-      - CONFIG_FILE_PATH=/opt/backend/configurations/production.yaml
+      - ENVIRONMENT=production
     volumes:
       - ./backup:/opt/backend/backup
       - frontend-static:/opt/backend/static
