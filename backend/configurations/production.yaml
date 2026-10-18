@@ -1,21 +1,39 @@
+environment: "production"
+
 info:
   name: keychain
+  host: "0.0.0.0"
+  port: 8000
+  log_level: "INFO"
+  debug: false
+  description: Keychain Application to store and retrieve secrets
 
   api:
+    api_prefix: "/keychain"
     allow_credentials: true
-    allow_origins: ["*"]
-    allow_methods: ["*"]
-    allow_headers: ["*"]
+    allow_origins:
+      - "*"
+    allow_methods:
+      - "*"
+    allow_headers:
+      - "*"
 
 db:
-  alembic_ini_path: src/keychain/services/alembic/alembic.ini
-  provider: postgresql
-  host: db
-  port: 5432
-  name: keychain
-  backup_folder_path: backup
+  alembic_ini_path: "Put your path to the alembic.ini file here"
+  backup_folder_path: "Put your path to the backup folder here"
   backup_count: 5
+  postgresql:
+    provider: postgresql+asyncpg
+    host: db
+    port: 5432
+    name: "keychain"
+    user: "Put your database user here"
+    password: "Put your database password here"
+
+cryptography:
+  secret_key: "Put your secret key here"
 
 auth:
+  jwt_secret_key: "Put your JWT secret key here"
   algorithm: HS256
-  access_token_expire_minutes: 30
+  access_token_expire_minutes: 480 # 8 hours
