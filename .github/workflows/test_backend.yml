@@ -67,10 +67,10 @@ jobs:
         if: steps.changes.outputs.backend == 'true'
         working-directory: ./backend
         env:
-          DB__HOST: localhost
-          DB__PORT: "5432"
-          DB__USER: root
-          DB__PASSWORD: root
+          DB__POSTGRESQL__HOST: localhost
+          DB__POSTGRESQL__PORT: "5432"
+          DB__POSTGRESQL__USER: root
+          DB__POSTGRESQL__PASSWORD: root
         run: uv run pytest
 
       - name: Upload coverage HTML report

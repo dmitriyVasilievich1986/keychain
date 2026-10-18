@@ -5,13 +5,10 @@ __all__ = ("DBClient",)
 from typing import AsyncGenerator
 
 from loguru import logger
-from sqlalchemy import event, text
-from sqlalchemy.engine.interfaces import DBAPIConnection
-from sqlalchemy.exc import SQLAlchemyError
+from sqlalchemy import text
 from sqlalchemy.ext.asyncio import async_sessionmaker, AsyncEngine, AsyncSession, create_async_engine
-from sqlalchemy.pool import ConnectionPoolEntry
 
-from keychain.config import AppConfig
+from keychain.config.models.db.postgresql import PostgresqlConfig
 from keychain.utils.singleton import Singleton
 
 
@@ -21,55 +18,40 @@ class DBClient(metaclass=Singleton):
     _engine: AsyncEngine
     _session_factory: async_sessionmaker[AsyncSession]
 
-    def __init__(self, app_config: AppConfig | None = None) -> None:
+    def __init__(self, db_config: PostgresqlConfig | None = None, debug: bool = False) -> None:
         """Build the async engine and session factory from app configuration.
 
         For SQLite, registers a connect hook that enables ``PRAGMA foreign_keys``.
 
         Args:
-            app_config (AppConfig | None, optional): Application config with
+            db_config (PostgresqlConfig | None): Application config with
                 database URL and options. Defaults to None.
+            debug (bool): Whether to echo SQL statements emitted by the engine.
+                Defaults to False.
 
         Returns:
             None
 
         Raises:
-            RuntimeError: If ``app_config`` is None.
+            RuntimeError: If ``db_config`` is None.
 
         """
-        if app_config is None:
+        if db_config is None:
             raise RuntimeError("App config is required")
-        logger.info(f"Initializing database client with URL: {app_config.db.sqlalchemy_uri}")
+
+        logger.info(f"Initializing database client with URL: {db_config.sqlalchemy_uri}")
 
         self._engine = create_async_engine(
-            app_config.db.sqlalchemy_uri,
-            echo=app_config.info.debug,
+            db_config.sqlalchemy_uri,
+            echo=debug,
             future=True,
         )
-        if app_config.db.provider == "sqlite":
-            event.listen(self._engine.sync_engine, "connect", self._set_sqlite_pragma)
         self._session_factory = async_sessionmaker[AsyncSession](
             self._engine,
             class_=AsyncSession,
             expire_on_commit=False,
         )
         logger.info("Database client initialized successfully.")
-
-    @staticmethod
-    def _set_sqlite_pragma(dbapi_connection: DBAPIConnection, _connection_record: ConnectionPoolEntry) -> None:
-        """Enable foreign-key enforcement for a new SQLite connection.
-
-        Args:
-            dbapi_connection (object): DBAPI connection from the pool.
-            _connection_record (ConnectionPoolEntry): Pool entry (unused).
-
-        Returns:
-            None
-
-        """
-        cursor = dbapi_connection.cursor()
-        cursor.execute("PRAGMA foreign_keys=ON")
-        cursor.close()
 
     @property
     def engine(self) -> AsyncEngine:
@@ -122,7 +104,7 @@ class DBClient(metaclass=Singleton):
         try:
             async with self._session_factory() as session:
                 await session.execute(text("SELECT 1"))
-        except SQLAlchemyError as e:
+        except Exception as e:
             logger.error(f"Database health check failed: {e}")
             return False
 

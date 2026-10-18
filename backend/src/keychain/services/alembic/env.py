@@ -26,7 +26,7 @@ if config.config_file_name is not None:
     fileConfig(config.config_file_name)
 
 app_config = AppConfig.get_or_create()
-db_client = DBClient(app_config=app_config)
+db_client = DBClient(app_config.db.postgresql, app_config.info.debug)
 
 logger.info("Alembic migrations started")
 logger.info(f"Models: {models.__all__}")

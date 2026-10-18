@@ -60,7 +60,7 @@ def _maintenance_url(config: AppConfig) -> URL:
     being (re)created, so we connect to the default ``postgres`` database using
     the same credentials.
     """
-    db = config.db
+    db = config.db.postgresql
     assert db.user is not None
     assert db.password is not None
     return URL.create(
@@ -135,7 +135,7 @@ async def db_client(app_config: AppConfig) -> AsyncGenerator[DBClient, None]:
     created and torn down on the loop that uses them.
     """
     _reset_singletons()
-    client = DBClient(app_config=app_config)
+    client = DBClient(app_config.db.postgresql, app_config.info.debug)
     yield client
     await client.close()
     _reset_singletons()

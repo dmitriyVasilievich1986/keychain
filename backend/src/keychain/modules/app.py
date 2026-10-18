@@ -53,7 +53,7 @@ def get_app(config: AppConfig | None = None) -> FastAPI:
         allow_headers=config.info.api.allow_headers,
     )
 
-    app_router = APIRouter()
+    app_router = APIRouter(prefix=config.info.api.api_prefix)
     app_router.include_router(api_router)
     app_router.include_router(system_router)
 

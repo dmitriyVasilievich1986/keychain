@@ -1,6 +1,6 @@
 """Cryptography configuration settings."""
 
-__all__ = ["CryptographyConfig"]
+__all__ = ("CryptographyConfig",)
 
 from pydantic import BaseModel, Field, SecretStr
 
@@ -9,6 +9,10 @@ class CryptographyConfig(BaseModel):
     """Cryptography configuration model.
 
     This model stores the cryptography configuration settings including the secret key.
+
+    Attributes:
+        secret_key: The secret key for the application.
+
     """
 
     secret_key: SecretStr = Field(..., description="The secret key for the application")

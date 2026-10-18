@@ -5,6 +5,7 @@ __all__ = ("AppInfo",)
 from pydantic import BaseModel, Field
 
 from keychain import __version__
+from keychain.application_version import APPLICATION_VERSION
 
 from .api import API
 
@@ -23,13 +24,20 @@ class AppInfo(BaseModel):
             Can be set via the APP_VERSION environment variable shortcut.
         description: The application description. Defaults to "Keychain Application".
         debug: The debug mode. Defaults to False.
+        host: The host the application binds to. Defaults to "0.0.0.0".
+        port: The port the application binds to. Defaults to 8000.
+        log_level: The logging level. Defaults to "INFO".
         api: The API configuration.
 
     """
 
     name: str = Field(default="keychain", description="Application name")
     version: str = Field(default=__version__, description="Application version")
+    application_version: str = Field(default=APPLICATION_VERSION, description="Application version")
     description: str = Field(default="Keychain Application", description="Application description")
     debug: bool = Field(default=False, description="Debug mode")
+    host: str = Field(default="0.0.0.0", description="Host")
+    port: int = Field(default=8000, description="Port")
+    log_level: str = Field(default="INFO", description="Log level")
 
     api: API = Field(..., description="API configuration")

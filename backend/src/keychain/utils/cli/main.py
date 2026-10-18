@@ -5,7 +5,6 @@ __all__ = ("main",)
 
 import asyncclick as click
 import uvicorn
-from uvicorn import Config, Server
 
 from keychain.config import AppConfig
 
@@ -75,8 +74,7 @@ def show_config(ctx: click.Context) -> None:
 @main.command(help="Run the Keychain Application server.")
 @click.option("--host", default="0.0.0.0", help="Host to bind the server to.")
 @click.option("--port", default=8000, help="Port to bind the server to.")
-@click.option("--reload", is_flag=True, default=False, help="Enable auto-reload for development.")
-async def run(host: str, port: int, reload: bool) -> None:
+async def run(host: str, port: int) -> None:
     """Start the Keychain Application web server using Uvicorn.
 
     Launches the FastAPI application server with the specified configuration.
@@ -86,19 +84,15 @@ async def run(host: str, port: int, reload: bool) -> None:
     Args:
         host: The network interface to bind the server to (default: "0.0.0.0").
         port: The port number to listen on (default: 8000).
-        reload: Enable auto-reload when code changes are detected (default: False).
 
     Returns:
         None
 
     """
-    click.echo(f"Starting Keychain Application on {host}:{port} (reload={reload})")
+    click.echo(f"Starting Keychain Application on {host}:{port}")
     app = "keychain.modules.app:get_app"
 
-    if reload:
-        uvicorn.run(app, host=host, port=port, reload=True, factory=True)
-    else:
-        await Server(Config(app, host=host, port=port, factory=True)).serve()
+    uvicorn.run(app, host=host, port=port, reload=True, factory=True)
 
 
 main.add_command(db)

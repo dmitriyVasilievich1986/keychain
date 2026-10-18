@@ -1,10 +1,14 @@
 services:
   nginx:
-    image: keychain-nginx:latest
+    image: nginx:stable-alpine
     container_name: keychain-nginx
     ports:
       - 80:80
       - 443:443
+    volumes:
+      - ./nginx/config/nginx.conf:/etc/nginx/nginx.conf:ro
+      - ./nginx/ssl:/etc/nginx/ssl:ro
+      - frontend-static:/usr/share/nginx/html/static:ro
     networks:
       - keychain-network
     depends_on:
@@ -51,9 +55,10 @@ services:
       - path: ./backend/db.env
         required: false
     environment:
-      - CONFIG_FILE_PATH=/opt/backend/configurations/production.yaml
+      - ENVIRONMENT=production
     volumes:
       - ./backup:/opt/backend/backup
+      - frontend-static:/opt/backend/static
     networks:
       - keychain-network
     healthcheck:
@@ -62,6 +67,9 @@ services:
       timeout: 5s
       retries: 3
       start_period: 10s
+
+volumes:
+  frontend-static:
 
 networks:
   keychain-network:
