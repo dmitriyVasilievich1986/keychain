@@ -29,6 +29,13 @@ db:
     name: "test_db"
     user: "Put your database user here"
     password: "Put your database password here"
+  firestore:
+    db_name: "Put your Firestore database name here"
+    collection_name: "Put your Firestore collection name here"
+
+google:
+  project_id: "Put your Google project ID here"
+  credentials_path: "Put your path to the Google credentials file here"
 
 cryptography:
   secret_key: "Put your secret key here"
