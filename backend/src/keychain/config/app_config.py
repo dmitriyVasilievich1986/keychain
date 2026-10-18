@@ -29,7 +29,7 @@ class AppConfig(BaseConfig):
     """
 
     environment: Literal["local", "production", "test"] = Field(
-        "local",
+        "production",
         description="Environment name",
     )
 
