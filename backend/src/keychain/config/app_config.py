@@ -7,7 +7,7 @@ from typing import Literal
 from pydantic import Field
 
 from .base import BaseConfig
-from .models import AppInfo, AuthConfig, CryptographyConfig, DBConfig
+from .models import AppInfo, AuthConfig, CryptographyConfig, DBConfig, GoogleConfig
 
 
 class AppConfig(BaseConfig):
@@ -37,6 +37,7 @@ class AppConfig(BaseConfig):
     db: DBConfig = Field(..., description="Database configuration")
     cryptography: CryptographyConfig = Field(..., description="Cryptography configuration")
     auth: AuthConfig = Field(..., description="Authentication configuration")
+    google: GoogleConfig = Field(..., description="Google configuration")
 
     @property
     def is_local(self) -> bool:

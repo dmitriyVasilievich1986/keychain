@@ -6,6 +6,7 @@ from pathlib import Path
 
 from pydantic import BaseModel, Field
 
+from .firestore import FirestoreConfig
 from .postgresql import PostgresqlConfig
 
 
@@ -20,6 +21,8 @@ class DBConfig(BaseModel):
         alembic_ini_path: The path to the Alembic configuration file.
         backup_folder_path: The path to the backup folder.
         backup_count: The number of backups to keep.
+        postgresql: PostgreSQL database configuration.
+        firestore: Firestore database configuration.
 
     """
 
@@ -28,3 +31,4 @@ class DBConfig(BaseModel):
     backup_count: int = Field(5, description="The number of backups to keep")
 
     postgresql: PostgresqlConfig = Field(..., description="PostgreSQL database configuration")
+    firestore: FirestoreConfig = Field(..., description="Firestore database configuration")
