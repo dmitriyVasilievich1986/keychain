@@ -7,10 +7,8 @@ from datetime import datetime
 from os import environ
 from pathlib import Path
 from subprocess import CalledProcessError
-from typing import cast
 
 from loguru import logger
-from pydantic import SecretStr
 
 from keychain.config import AppConfig
 
@@ -49,26 +47,26 @@ class BackupDBCommand(BaseCommand[DBBackup]):
             ValueError: If the configured database provider is unsupported.
 
         """
-        match self.app_config.db.provider:
-            case "postgresql":
+        match self.app_config.db.postgresql.provider:
+            case "postgresql+asyncpg":
                 return [
                     "pg_dump",
                     "-U",
-                    cast(SecretStr, self.app_config.db.user).get_secret_value(),
+                    self.app_config.db.postgresql.user.get_secret_value(),
                     "-h",
-                    self.app_config.db.host,
+                    self.app_config.db.postgresql.host,
                     "-p",
-                    str(self.app_config.db.port),
+                    str(self.app_config.db.postgresql.port),
                     "-d",
-                    cast(str, self.app_config.db.name),
+                    self.app_config.db.postgresql.name,
                     "-Fc",
                     "-b",
                     "-v",
                     "-f",
                     str(backup_file_path),
-                ], {"PGPASSWORD": cast(SecretStr, self.app_config.db.password).get_secret_value()}
+                ], {"PGPASSWORD": self.app_config.db.postgresql.password.get_secret_value()}
             case _:
-                raise ValueError(f"Invalid database provider: {self.app_config.db.provider}")
+                raise ValueError(f"Invalid database provider: {self.app_config.db.postgresql.provider}")
 
     async def validate(self, *_, **__) -> None:
         """Validate config and prepare backup paths to create or delete.
@@ -85,14 +83,16 @@ class BackupDBCommand(BaseCommand[DBBackup]):
                 is missing.
 
         """
-        if self.app_config.db.provider not in self.available_db_types:
-            raise ValueError(f"Invalid database provider: {self.app_config.db.provider}")
+        if self.app_config.db.postgresql.provider not in self.available_db_types:
+            raise ValueError(f"Invalid database provider: {self.app_config.db.postgresql.provider}")
 
         if not self.db_backup_path.is_dir() or not self.db_backup_path.exists():
             raise ValueError(f"Database backup path does not exist: {self.db_backup_path}")
 
-        db_name = cast(str, self.app_config.db.name)
-        new_backup_file_name = f"{self.app_config.db.provider}_{datetime.now().strftime('%d-%m-%Y')}_{db_name}.dump"
+        db_name = self.app_config.db.postgresql.name
+        new_backup_file_name = (
+            f"{self.app_config.db.postgresql.provider}_{datetime.now().strftime('%d-%m-%Y')}_{db_name}.dump"
+        )
         self.new_backup_file_model = DBBackup.factory(self.db_backup_path / new_backup_file_name)
         if self.new_backup_file_model.backup_path.exists():
             logger.warning(
@@ -121,7 +121,7 @@ class BackupDBCommand(BaseCommand[DBBackup]):
             raise CalledProcessError(process.returncode or -1, " ".join(command))
         logger.info(f"Backup file created: {self.new_backup_file_model.backup_path}")
         backup_files = find_backup_files(
-            self.db_backup_path, self.app_config.db.provider, cast(str, self.app_config.db.name)
+            self.db_backup_path, self.app_config.db.postgresql.provider, self.app_config.db.postgresql.name
         )
         for file in backup_files[self.app_config.db.backup_count :]:
             file.backup_path.unlink()

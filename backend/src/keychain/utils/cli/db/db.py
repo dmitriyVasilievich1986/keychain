@@ -37,7 +37,7 @@ def db(ctx: click.Context) -> None:
     config: AppConfig = ctx.obj["config"]
     alembic_cfg = Config(config.db.alembic_ini_path)
     ctx.obj["alembic_cfg"] = alembic_cfg
-    ctx.obj["db_client_instance"] = DBClient(app_config=config)
+    ctx.obj["db_client_instance"] = DBClient(config.db.postgresql, config.info.debug)
 
 
 @db.command()
@@ -154,7 +154,7 @@ async def backup(
     if backup_folder_path is not None:
         app_config.db.backup_folder_path = Path(backup_folder_path)
     if db_name is not None:
-        app_config.db.name = db_name
+        app_config.db.postgresql.name = db_name
     if backup_count is not None:
         app_config.db.backup_count = backup_count
     cmd = BackupDBCommand(app_config)
@@ -206,7 +206,7 @@ async def restore(
     if backup_folder_path is not None:
         app_config.db.backup_folder_path = Path(backup_folder_path)
     if db_name is not None:
-        app_config.db.name = db_name
+        app_config.db.postgresql.name = db_name
     cmd = RestoreDBCommand(app_config, dump_file_path=backup_file_path)
     await cmd.validate()
     await cmd.execute()

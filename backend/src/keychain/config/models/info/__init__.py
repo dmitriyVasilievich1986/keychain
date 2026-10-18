@@ -5,6 +5,7 @@ __all__ = ("AppInfo",)
 from pydantic import BaseModel, Field
 
 from keychain import __version__
+from keychain.application_version import APPLICATION_VERSION
 
 from .api import API
 
@@ -32,6 +33,7 @@ class AppInfo(BaseModel):
 
     name: str = Field(default="keychain", description="Application name")
     version: str = Field(default=__version__, description="Application version")
+    application_version: str = Field(default=APPLICATION_VERSION, description="Application version")
     description: str = Field(default="Keychain Application", description="Application description")
     debug: bool = Field(default=False, description="Debug mode")
     host: str = Field(default="0.0.0.0", description="Host")

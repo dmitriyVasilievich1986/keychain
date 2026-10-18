@@ -37,7 +37,7 @@ class BaseConfig(BaseSettings):
     model_config = SettingsConfigDict(
         env_file=".env",
         env_file_encoding="utf-8",
-        env_nested_delimiter="__",
+        env_nested_delimiter=".",
         extra="ignore",
     )
 
@@ -72,7 +72,8 @@ class BaseConfig(BaseSettings):
             FileNotFoundError: If the specified YAML configuration file does not exist.
 
         """
-        file_path = Path(getenv("CONFIG_FILE_PATH", "configurations/production.yaml"))
+        environment = getenv("ENVIRONMENT", "production")
+        file_path = Path(p) if (p := getenv("CONFIG_FILE_PATH")) else Path(f"configurations/{environment}.yaml")
         if not file_path.exists():
             logger.error(f"Config file path {file_path} does not exist. Using default path.")
             raise FileNotFoundError(f"Config file path {file_path} does not exist.")

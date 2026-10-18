@@ -12,6 +12,7 @@ class API(BaseModel):
     allow origins, allow methods, and allow headers.
 
     Attributes:
+        api_prefix: API prefix.
         allow_credentials: Allow credentials.
         allow_origins: Allow origins.
         allow_methods: Allow methods.
@@ -19,6 +20,7 @@ class API(BaseModel):
 
     """
 
+    api_prefix: str = Field(..., description="API prefix")
     allow_credentials: bool = Field(..., description="Allow credentials")
     allow_origins: list[str] = Field(..., description="Allow origins")
     allow_methods: list[str] = Field(..., description="Allow methods")
