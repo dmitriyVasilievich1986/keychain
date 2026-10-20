@@ -5,19 +5,19 @@ __all__ = ("router",)
 from typing import Annotated
 
 from fastapi import APIRouter, Body, Depends, HTTPException, status
+from google.api_core.exceptions import GoogleAPICallError, NotFound
 from jwt.exceptions import PyJWTError
 from loguru import logger
-from sqlalchemy.exc import NoResultFound, SQLAlchemyError
 
 from keychain.config import AppConfig
-from keychain.modules.middlewares.dependencies import get_config, get_db
+from keychain.modules.middlewares.dependencies import get_config, get_firestore
 from keychain.modules.routers.models.request.user import (
     LoginRequestModel,
 )
 from keychain.modules.routers.models.response.user import AccessTokenResponseModel
 from keychain.services.auth.client import AuthClient
-from keychain.services.daos.user import UserDAO
-from keychain.services.db_client.client import DBClient
+from keychain.services.daos.firestore import UserDAO
+from keychain.services.db_client.firestore import FirestoreClient
 
 router = APIRouter(prefix="/user")
 
@@ -25,7 +25,7 @@ router = APIRouter(prefix="/user")
 @router.post("/login", response_model=AccessTokenResponseModel, description="Login a user")
 async def login_user(
     body: Annotated[LoginRequestModel, Body(description="Login request body")],
-    db: Annotated[DBClient, Depends(get_db)],
+    firestore: Annotated[FirestoreClient, Depends(get_firestore)],
     config: Annotated[AppConfig, Depends(get_config)],
 ) -> AccessTokenResponseModel:
     """Authenticate a user and issue an access token.
@@ -33,7 +33,8 @@ async def login_user(
     Args:
         body (LoginRequestModel): The login request containing username and
             password.
-        db (DBClient): The database client used to look up the user.
+        firestore (FirestoreClient): The Firestore client used to look up
+            the user.
         config (AppConfig): The application config used to build the auth
             client.
 
@@ -42,16 +43,16 @@ async def login_user(
 
     Raises:
         HTTPException: 404 if the username does not exist, 401 if the password
-            is incorrect, or 500 on a database or token encoding error.
+            is incorrect, or 500 on a Firestore or token encoding error.
 
     """
-    user_dao = UserDAO(db)
+    user_dao = UserDAO(firestore, collection_name=config.db.users.collection_name)
     try:
         user = await user_dao.get_by_username(body.username)
-    except NoResultFound as e:
+    except NotFound as e:
         logger.warning(f"User not found: {body.username}")
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Username or password is incorrect") from e
-    except SQLAlchemyError as e:
+    except GoogleAPICallError as e:
         logger.exception("Error logging in user", exc_info=e)
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail="An unexpected error occurred"

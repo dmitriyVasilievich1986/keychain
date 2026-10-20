@@ -6,9 +6,16 @@ from pydantic import Field
 
 from keychain.modules.routers.models.base.request import BaseRequestModel
 
+from .password_field import PasswordFieldCreate
+
 
 class PasswordPatchRequestModel(BaseRequestModel):
     """Password patch request model."""
 
     name: str | None = Field(None, description="The name of the password", min_length=1)
     image_url: str | None = Field(None, description="The URL of the image associated with the password")
+    fields: list[PasswordFieldCreate] | None = Field(
+        None,
+        description="The fields of the password; if provided, they replace the existing fields and their order "
+        "in the list defines their position",
+    )

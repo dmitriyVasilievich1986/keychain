@@ -7,7 +7,7 @@ import json
 import asyncclick as click
 
 from keychain.config import AppConfig
-from keychain.modules.routers.models.request.password import PasswordCreateRequestModel, PasswordUpdateRequestModel
+from keychain.modules.routers.models.request.password import PasswordCreateRequestModel, PasswordPatchRequestModel
 from keychain.modules.routers.models.response.password import PasswordGetResponseModel, SimplePasswordGet
 from keychain.services.cryptography.client import CryptographyClient
 from keychain.services.daos import PasswordDAO
@@ -113,8 +113,8 @@ async def update_password(ctx: click.Context, password_id: int, name: str, image
     """
     db_client: DBClient = ctx.obj["db_client_instance"]
     password_dao = PasswordDAO(db_client)
-    body = PasswordUpdateRequestModel(name=name, image_url=image_url)
-    password = await password_dao.update(password_id, **body.model_dump())
+    body = PasswordPatchRequestModel(name=name, image_url=image_url)
+    password = await password_dao.update(password_id, **body.model_dump(exclude={"fields"}))
     password_response = PasswordGetResponseModel.model_validate(password)
     click.echo(password_response.model_dump_json(indent=2))
 
