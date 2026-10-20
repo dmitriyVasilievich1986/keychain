@@ -5,6 +5,7 @@ __all__ = ("BaseFirestoreDAO",)
 from abc import ABC
 from datetime import date, datetime, time, timezone
 from typing import Any, Literal
+from uuid import uuid4
 
 from google.api_core.exceptions import NotFound
 from google.cloud.firestore import AsyncCollectionReference, AsyncQuery, DocumentSnapshot
@@ -29,8 +30,9 @@ class BaseFirestoreDAO[DocumentModel: BaseModel](ABC):
             ``"id"``.
         document_model (type[DocumentModel]): Pydantic model for documents in
             this collection.
-        collection_name (str | None): Collection this DAO operates on; None
-            uses the client's configured collection.
+        collection_name (str | None): Default collection for this DAO class;
+            overridden per instance by the ``collection_name`` init argument.
+            None uses the client's configured collection.
         base_filters (FirestoreFiltersType): Filters always applied together
             with per-call filters in list and count queries.
 
@@ -41,15 +43,25 @@ class BaseFirestoreDAO[DocumentModel: BaseModel](ABC):
     collection_name: str | None = None
     base_filters: FirestoreFiltersType = None
 
-    def __init__(self, firestore_client: FirestoreClient, **_: Any) -> None:
-        """Bind the DAO to a Firestore client.
+    def __init__(
+        self,
+        firestore_client: FirestoreClient,
+        collection_name: str | None = None,
+        **_: Any,
+    ) -> None:
+        """Bind the DAO to a Firestore client and a collection.
 
         Args:
             firestore_client (FirestoreClient): Client that owns the
                 underlying ``AsyncClient``.
+            collection_name (str | None, optional): Collection this instance
+                operates on; None keeps the class-level ``collection_name``.
+                Defaults to None.
 
         """
         self.firestore_client = firestore_client
+        if collection_name is not None:
+            self.collection_name = collection_name
 
     @property
     def collection(self) -> AsyncCollectionReference:
@@ -289,12 +301,10 @@ class BaseFirestoreDAO[DocumentModel: BaseModel](ABC):
         snapshots = await query.get()
         return [self.to_model(snapshot) for snapshot in snapshots], total
 
-    async def create(self, document_id: str | None = None, **kwargs: Any) -> DocumentModel:
+    async def create(self, **kwargs: Any) -> DocumentModel:
         """Validate and insert a new document.
 
         Args:
-            document_id (str | None, optional): ID for the new document; None
-                lets Firestore generate one. Defaults to None.
             **kwargs (Any): Field values for the new model.
 
         Returns:
@@ -304,7 +314,7 @@ class BaseFirestoreDAO[DocumentModel: BaseModel](ABC):
             Conflict: If a document with ``document_id`` already exists.
 
         """
-        reference = self.collection.document(document_id)
+        reference = self.collection.document(str(uuid4()))
         model = self.document_model.model_validate({**kwargs, self.id_field: reference.id})
         await reference.create(self.to_document(model))
         return model

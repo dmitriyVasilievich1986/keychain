@@ -32,3 +32,4 @@ class DBConfig(BaseModel):
 
     postgresql: PostgresqlConfig = Field(..., description="PostgreSQL database configuration")
     firestore: FirestoreConfig = Field(..., description="Firestore database configuration")
+    users: FirestoreConfig = Field(..., description="Firestore database configuration")
