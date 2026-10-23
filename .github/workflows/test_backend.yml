@@ -14,21 +14,6 @@ jobs:
   test-backend:
     runs-on: ubuntu-latest
 
-    services:
-      postgres:
-        image: postgres:18
-        env:
-          POSTGRES_USER: root
-          POSTGRES_PASSWORD: root
-          POSTGRES_DB: test_db
-        ports:
-          - 5432:5432
-        options: >-
-          --health-cmd "pg_isready -U root"
-          --health-interval 10s
-          --health-timeout 5s
-          --health-retries 5
-
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
@@ -63,14 +48,19 @@ jobs:
         working-directory: ./backend
         run: uv sync --all-groups
 
+      - name: Start Firestore emulator
+        if: steps.changes.outputs.backend == 'true'
+        run: |
+          docker run -d --name firestore-emulator -p 8080:8080 \
+            gcr.io/google.com/cloudsdktool/google-cloud-cli:emulators \
+            gcloud emulators firestore start --host-port=0.0.0.0:8080
+          timeout 120 bash -c 'until curl -sf http://localhost:8080 > /dev/null; do sleep 2; done'
+
       - name: Run tests with coverage
         if: steps.changes.outputs.backend == 'true'
         working-directory: ./backend
         env:
-          DB__POSTGRESQL__HOST: localhost
-          DB__POSTGRESQL__PORT: "5432"
-          DB__POSTGRESQL__USER: root
-          DB__POSTGRESQL__PASSWORD: root
+          FIRESTORE_EMULATOR_HOST: localhost:8080
         run: uv run pytest
 
       - name: Upload coverage HTML report

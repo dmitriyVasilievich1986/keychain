@@ -1,152 +1,146 @@
 """Shared pytest fixtures for the keychain backend test-suite.
 
-The fixtures here spin up a dedicated PostgreSQL database (``test_db``) for the
-whole test session: it is created before any test runs, migrated to ``head`` with
-Alembic, and dropped once the session finishes. Every test gets a clean set of
-tables via truncation between test functions.
+Tests run against the Firestore emulator, never a real GCP project.
+``FIRESTORE_EMULATOR_HOST`` defaults to ``localhost:8080``; start the emulator
+with::
+
+    gcloud emulators firestore start --host-port=localhost:8080
+
+Every test gets a fresh :class:`FirestoreClient` (its gRPC channel is bound to
+the test's event loop) and its own uniquely named collections, which are
+emptied once the test finishes.
 
 Environment variables are configured at import time (before any ``keychain``
-module is imported) so the application settings resolve to the throw-away test
-database rather than a real one.
+module is imported) so the application settings resolve to the test
+configuration.
 """
 
-import asyncio
 import os
+import socket
 from collections.abc import AsyncGenerator, Generator
 from pathlib import Path
+from uuid import uuid4
 
 BACKEND_DIR = Path(__file__).resolve().parent.parent
-TEST_DB_NAME = "test_db"
-MAINTENANCE_DB_NAME = "postgres"
+TEST_PROJECT_ID = "keychain-test"
 
-# Point the settings loader at the test configuration and force the test
-# database name. These must be set before importing any ``keychain`` module,
-# because configuration singletons read them on first access.
+# These must be set before importing any ``keychain`` module, because
+# configuration singletons read them on first access. The emulator host is
+# always set so the Firestore client can never reach a real project.
 os.environ["CONFIG_FILE_PATH"] = str(BACKEND_DIR / "configurations" / "test.yaml")
-os.environ["DB__NAME"] = TEST_DB_NAME
-os.environ.setdefault("DB__HOST", "localhost")
-os.environ.setdefault("DB__PORT", "5432")
-os.environ.setdefault("DB__USER", "root")
-os.environ.setdefault("DB__PASSWORD", "root")
-os.environ.setdefault("DB__ALEMBIC_INI_PATH", str(BACKEND_DIR / "src/keychain/services/alembic/alembic.ini"))
+os.environ["ENVIRONMENT"] = "test"
+os.environ.setdefault("FIRESTORE_EMULATOR_HOST", "localhost:8080")
 os.environ.setdefault("CRYPTOGRAPHY__SECRET_KEY", "WcrmZ43_lZNqollPA7g_Bt8pKZq2YBr69OFSjQ0V710=")
 os.environ.setdefault("AUTH__JWT_SECRET_KEY", "test-secret")
 
 import pytest  # noqa: E402
 import pytest_asyncio  # noqa: E402
-from alembic import command  # noqa: E402
-from alembic.config import Config  # noqa: E402
-from sqlalchemy import text  # noqa: E402
-from sqlalchemy.engine import URL  # noqa: E402
-from sqlalchemy.ext.asyncio import AsyncSession, create_async_engine  # noqa: E402
 
 from keychain.config import AppConfig  # noqa: E402
-from keychain.services.db_client import DBClient  # noqa: E402
+from keychain.config.models.db.firestore import FirestoreConfig  # noqa: E402
+from keychain.config.models.google import GoogleConfig  # noqa: E402
+from keychain.services.daos.firestore import PasswordDAO, UserDAO  # noqa: E402
+from keychain.services.db_client.firestore import FirestoreClient  # noqa: E402
 from keychain.utils.singleton import Singleton  # noqa: E402
-
-# All ORM table names, ordered so a CASCADE truncate is unambiguous.
-_TABLE_NAMES = ('"field"', '"password"', '"user"')
 
 
 def _reset_singletons() -> None:
-    """Clear every cached singleton (settings, DB client, crypto client)."""
+    """Clear every cached singleton (settings, Firestore client, crypto client)."""
     Singleton._instances.clear()  # noqa: SLF001
 
 
-def _maintenance_url(config: AppConfig) -> URL:
-    """Build a connection URL to the ``postgres`` maintenance database.
+@pytest.fixture(scope="session")
+def app_config() -> Generator[AppConfig, None, None]:
+    """Load the session-wide application config from ``test.yaml``.
 
-    ``CREATE DATABASE`` / ``DROP DATABASE`` cannot run against the database
-    being (re)created, so we connect to the default ``postgres`` database using
-    the same credentials.
-    """
-    db = config.db.postgresql
-    assert db.user is not None
-    assert db.password is not None
-    return URL.create(
-        "postgresql+asyncpg",
-        username=db.user.get_secret_value(),
-        password=db.password.get_secret_value(),
-        host=db.host,
-        port=db.port,
-        database=MAINTENANCE_DB_NAME,
-    )
+    Yields:
+        AppConfig: The test application config.
 
-
-async def _create_test_database(config: AppConfig) -> None:
-    """Drop any leftover test database and create a fresh one."""
-    engine = create_async_engine(_maintenance_url(config), isolation_level="AUTOCOMMIT")
-    try:
-        async with engine.connect() as conn:
-            await conn.execute(text(f'DROP DATABASE IF EXISTS "{TEST_DB_NAME}" WITH (FORCE)'))
-            await conn.execute(text(f'CREATE DATABASE "{TEST_DB_NAME}"'))
-    finally:
-        await engine.dispose()
-
-
-async def _drop_test_database(config: AppConfig) -> None:
-    """Drop the test database, terminating any lingering connections."""
-    engine = create_async_engine(_maintenance_url(config), isolation_level="AUTOCOMMIT")
-    try:
-        async with engine.connect() as conn:
-            await conn.execute(text(f'DROP DATABASE IF EXISTS "{TEST_DB_NAME}" WITH (FORCE)'))
-    finally:
-        await engine.dispose()
-
-
-@pytest.fixture(scope="session", autouse=True)
-def test_database() -> Generator[AppConfig, None, None]:
-    """Create, migrate and finally drop the ``test_db`` database.
-
-    Runs synchronously (Alembic's ``env.py`` drives its own event loop via
-    ``asyncio.run``), so it must not execute inside a running loop.
     """
     _reset_singletons()
-    config = AppConfig.get_or_create(reload=True)
-
-    asyncio.run(_create_test_database(config))
-
-    # Store the test config so Alembic's env.py picks it up, then run migrations.
-    _reset_singletons()
-    AppConfig.get_or_create(reload=True)
-    alembic_cfg = Config(str(config.db.alembic_ini_path))
-    command.upgrade(alembic_cfg, "head")
-
-    # env.py builds and disposes its own DBClient; start clean for the tests.
-    _reset_singletons()
-
-    yield config
-
-    asyncio.run(_drop_test_database(config))
+    yield AppConfig.get_or_create(reload=True)
     _reset_singletons()
 
 
 @pytest.fixture(scope="session")
-def app_config(test_database: AppConfig) -> AppConfig:
-    """Return the session-wide application config pointed at ``test_db``."""
-    return test_database
+def firestore_emulator() -> str:
+    """Ensure the Firestore emulator is reachable.
+
+    Returns:
+        str: The emulator ``host:port``.
+
+    """
+    emulator_host = os.environ["FIRESTORE_EMULATOR_HOST"]
+    host, _, port = emulator_host.rpartition(":")
+    try:
+        socket.create_connection((host, int(port)), timeout=2).close()
+    except OSError:
+        pytest.fail(
+            f"Firestore emulator is not reachable at {emulator_host}. Start it with "
+            f"`gcloud emulators firestore start --host-port={emulator_host}`.",
+        )
+    return emulator_host
 
 
 @pytest_asyncio.fixture(loop_scope="function")
-async def db_client(app_config: AppConfig) -> AsyncGenerator[DBClient, None]:
-    """Provide a :class:`DBClient` bound to the test database.
+async def firestore_client(
+    app_config: AppConfig,
+    firestore_emulator: str,  # noqa: ARG001
+) -> AsyncGenerator[FirestoreClient, None]:
+    """Provide a :class:`FirestoreClient` connected to the emulator.
 
-    Scoped per test (and per event loop) so asyncpg connections are always
-    created and torn down on the loop that uses them.
+    Scoped per test so the async gRPC channel is created and closed on the
+    event loop that uses it. Collections are uniquely named per test.
+
+    Yields:
+        FirestoreClient: Client bound to the test project.
+
     """
-    _reset_singletons()
-    client = DBClient(app_config.db.postgresql, app_config.info.debug)
+    Singleton._instances.pop(FirestoreClient, None)  # noqa: SLF001
+    client = FirestoreClient(
+        FirestoreConfig(
+            db_name=app_config.db.firestore.db_name,
+            collection_name=f"{app_config.db.firestore.collection_name}-{uuid4().hex}",
+        ),
+        GoogleConfig(project_id=TEST_PROJECT_ID),
+    )
     yield client
     await client.close()
-    _reset_singletons()
+    Singleton._instances.pop(FirestoreClient, None)  # noqa: SLF001
+
+
+async def _clear_collection(dao: UserDAO | PasswordDAO) -> None:
+    """Delete every document in the DAO's collection.
+
+    Args:
+        dao (UserDAO | PasswordDAO): DAO whose collection to empty.
+
+    """
+    async for snapshot in dao.collection.stream():
+        await snapshot.reference.delete()
 
 
 @pytest_asyncio.fixture(loop_scope="function")
-async def db_session(db_client: DBClient) -> AsyncGenerator[AsyncSession, None]:
-    """Yield an :class:`AsyncSession` and truncate all tables afterwards."""
-    async with db_client.session_factory() as session:
-        yield session
+async def user_dao(app_config: AppConfig, firestore_client: FirestoreClient) -> AsyncGenerator[UserDAO, None]:
+    """Provide a :class:`UserDAO` on a test-scoped users collection.
 
-    async with db_client.session_factory() as cleanup:
-        await cleanup.execute(text(f"TRUNCATE TABLE {', '.join(_TABLE_NAMES)} RESTART IDENTITY CASCADE"))
-        await cleanup.commit()
+    Yields:
+        UserDAO: DAO whose collection is emptied after the test.
+
+    """
+    dao = UserDAO(firestore_client, collection_name=f"{app_config.db.users.collection_name}-{uuid4().hex}")
+    yield dao
+    await _clear_collection(dao)
+
+
+@pytest_asyncio.fixture(loop_scope="function")
+async def password_dao(firestore_client: FirestoreClient) -> AsyncGenerator[PasswordDAO, None]:
+    """Provide a :class:`PasswordDAO` on the client's test-scoped collection.
+
+    Yields:
+        PasswordDAO: DAO whose collection is emptied after the test.
+
+    """
+    dao = PasswordDAO(firestore_client)
+    yield dao
+    await _clear_collection(dao)

@@ -29,35 +29,15 @@ services:
       retries: 3
       start_period: 10s
 
-  db:
-    image: postgres:18
-    container_name: keychain-db
-    env_file:
-      - path: ./backend/db.env
-        required: true
-    volumes:
-      - ./db/data:/var/lib/postgresql
-    networks:
-      - keychain-network
-    healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U $${POSTGRES_USER} -d $${POSTGRES_DB}"]
-      interval: 10s
-      timeout: 5s
-      retries: 5
-      start_period: 10s
-
   backend:
     image: keychain:latest
     container_name: keychain-backend
     env_file:
       - path: ./backend/.env
         required: true
-      - path: ./backend/db.env
-        required: false
     environment:
       - ENVIRONMENT=production
     volumes:
-      - ./backup:/opt/backend/backup
       - frontend-static:/opt/backend/static
     networks:
       - keychain-network

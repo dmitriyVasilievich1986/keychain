@@ -1,5 +1,5 @@
 """Application commands."""
 
-__all__ = ("BackupDBCommand", "RestoreDBCommand")
+__all__ = ("BaseCommand",)
 
-from .backup_db import BackupDBCommand, RestoreDBCommand
+from .base import BaseCommand

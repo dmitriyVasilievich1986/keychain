@@ -10,7 +10,6 @@ from loguru import logger
 
 from keychain.config import AppConfig
 from keychain.services.cryptography.client import CryptographyClient
-from keychain.services.db_client.client import DBClient
 from keychain.services.db_client.firestore import FirestoreClient
 
 
@@ -18,9 +17,9 @@ from keychain.services.db_client.firestore import FirestoreClient
 async def lifespan(app: FastAPI) -> AsyncGenerator[None, None]:
     """Manage startup and shutdown of application services.
 
-    Initializes the database, Firestore and cryptography clients on startup,
-    yields control while the application runs, and closes the database and
-    Firestore clients on shutdown.
+    Initializes the Firestore and cryptography clients on startup, yields
+    control while the application runs, and closes the Firestore client on
+    shutdown.
 
     Args:
         app (FastAPI): The FastAPI application instance being started.
@@ -35,9 +34,6 @@ async def lifespan(app: FastAPI) -> AsyncGenerator[None, None]:
     # Initialize services
     logger.info("Initializing Application services...")
     app_config = AppConfig.get_or_create()
-    db_client = DBClient(app_config.db.postgresql, app_config.info.debug)
-    logger.info("Database client initialized successfully.")
-
     firestore_client = FirestoreClient(app_config.db.firestore, app_config.google)
     logger.info("Firestore client initialized successfully.")
 
@@ -48,7 +44,5 @@ async def lifespan(app: FastAPI) -> AsyncGenerator[None, None]:
 
     # Cleanup
     logger.info("Shutting down application lifespan...")
-    await db_client.close()
-    logger.info("Database client closed successfully.")
     await firestore_client.close()
     logger.info("Firestore client closed successfully.")

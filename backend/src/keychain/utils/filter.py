@@ -1,24 +1,22 @@
-"""Pydantic filter model and conversion to SQLAlchemy ``WHERE`` clauses."""
+"""Pydantic filter model for list API filtering."""
 
 __all__ = ("Filter",)
 
 from datetime import date, datetime
-from typing import Any, Literal, Self
+from typing import Literal, Self
 
 from pydantic import BaseModel, Field, model_validator
-from sqlalchemy.orm import DeclarativeBase
-from sqlalchemy.sql import ColumnElement
 
 
 class Filter[ColumnType: str](BaseModel):
     """Declarative filter triple for paginated or filtered list APIs.
 
-    ``ColumnType`` is typically a string literal union of allowed ORM attribute
-    names.
+    ``ColumnType`` is typically a string literal union of allowed document
+    field names.
 
     Supported operators: null checks (``isnull``, ``notnull``); comparisons
     (``eq``, ``ge``, ``gt``, ``le``, ``lt``); membership (``in``); substring
-    match (``like``, ``ilike``).
+    match (``like``, ``ilike``). Firestore DAOs reject ``like`` and ``ilike``.
     """
 
     column: ColumnType = Field(..., description="The column to filter by")
@@ -68,49 +66,3 @@ class Filter[ColumnType: str](BaseModel):
                 return self
 
         return self
-
-    def to_sqlalchemy_filter(self, cls: type[DeclarativeBase]) -> ColumnElement[bool]:
-        """Build a boolean SQLAlchemy expression for this filter.
-
-        Operators ``isnull`` and ``notnull`` ignore ``value``. Operators ``like``
-        and ``ilike`` wrap ``value`` with ``%`` for substring matching.
-
-        Args:
-            cls (type[DeclarativeBase]): Declarative model class exposing the
-                attribute named by ``column``.
-
-        Returns:
-            ColumnElement[bool]: A predicate for ``Query.where()`` or
-                ``filter()``.
-
-        Raises:
-            ValueError: If ``operator`` is not a supported literal (should not
-                occur after successful Pydantic validation).
-
-        """
-        column: ColumnElement[Any] = getattr(cls, self.column)
-
-        match self.operator:
-            case "isnull":
-                return column.is_(None)
-            case "notnull":
-                return column.isnot(None)
-            case "eq":
-                return column == self.value
-            case "ge":
-                return column >= self.value
-            case "gt":
-                return column > self.value
-            case "le":
-                return column <= self.value
-            case "lt":
-                return column < self.value
-            case "in":
-                assert isinstance(self.value, list)
-                return column.in_(self.value)
-            case "like":
-                return column.like(f"%{self.value}%")
-            case "ilike":
-                return column.ilike(f"%{self.value}%")
-            case _:
-                raise ValueError(f"Invalid operator: {self.operator}")

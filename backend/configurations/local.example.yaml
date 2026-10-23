@@ -19,19 +19,12 @@ info:
       - "*"
 
 db:
-  alembic_ini_path: "Put your path to the alembic.ini file here"
-  backup_folder_path: "Put your path to the backup folder here"
-  backup_count: 5
-  postgresql:
-    provider: postgresql+asyncpg
-    host: db
-    port: 5432
-    name: "keychain"
-    user: "Put your database user here"
-    password: "Put your database password here"
   firestore:
     db_name: "Put your Firestore database name here"
     collection_name: "Put your Firestore collection name here"
+  users:
+    db_name: "Put your Firestore database name here"
+    collection_name: "users"
 
 google:
   project_id: "Put your Google project ID here"

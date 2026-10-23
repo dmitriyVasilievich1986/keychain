@@ -17,8 +17,8 @@ Keychain is a full-stack password manager for storing and managing secrets. It s
 - **Self-hosted** — Docker Compose for local and production-like runs
 - **Modern UI** — React + Material UI
 - **RESTful API** — OpenAPI docs via FastAPI
-- **CLI** — admin tooling for DB, users, passwords, and crypto keys
-- **Migrations** — Alembic-managed schema
+- **CLI** — admin tooling for users, passwords, and crypto keys
+- **Schemaless storage** — Google Cloud Firestore documents validated with Pydantic
 - **Type-safe** — TypeScript frontend and typed Python backend
 
 ## Architecture
@@ -40,12 +40,12 @@ Keychain is a full-stack password manager for storing and managing secrets. It s
 │   Frontend   │      │     Backend      │
 │  React 19    │      │  FastAPI         │
 │  TypeScript  │      │  Python 3.13     │
-│  Vite+       │      │  SQLAlchemy      │
+│  Vite+       │      │  Firestore SDK   │
 │  MUI/Zustand │      │  Cryptography    │
 └──────────────┘      └────────┬─────────┘
                                ↓
                         ┌──────────────┐
-                        │ PostgreSQL   │
+                        │  Firestore   │
                         └──────────────┘
 ```
 
@@ -65,7 +65,6 @@ keychain/
 │   └── README.md
 ├── nginx/                           # Reverse proxy image + config
 ├── static/                          # Frontend build output + images
-├── db/                              # Postgres data volume (local)
 ├── docker-compose.yaml              # Production-style stack
 ├── docker-compose-development.yaml  # Local/dev stack
 ├── .pre-commit-config.yaml          # Repo-wide git hooks
@@ -76,9 +75,9 @@ keychain/
 
 | Area | Technologies |
 | --- | --- |
-| Backend | Python 3.13, FastAPI, SQLAlchemy (async), Alembic, Pydantic, PyJWT, Cryptography, Uvicorn |
+| Backend | Python 3.13, FastAPI, Google Cloud Firestore, Pydantic, PyJWT, Cryptography, Uvicorn |
 | Frontend | React 19, TypeScript, Vite+, Oxlint, Oxfmt, MUI, Zustand, React Router, Axios, Sass |
-| Infra | Docker Compose, Nginx, PostgreSQL 18 |
+| Infra | Docker Compose, Nginx, Google Cloud Firestore |
 
 ## Quick Start (Docker Compose)
 
@@ -97,7 +96,7 @@ cd keychain
 
 ### 2. Configure backend secrets
 
-Create `backend/.env` and `backend/db.env` (see examples and details in [backend/README.md](./backend/README.md)).
+Create `backend/.env` (see examples and details in [backend/README.md](./backend/README.md)).
 
 Minimum `.env` keys:
 
@@ -105,6 +104,8 @@ Minimum `.env` keys:
 CONFIG_FILE_PATH=/opt/backend/configurations/local.yaml
 CRYPTOGRAPHY__SECRET_KEY=<fernet-key>
 AUTH__JWT_SECRET_KEY=<jwt-secret>
+GOOGLE__PROJECT_ID=<gcp-project-id>
+GOOGLE__CREDENTIALS_PATH=<path-to-service-account-json>  # optional; Application Default Credentials otherwise
 ```
 
 Generate keys (Python 3.13):
@@ -134,7 +135,7 @@ keychain access-token generate-key
 **Development** (hot-reload backend; optional frontend profile):
 
 ```bash
-# Backend + Postgres + Nginx
+# Backend + Nginx
 docker compose -f docker-compose-development.yaml up -d --build
 
 # Also start the Vite+ frontend container
@@ -147,12 +148,13 @@ docker compose -f docker-compose-development.yaml --profile frontend up -d --bui
 docker compose -f docker-compose.yaml up -d
 ```
 
-### 4. Initialize the database
+### 4. Create the first user
+
+Firestore needs no migrations; collections are created on first write.
 
 ```bash
 docker exec -it keychain-backend bash
-keychain db upgrade
-keychain db-client user create --username admin --email admin@example.com --password yourpassword
+keychain db user create-user --username admin
 exit
 ```
 
@@ -172,13 +174,12 @@ npm run build # writes into ../static/
 
 ## Docker Compose Services
 
-Both compose files run **nginx**, **backend**, and **PostgreSQL**. The development file additionally offers an optional **frontend** service behind the `frontend` profile.
+Both compose files run **nginx** and **backend**; data lives in Google Cloud Firestore. The development file additionally offers an optional **frontend** service behind the `frontend` profile.
 
 | Service | Role |
 | --- | --- |
 | `nginx` | Serves `static/` and proxies `/api/*` to the backend |
 | `backend` | FastAPI app (`keychain run`, with `--reload` in development) |
-| `db` | PostgreSQL 18 |
 | `frontend` (dev profile) | Node 24 container running the Vite+ dev workflow via `scripts/start.sh` |
 
 Rebuild examples:
@@ -199,7 +200,6 @@ cd backend
 python -m venv .venv
 source .venv/bin/activate
 pip install -e .
-keychain db upgrade
 keychain run --reload
 ```
 
@@ -224,14 +224,9 @@ keychain version
 keychain run
 keychain show-config
 
-keychain db upgrade
-keychain db current
-keychain db revision -m "message"
-
-keychain db-client user create --username admin --email admin@example.com --password secret
-keychain db-client user list
-keychain db-client password create --name "Gmail" --user-id 1
-keychain db-client field create --name "username" --value "user@example.com" --password-id 1
+keychain db user create-user --username admin
+keychain db password create-password --name "Gmail" --user-id <user-uuid>
+keychain db password list-passwords --user-id <user-uuid>
 
 keychain cryptography generate-key
 keychain access-token generate-key
@@ -250,8 +245,7 @@ Useful endpoints:
 - `POST /api/v1/login`
 - `GET /api/v1/user`
 - `GET|POST /api/v1/password`
-- `GET /api/v1/password/{id}`
-- `POST /api/v1/field`
+- `GET|PUT|PATCH|DELETE /api/v1/password/{id}`
 - `GET /health`
 - `GET /version`
 
@@ -263,12 +257,12 @@ Useful endpoints:
 CONFIG_FILE_PATH                     # Path to YAML config
 CRYPTOGRAPHY__SECRET_KEY             # Fernet key
 AUTH__JWT_SECRET_KEY                 # JWT signing secret
-DB__DB_URI                           # Database URL (Postgres in Compose)
+GOOGLE__PROJECT_ID                   # GCP project that hosts Firestore
+GOOGLE__CREDENTIALS_PATH             # Service-account JSON (optional)
+FIRESTORE_EMULATOR_HOST              # host:port of a local Firestore emulator (optional)
 AUTH__ACCESS_TOKEN_EXPIRE_MINUTES    # Token TTL (default: 30)
 INFO__DEBUG                          # Debug flag
 ```
-
-Postgres container variables live in `backend/db.env`.
 
 ### Frontend
 
@@ -284,8 +278,8 @@ VITE_SOURCEMAP     # Enable source maps when building/serving
 - JWT auth with configurable expiration
 - User passwords hashed with Werkzeug
 - Prefer TLS termination at Nginx (or another reverse proxy) in production
-- Do not commit `.env` / `db.env` secrets
-- Back up the Postgres volume regularly
+- Do not commit `.env` secrets or service-account keys
+- Schedule Firestore exports for backups
 
 ## CI
 

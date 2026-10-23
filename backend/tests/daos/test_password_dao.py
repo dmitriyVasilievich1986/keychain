@@ -1,34 +1,60 @@
-"""Tests for :class:`PasswordDAO` against the test database."""
+"""Tests for :class:`PasswordDAO` against the Firestore emulator."""
 
 import pytest
-from sqlalchemy.ext.asyncio import AsyncSession
+from google.api_core.exceptions import NotFound
 
-from keychain.services.daos import PasswordDAO, UserDAO
+from keychain.services.daos import PasswordDAO
+from keychain.services.daos.firestore.models import Field, FieldValue
+from keychain.utils.filter import Filter
 
 pytestmark = pytest.mark.integration
 
 
-async def test_create_password_for_user(db_session: AsyncSession) -> None:
-    """A password is created and linked to its owning user."""
-    user = await UserDAO(session=db_session, database_client=None).create(name="owner", password="pw")
-    password_dao = PasswordDAO(session=db_session, database_client=None)
+async def test_create_password_with_fields(password_dao: PasswordDAO) -> None:
+    """A password is stored together with its embedded fields and values."""
+    password = await password_dao.create(
+        name="github",
+        user_id="owner",
+        fields=[
+            Field(name="login", position=0, values=[FieldValue(value="me")]),
+            Field(name="password", position=1, values=[FieldValue(value="old"), FieldValue(value="new")]),
+        ],
+    )
 
-    password = await password_dao.create(name="github", user_id=user.id)
+    stored = await password_dao.get_by_id(password.id)
+    assert stored.name == "github"
+    assert stored.user_id == "owner"
+    assert [field.name for field in stored.fields] == ["login", "password"]
+    assert [value.value for value in stored.fields[1].values] == ["old", "new"]
 
-    assert password.id is not None
-    assert password.name == "github"
-    assert password.user_id == user.id
-    assert password.image_url == "/static/i/no-photo.png"
 
+async def test_get_all_filters_by_user(password_dao: PasswordDAO) -> None:
+    """``get_all`` applies filters to both the page and the total count."""
+    await password_dao.create(name="github", user_id="alice", fields=[])
+    await password_dao.create(name="gitlab", user_id="alice", fields=[])
+    await password_dao.create(name="bitbucket", user_id="bob", fields=[])
 
-async def test_get_all_passwords(db_session: AsyncSession) -> None:
-    """``get_all`` returns the created passwords with an accurate total."""
-    user = await UserDAO(session=db_session, database_client=None).create(name="owner", password="pw")
-    password_dao = PasswordDAO(session=db_session, database_client=None)
-    await password_dao.create(name="github", user_id=user.id)
-    await password_dao.create(name="gitlab", user_id=user.id)
-
-    rows, total = await password_dao.get_all()
+    rows, total = await password_dao.get_all(
+        filters=[Filter[str](column="user_id", operator="eq", value="alice")],
+        sort_by="name",
+    )
 
     assert total == 2
-    assert {row.name for row in rows} == {"github", "gitlab"}
+    assert [row.name for row in rows] == ["github", "gitlab"]
+
+
+async def test_update_password(password_dao: PasswordDAO) -> None:
+    """Only the given fields are changed by an update."""
+    password = await password_dao.create(name="github", user_id="owner", image_url="a.png", fields=[])
+
+    updated = await password_dao.update(password.id, name="GitHub")
+
+    stored = await password_dao.get_by_id(password.id)
+    assert updated.name == stored.name == "GitHub"
+    assert stored.image_url == "a.png"
+
+
+async def test_get_missing_password(password_dao: PasswordDAO) -> None:
+    """Loading an unknown password raises ``NotFound``."""
+    with pytest.raises(NotFound):
+        await password_dao.get_by_id("missing")

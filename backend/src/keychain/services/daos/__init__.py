@@ -1,7 +1,5 @@
 """DAOs for all models."""
 
-__all__ = ("FieldDAO", "PasswordDAO", "UserDAO")
+__all__ = ("PasswordDAO", "UserDAO")
 
-from .field import FieldDAO
-from .password import PasswordDAO
-from .user import UserDAO
+from .firestore import PasswordDAO, UserDAO
