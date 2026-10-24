@@ -3,3 +3,4 @@ nginx/ssl/
 /db/data/
 /static/
 /backup/
+/scripts/sensitive/
