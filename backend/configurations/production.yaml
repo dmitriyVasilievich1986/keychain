@@ -28,7 +28,9 @@ db:
 
 google:
   project_id: "Put your Google project ID here"
-  credentials_path: "Put your path to the Google credentials file here"
+  # Path to a service account key file; null uses Application Default Credentials
+  # (e.g. the service account attached to the Cloud Run service).
+  credentials_path: null
 
 cryptography:
   secret_key: "Put your secret key here"
