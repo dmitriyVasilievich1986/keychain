@@ -1,8 +1,11 @@
 """Firestore password field model."""
 
 from datetime import datetime, timezone
+from typing import Self
 
 from pydantic import Field
+
+from keychain.services.cryptography.client import CryptographyClient
 
 from .base import BaseFirestoreSchema
 from .field_value import FieldValue
@@ -49,3 +52,37 @@ class Field(BaseFirestoreSchema):
 
         """
         self.deleted_at = datetime.now(timezone.utc)
+
+    def encrypt(self, cryptography_client: CryptographyClient | None = None) -> Self:
+        """Encrypt all values of the field.
+
+        Args:
+            cryptography_client (CryptographyClient | None): Client used for
+                encryption; a new :class:`CryptographyClient` is created if None.
+
+        Returns:
+            Self: A copy of the field with every value encrypted.
+
+        """
+        client = cryptography_client or CryptographyClient()
+        values = [value.encrypt(client) for value in self.values]
+        return self.model_copy(update={"values": values})
+
+    def decrypt(self, cryptography_client: CryptographyClient | None = None) -> Self:
+        """Decrypt all values of the field.
+
+        Args:
+            cryptography_client (CryptographyClient | None): Client used for
+                decryption; a new :class:`CryptographyClient` is created if None.
+
+        Returns:
+            Self: A copy of the field with every value decrypted.
+
+        Raises:
+            cryptography.fernet.InvalidToken: If any value is invalid or was
+                encrypted with a different key.
+
+        """
+        client = cryptography_client or CryptographyClient()
+        values = [value.decrypt(client) for value in self.values]
+        return self.model_copy(update={"values": values})
