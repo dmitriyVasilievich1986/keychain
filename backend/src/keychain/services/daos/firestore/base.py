@@ -192,6 +192,9 @@ class BaseFirestoreDAO[DocumentModel: BaseModel](ABC):
     def to_document(self, model: DocumentModel) -> dict[str, Any]:
         """Serialize a model into a Firestore document body.
 
+        ``updated_at`` is always set to the current UTC time, overriding the
+        model's value.
+
         Override to customize serialization, e.g. for ``Enum``, ``date`` or
         ``Decimal`` fields, which Firestore cannot store natively.
 
@@ -202,7 +205,7 @@ class BaseFirestoreDAO[DocumentModel: BaseModel](ABC):
             dict[str, Any]: Document body without :attr:`id_field`.
 
         """
-        return model.model_dump(exclude={self.id_field})
+        return model.model_dump(exclude={self.id_field, "updated_at"}) | {"updated_at": datetime.now(timezone.utc)}
 
     def _build_query(self, filters: FirestoreFiltersType) -> AsyncCollectionReference | AsyncQuery:
         """Start a query on the collection with base and per-call filters.
@@ -316,14 +319,15 @@ class BaseFirestoreDAO[DocumentModel: BaseModel](ABC):
         """
         reference = self.collection.document(str(uuid4()))
         model = self.document_model.model_validate({**kwargs, self.id_field: reference.id})
-        await reference.create(self.to_document(model))
-        return model
+        document = self.to_document(model)
+        await reference.create(document)
+        return model.model_copy(update={"updated_at": document["updated_at"]})
 
     async def update(self, document_id: str, **kwargs: Any) -> DocumentModel:
         """Validate and apply a partial update to one document.
 
         The merged document is validated against :attr:`document_model`, but
-        only the fields in ``kwargs`` are written.
+        only the fields in ``kwargs`` and ``updated_at`` are written.
 
         Args:
             document_id (str): Document ID.
@@ -346,8 +350,10 @@ class BaseFirestoreDAO[DocumentModel: BaseModel](ABC):
 
         model = self.document_model.model_validate({**current.model_dump(), **kwargs})
         document = self.to_document(model)
-        await self.collection.document(document_id).update({key: document[key] for key in kwargs})
-        return model
+        await self.collection.document(document_id).update(
+            {**{key: document[key] for key in kwargs}, "updated_at": document["updated_at"]},
+        )
+        return model.model_copy(update={"updated_at": document["updated_at"]})
 
     async def delete(self, document_id: str) -> bool:
         """Delete one document by ID.

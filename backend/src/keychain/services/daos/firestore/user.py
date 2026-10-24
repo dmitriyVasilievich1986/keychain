@@ -2,7 +2,6 @@
 
 __all__ = ("UserDAO",)
 
-from datetime import datetime, timezone
 from typing import Any
 
 from google.api_core.exceptions import NotFound
@@ -82,5 +81,4 @@ class UserDAO(BaseFirestoreDAO[User]):
         return await self.update(
             document_id,
             password_hash=generate_password_hash(password),
-            updated_at=datetime.now(timezone.utc),
         )
