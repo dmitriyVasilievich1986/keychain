@@ -83,6 +83,8 @@ async def get_passwords(
 ) -> GetAllPasswordsResponse:
     """Retrieve all passwords belonging to the authenticated user.
 
+    Passwords marked as deleted are excluded unless ``query.show_deleted`` is set.
+
     Args:
         firestore (FirestoreClient): The Firestore client dependency.
         user (User): The authenticated user resolved from the request.
@@ -97,10 +99,14 @@ async def get_passwords(
     """
     password_dao = PasswordDAO(firestore)
     filters = [Filter[str](column="user_id", operator="eq", value=str(user.id)), *(query.filters or [])]
+    if not query.show_deleted:
+        filters.append(Filter[str](column="deleted_at", operator="isnull", value=None))
 
     try:
-        data, total = await password_dao.get_all(filters=filters, **query.model_dump(exclude={"filters"}))
-        metadata = PaginationMetadata(total=total, **query.model_dump())
+        data, total = await password_dao.get_all(
+            filters=filters, **query.model_dump(exclude={"filters", "show_deleted"})
+        )
+        metadata = PaginationMetadata(total=total, **query.model_dump(exclude={"show_deleted"}))
     except GoogleAPICallError as e:
         logger.exception("Error retrieving passwords", exc_info=e)
         raise HTTPException(
@@ -207,14 +213,16 @@ async def update_password(
         PasswordGetResponseModel: The updated password.
 
     Raises:
-        HTTPException: If the password is not found (HTTP 404) or an
-            unexpected Firestore error occurs (HTTP 500).
+        HTTPException: If the password is not found or is marked as deleted
+            (HTTP 404), or an unexpected Firestore error occurs (HTTP 500).
 
     """
     password_dao = PasswordDAO(firestore)
 
     try:
-        await get_owned_password(password_dao, password_id, user)
+        current = await get_owned_password(password_dao, password_id, user)
+        if current.deleted_at is not None:
+            raise NotFound(f"Password {password_id} not found")
         password = await password_dao.update(
             str(password_id),
             **body.model_dump(exclude={"fields"}),
@@ -255,14 +263,16 @@ async def patch_password(
         PasswordGetResponseModel: The updated password.
 
     Raises:
-        HTTPException: If the password is not found (HTTP 404) or an
-            unexpected Firestore error occurs (HTTP 500).
+        HTTPException: If the password is not found or is marked as deleted
+            (HTTP 404), or an unexpected Firestore error occurs (HTTP 500).
 
     """
     password_dao = PasswordDAO(firestore)
 
     try:
-        await get_owned_password(password_dao, password_id, user)
+        current = await get_owned_password(password_dao, password_id, user)
+        if current.deleted_at is not None:
+            raise NotFound(f"Password {password_id} not found")
         changes = body.model_dump(exclude_unset=True, exclude={"fields"})
         if body.fields is not None:
             changes["fields"] = build_fields(body.fields)
@@ -287,6 +297,8 @@ async def delete_password(
 ) -> None:
     """Delete a password by its ID for the authenticated user.
 
+    The password is marked as deleted rather than removed from Firestore.
+
     Args:
         password_id (UUID): The unique identifier of the password to delete.
         firestore (FirestoreClient): The Firestore client dependency.
@@ -304,7 +316,7 @@ async def delete_password(
 
     try:
         await get_owned_password(password_dao, password_id, user)
-        await password_dao.delete(str(password_id))
+        await password_dao.mark_as_deleted(str(password_id))
     except NotFound as e:
         logger.warning(f"Password {password_id} not found for user {user.id}")
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Password not found") from e

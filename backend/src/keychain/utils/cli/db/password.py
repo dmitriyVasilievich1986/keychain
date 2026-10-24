@@ -124,24 +124,37 @@ async def update_password(ctx: click.Context, password_id: UUID, name: str, imag
 
 @password.command(help="Delete a password by ID")
 @click.option("--password-id", prompt="Enter the password ID", help="The ID of the password", type=click.UUID)
+@click.option(
+    "--mark-deleted/--no-mark-deleted",
+    default=True,
+    show_default=True,
+    help="Mark the password as deleted instead of permanently removing it",
+)
 @click.pass_context
-async def delete_password(ctx: click.Context, password_id: UUID) -> None:
+async def delete_password(ctx: click.Context, password_id: UUID, mark_deleted: bool) -> None:
     """Delete a password from the database by its ID.
 
-    This command permanently removes a password document from the database.
-    After successful deletion, a confirmation message is displayed.
+    By default the password is only marked as deleted and kept in the
+    database. With ``--no-mark-deleted`` the password document is permanently
+    removed. After successful deletion, a confirmation message is displayed.
 
     Args:
         ctx (click.Context): Click context object containing the password DAO.
         password_id (UUID): The unique identifier of the password to delete.
+        mark_deleted (bool): Whether to mark the password as deleted instead
+            of permanently removing it. Defaults to True.
 
     Returns:
         None
 
     """
     password_dao: PasswordDAO = ctx.obj["password_dao"]
-    await password_dao.delete(str(password_id))
-    click.echo(f"Password with id {password_id} deleted successfully")
+    if mark_deleted:
+        await password_dao.mark_as_deleted(str(password_id))
+        click.echo(f"Password with id {password_id} marked as deleted successfully")
+    else:
+        await password_dao.delete(str(password_id))
+        click.echo(f"Password with id {password_id} deleted successfully")
 
 
 @password.command(help="List all passwords for a user")
