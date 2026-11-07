@@ -9,6 +9,8 @@ import Cookies from 'js-cookie';
 
 import { useUserStore } from '@store/user';
 
+import { API_BASE_URL } from './constants';
+
 /**
  * Pre-configured Axios instance for all API helpers. Every outgoing request runs through a request
  * interceptor that requires `accessToken` in cookies: when it is missing, the user is redirected to
@@ -17,7 +19,7 @@ import { useUserStore } from '@store/user';
  * 401 (unless the app is already on `/login`).
  */
 export const apiClientInstance = axios.create({
-  baseURL: import.meta.env.VITE_API_HOST ?? '',
+  baseURL: API_BASE_URL,
   headers: {
     'Content-Type': 'application/json',
   },

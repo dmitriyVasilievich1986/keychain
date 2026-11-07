@@ -1,17 +1,3 @@
-FROM node:24-slim AS frontend
-
-RUN apt-get update \
-    && apt-get install -y --no-install-recommends ca-certificates \
-    && rm -rf /var/lib/apt/lists/*
-
-WORKDIR /opt/frontend
-
-COPY ./frontend ./
-
-RUN npm install -g npm@12.0.1 \
-    && npm ci \
-    && npm run build
-
 FROM python:3.13-slim-bookworm AS build
 
 ENV UV_COMPILE_BYTECODE=1
@@ -62,9 +48,6 @@ COPY --from=build /opt/app/backend/src/keychain/application_version.py ./src/key
 
 # Add configurations
 COPY ./backend/configurations ./configurations
-
-# Add frontend bundle
-COPY --from=frontend /opt/static ./static
 
 # Add binaries for run inside container
 ENV PYTHONPATH="/opt/backend/src"

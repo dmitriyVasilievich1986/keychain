@@ -63,7 +63,7 @@ keychain/
 │   ├── vite.config.ts               # Vite+, lint, fmt, aliases
 │   ├── package.json
 │   └── README.md
-├── nginx/                           # Reverse proxy image + config
+├── nginx/                           # Reverse proxy image (builds the frontend) + config
 ├── static/                          # Frontend build output + images
 ├── db/                              # Postgres data volume (local)
 ├── docker-compose.yaml              # Production-style stack
@@ -141,9 +141,10 @@ docker compose -f docker-compose-development.yaml up -d --build
 docker compose -f docker-compose-development.yaml --profile frontend up -d --build
 ```
 
-**Production-style** (pre-built images; no source mounts):
+**Production-style** (no source mounts; the `nginx` image builds and bundles the frontend):
 
 ```bash
+docker build -f nginx/Dockerfile -t keychain-nginx:latest .
 docker compose -f docker-compose.yaml up -d
 ```
 
@@ -274,6 +275,7 @@ Postgres container variables live in `backend/db.env`.
 
 ```bash
 VITE_API_HOST      # API base URL (empty = relative URLs through Nginx)
+VITE_API_PREFIX    # Path prefix appended to VITE_API_HOST (e.g. /keychain)
 VITE_IMAGES_HOST   # Image path prefix (e.g. /static/i)
 VITE_SOURCEMAP     # Enable source maps when building/serving
 ```
