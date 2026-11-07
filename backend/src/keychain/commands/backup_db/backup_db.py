@@ -35,6 +35,16 @@ class BackupDBCommand(BaseCommand[DBBackup]):
         self.backup_count = app_config.db.backup_count
         self.app_config = app_config
 
+    async def initialize(self, *args, **kwargs) -> None:
+        """Initialize the backup command.
+
+        Args:
+            *args (Any): Positional arguments to initialize the command.
+            **kwargs (Any): Keyword arguments to initialize the command.
+
+        """
+        pass
+
     def _get_bash_command(self, backup_file_path: Path) -> tuple[list[str], dict[str, str]]:
         """Build the dump argv and env vars for the configured provider.
 

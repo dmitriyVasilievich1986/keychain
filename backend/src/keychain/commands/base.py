@@ -8,6 +8,17 @@ class BaseCommand[ResponseType: Any](ABC):
     """Base class for commands that validate input then produce a response."""
 
     @abstractmethod
+    async def initialize(self, *args, **kwargs) -> None:
+        """Initialize the command.
+
+        Args:
+            *args (Any): Positional arguments to initialize the command.
+            **kwargs (Any): Keyword arguments to initialize the command.
+
+        """
+        pass
+
+    @abstractmethod
     async def validate(self, *args, **kwargs) -> None:
         """Validate command arguments before execution.
 

@@ -36,6 +36,16 @@ class RestoreDBCommand(BaseCommand[DBBackup]):
         self.db_backup_path = Path(app_config.db.backup_folder_path)
         self.app_config = app_config
 
+    async def initialize(self, *args, **kwargs) -> None:
+        """Initialize the backup command.
+
+        Args:
+            *args (Any): Positional arguments to initialize the command.
+            **kwargs (Any): Keyword arguments to initialize the command.
+
+        """
+        pass
+
     def _get_bash_command(self, backup_file_path: Path) -> tuple[list[str], dict[str, str]]:
         """Build the restore argv and env vars for the configured provider.
 
