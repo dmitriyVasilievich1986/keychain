@@ -20,15 +20,17 @@ TEST_DB_NAME = "test_db"
 MAINTENANCE_DB_NAME = "postgres"
 
 # Point the settings loader at the test configuration and force the test
-# database name. These must be set before importing any ``keychain`` module,
-# because configuration singletons read them on first access.
+# database name and an absolute Alembic config path (``.env`` may hold a path
+# relative to the repository root). These must be set before importing any
+# ``keychain`` module, because configuration singletons read them on first
+# access.
 os.environ["CONFIG_FILE_PATH"] = str(BACKEND_DIR / "configurations" / "test.yaml")
-os.environ["DB__NAME"] = TEST_DB_NAME
-os.environ.setdefault("DB__HOST", "localhost")
-os.environ.setdefault("DB__PORT", "5432")
-os.environ.setdefault("DB__USER", "root")
-os.environ.setdefault("DB__PASSWORD", "root")
-os.environ.setdefault("DB__ALEMBIC_INI_PATH", str(BACKEND_DIR / "src/keychain/services/alembic/alembic.ini"))
+os.environ["DB__POSTGRESQL__NAME"] = TEST_DB_NAME
+os.environ["DB__ALEMBIC_INI_PATH"] = str(BACKEND_DIR / "src/keychain/services/alembic/alembic.ini")
+os.environ.setdefault("DB__POSTGRESQL__HOST", "localhost")
+os.environ.setdefault("DB__POSTGRESQL__PORT", "5432")
+os.environ.setdefault("DB__POSTGRESQL__USER", "root")
+os.environ.setdefault("DB__POSTGRESQL__PASSWORD", "root")
 os.environ.setdefault("CRYPTOGRAPHY__SECRET_KEY", "WcrmZ43_lZNqollPA7g_Bt8pKZq2YBr69OFSjQ0V710=")
 os.environ.setdefault("AUTH__JWT_SECRET_KEY", "test-secret")
 
