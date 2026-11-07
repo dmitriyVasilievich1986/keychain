@@ -4,7 +4,11 @@ __all__ = ("cryptography",)
 
 import asyncclick as click
 
+from keychain.config import AppConfig
 from keychain.services.cryptography.client import CryptographyClient
+from keychain.services.db_client.client import DBClient
+
+from .user_dek import load_user_dek
 
 
 @click.group(help="CLI for managing the cryptography of the Keychain Application.")
@@ -21,37 +25,69 @@ def cryptography(ctx: click.Context) -> None:
     ctx.obj["cryptography_client"] = cryptography_client
 
 
-@cryptography.command(help="Encrypt a string")
-@click.option("--string", help="The string to encrypt", type=str, required=True)
-@click.pass_context
-def encrypt(ctx: click.Context, string: str) -> None:
-    """Encrypt a string using the cryptography client.
-
-    This command encrypts a string using the cryptography client and outputs the encrypted string.
+async def _resolve_dek(ctx: click.Context, user_id: int, user_password: str) -> bytes:
+    """Verify a user's password and return their data encryption key.
 
     Args:
-        ctx: Click context object containing the cryptography client.
-        string: The string to encrypt.
+        ctx (click.Context): Click context object containing the app config.
+        user_id (int): The unique identifier of the user.
+        user_password (str): The user's plaintext password.
+
+    Returns:
+        bytes: The user's plaintext data encryption key.
+
+    """
+    config: AppConfig = ctx.obj["config"]
+    db_client = DBClient(config.db.postgresql, config.info.debug)
+    try:
+        return await load_user_dek(db_client, user_id, user_password)
+    finally:
+        await db_client.close()
+
+
+@cryptography.command(help="Encrypt a string with a user's data encryption key")
+@click.option("--string", help="The string to encrypt", type=str, required=True)
+@click.option("--user-id", help="The ID of the user whose key is used", type=int, required=True)
+@click.option("--user-password", prompt="Enter the user password", help="The password of the user", hide_input=True)
+@click.pass_context
+async def encrypt(ctx: click.Context, string: str, user_id: int, user_password: str) -> None:
+    """Encrypt a string using a user's data encryption key.
+
+    This command verifies the user's password, resolves their data encryption
+    key and outputs the encrypted string.
+
+    Args:
+        ctx (click.Context): Click context object containing the cryptography client.
+        string (str): The string to encrypt.
+        user_id (int): The unique identifier of the user.
+        user_password (str): The user's password.
 
     """
     cryptography_client: CryptographyClient = ctx.obj["cryptography_client"]
-    encrypted_string = cryptography_client.encrypt(string)
+    dek = await _resolve_dek(ctx, user_id, user_password)
+    encrypted_string = cryptography_client.encrypt(string, dek)
     click.echo(f"Encrypted string: {encrypted_string}")
 
 
-@cryptography.command(help="Decrypt a string")
+@cryptography.command(help="Decrypt a string with a user's data encryption key")
 @click.option("--string", help="The string to decrypt", type=str, required=True)
+@click.option("--user-id", help="The ID of the user whose key is used", type=int, required=True)
+@click.option("--user-password", prompt="Enter the user password", help="The password of the user", hide_input=True)
 @click.pass_context
-def decrypt(ctx: click.Context, string: str) -> None:
-    """Decrypt a string using the cryptography client.
+async def decrypt(ctx: click.Context, string: str, user_id: int, user_password: str) -> None:
+    """Decrypt a string using a user's data encryption key.
 
-    This command decrypts a string using the cryptography client and outputs the decrypted string.
+    This command verifies the user's password, resolves their data encryption
+    key and outputs the decrypted string.
 
     Args:
-        ctx: Click context object containing the cryptography client.
-        string: The string to decrypt.
+        ctx (click.Context): Click context object containing the cryptography client.
+        string (str): The string to decrypt.
+        user_id (int): The unique identifier of the user.
+        user_password (str): The user's password.
 
     """
     cryptography_client: CryptographyClient = ctx.obj["cryptography_client"]
-    decrypted_string = cryptography_client.decrypt(string)
+    dek = await _resolve_dek(ctx, user_id, user_password)
+    decrypted_string = cryptography_client.decrypt(string, dek)
     click.echo(f"Decrypted string: {decrypted_string}")
