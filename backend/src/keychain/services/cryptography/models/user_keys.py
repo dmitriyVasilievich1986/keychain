@@ -19,6 +19,8 @@ class UserKeys(BaseModel):
     salt: bytes = Field(..., description="The random salt used to derive the user's key encryption key")
     wrapped_dek: str = Field(
         ...,
-        description="The user's data encryption key, encrypted with the key encryption key. Safe to store in the database",
+        description=(
+            "The user's data encryption key, encrypted with the key encryption key. Safe to store in the database"
+        ),
     )
     dek: bytes = Field(..., description="The plaintext data encryption key. Must never be persisted")

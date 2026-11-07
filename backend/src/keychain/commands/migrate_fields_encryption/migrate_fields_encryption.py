@@ -118,7 +118,7 @@ class MigrateFieldsEncryptionCommand(BaseCommand[User]):
             fields = (await session.execute(select(Field).join(Password).where(Password.user_id == user.id))).scalars()
             migrated_count = 0
             for field in fields:
-                field.value = client.encrypt(client.legacy_decrypt(field.value), keys.dek)
+                field.value = client.encrypt(client.legacy_decrypt(field.value), keys.dek)  # ty: ignore[deprecated]
                 migrated_count += 1
 
             user.encryption_salt = keys.salt
