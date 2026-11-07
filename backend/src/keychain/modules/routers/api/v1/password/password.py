@@ -8,8 +8,7 @@ import structlog
 from fastapi import APIRouter, Body, Depends, HTTPException, Path, Query, status
 from sqlalchemy.exc import NoResultFound, SQLAlchemyError
 
-from keychain.config import AppConfig
-from keychain.modules.middlewares.dependencies import authorize_user, get_db
+from keychain.modules.middlewares.dependencies import authorize_user, get_db, get_user_dek
 from keychain.modules.routers.models.base.metadata import PaginationMetadata
 from keychain.modules.routers.models.request.password import (
     GetAllPasswordsQuery,
@@ -35,7 +34,7 @@ router = APIRouter(prefix="/password", tags=["Passwords Management"])
 @router.get("", response_model=GetAllPasswordsResponse, description="Get all passwords")
 async def get_passwords(
     db: Annotated[DBClient, Depends(get_db)],
-    user: Annotated[User, Depends(authorize_user(AppConfig))],
+    user: Annotated[User, Depends(authorize_user)],
     query: Annotated[GetAllPasswordsQuery, Query(description="The query parameters for getting all passwords")],
 ) -> GetAllPasswordsResponse:
     """Retrieve all passwords belonging to the authenticated user.
@@ -71,7 +70,8 @@ async def get_passwords(
 async def get_password(
     password_id: Annotated[int, Path(description="The unique identifier of the password to retrieve")],
     db: Annotated[DBClient, Depends(get_db)],
-    user: Annotated[User, Depends(authorize_user(AppConfig))],
+    user: Annotated[User, Depends(authorize_user)],
+    dek: Annotated[bytes, Depends(get_user_dek)],
 ) -> PasswordGetResponseModel:
     """Retrieve a single password by its ID for the authenticated user.
 
@@ -79,6 +79,7 @@ async def get_password(
         password_id (int): The unique identifier of the password to retrieve.
         db (DBClient): The database client dependency.
         user (User): The authenticated user resolved from the request.
+        dek (bytes): The authenticated user's data encryption key.
 
     Returns:
         PasswordGetResponseModel: The requested password.
@@ -100,7 +101,7 @@ async def get_password(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail="An unexpected error occurred"
         ) from e
 
-    return PasswordGetResponseModel.model_validate(password)
+    return PasswordGetResponseModel.model_validate(password, context={"dek": dek})
 
 
 @router.post(
@@ -112,7 +113,8 @@ async def get_password(
 async def create_password(
     body: Annotated[PasswordCreateRequestModel, Body(description="The request body for creating a new password")],
     db: Annotated[DBClient, Depends(get_db)],
-    user: Annotated[User, Depends(authorize_user(AppConfig))],
+    user: Annotated[User, Depends(authorize_user)],
+    dek: Annotated[bytes, Depends(get_user_dek)],
 ) -> PasswordGetResponseModel:
     """Create a new password for the authenticated user.
 
@@ -120,6 +122,7 @@ async def create_password(
         body (PasswordCreateRequestModel): The data for the new password.
         db (DBClient): The database client dependency.
         user (User): The authenticated user resolved from the request.
+        dek (bytes): The authenticated user's data encryption key.
 
     Returns:
         PasswordGetResponseModel: The newly created password.
@@ -138,7 +141,7 @@ async def create_password(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail="An unexpected error occurred"
         ) from e
 
-    return PasswordGetResponseModel.model_validate(password)
+    return PasswordGetResponseModel.model_validate(password, context={"dek": dek})
 
 
 @router.put("/{password_id}", response_model=PasswordGetResponseModel, description="Update a password by ID")
@@ -146,7 +149,8 @@ async def update_password(
     password_id: Annotated[int, Path(description="The unique identifier of the password to update")],
     body: Annotated[PasswordUpdateRequestModel, Body(description="The request body for updating a password")],
     db: Annotated[DBClient, Depends(get_db)],
-    user: Annotated[User, Depends(authorize_user(AppConfig))],
+    user: Annotated[User, Depends(authorize_user)],
+    dek: Annotated[bytes, Depends(get_user_dek)],
 ) -> PasswordGetResponseModel:
     """Fully update a password by its ID for the authenticated user.
 
@@ -155,6 +159,7 @@ async def update_password(
         body (PasswordUpdateRequestModel): The full set of updated values.
         db (DBClient): The database client dependency.
         user (User): The authenticated user resolved from the request.
+        dek (bytes): The authenticated user's data encryption key.
 
     Returns:
         PasswordGetResponseModel: The updated password.
@@ -177,7 +182,7 @@ async def update_password(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail="An unexpected error occurred"
         ) from e
 
-    return PasswordGetResponseModel.model_validate(password)
+    return PasswordGetResponseModel.model_validate(password, context={"dek": dek})
 
 
 @router.patch("/{password_id}", response_model=PasswordGetResponseModel, description="Patch a password by ID")
@@ -185,7 +190,8 @@ async def patch_password(
     password_id: Annotated[int, Path(description="The unique identifier of the password to update")],
     body: Annotated[PasswordPatchRequestModel, Body(description="The request body for updating a password")],
     db: Annotated[DBClient, Depends(get_db)],
-    user: Annotated[User, Depends(authorize_user(AppConfig))],
+    user: Annotated[User, Depends(authorize_user)],
+    dek: Annotated[bytes, Depends(get_user_dek)],
 ) -> PasswordGetResponseModel:
     """Update a password partially by its ID for the authenticated user.
 
@@ -196,6 +202,7 @@ async def patch_password(
         body (PasswordPatchRequestModel): The subset of values to update.
         db (DBClient): The database client dependency.
         user (User): The authenticated user resolved from the request.
+        dek (bytes): The authenticated user's data encryption key.
 
     Returns:
         PasswordGetResponseModel: The updated password.
@@ -220,14 +227,14 @@ async def patch_password(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail="An unexpected error occurred"
         ) from e
 
-    return PasswordGetResponseModel.model_validate(password)
+    return PasswordGetResponseModel.model_validate(password, context={"dek": dek})
 
 
 @router.delete("/{password_id}", status_code=status.HTTP_204_NO_CONTENT, description="Delete a password by ID")
 async def delete_password(
     password_id: Annotated[int, Path(description="The unique identifier of the password to delete")],
     db: Annotated[DBClient, Depends(get_db)],
-    user: Annotated[User, Depends(authorize_user(AppConfig))],
+    user: Annotated[User, Depends(authorize_user)],
 ) -> None:
     """Delete a password by its ID for the authenticated user.
 
