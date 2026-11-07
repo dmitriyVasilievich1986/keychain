@@ -1,6 +1,6 @@
 """Password model for the database."""
 
-__all__ = ["Password"]
+__all__ = ("Password",)
 
 from datetime import datetime
 from typing import TYPE_CHECKING
