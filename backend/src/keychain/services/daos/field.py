@@ -99,7 +99,7 @@ class FieldDAO(BaseDAO[Field]):
         self,
         filters: Sequence[ColumnElement[bool]] | None = None,
         *,
-        dek: bytes,
+        dek: bytes | None = None,
         **kwargs: Any,
     ) -> Field:
         """Create a new field, using an existing session or a new one.
@@ -107,8 +107,9 @@ class FieldDAO(BaseDAO[Field]):
         Args:
             filters (Sequence[ColumnElement[bool]] | None, optional): Additional
                 filters to apply during creation. Defaults to None.
-            dek (bytes): The owner's data encryption key used to encrypt
-                ``value``.
+            dek (bytes | None, optional): The owner's data encryption key used
+                to encrypt ``value``. Required despite the default, which only
+                keeps the signature compatible with the base DAO.
             **kwargs (Any): Field attributes; must include ``password_id`` and
                 the plaintext ``value``.
 
@@ -116,7 +117,7 @@ class FieldDAO(BaseDAO[Field]):
             Field: The newly created field.
 
         Raises:
-            ValueError: If ``value`` is not provided in ``kwargs``.
+            ValueError: If ``value`` or ``dek`` is not provided.
 
         """
         kwargs["value"] = self._encrypt_value(kwargs.get("value"), dek)
@@ -133,7 +134,7 @@ class FieldDAO(BaseDAO[Field]):
         pk_column_name: str | None = None,
         filters: Sequence[ColumnElement[bool]] | None = None,
         *,
-        dek: bytes,
+        dek: bytes | None = None,
         **kwargs: Any,
     ) -> Field:
         """Update a field's value by primary key.
@@ -144,8 +145,9 @@ class FieldDAO(BaseDAO[Field]):
                 column. Defaults to :attr:`pk_column_name`.
             filters (Sequence[ColumnElement[bool]] | None, optional): Additional
                 filters to apply when locating the field. Defaults to None.
-            dek (bytes): The owner's data encryption key used to encrypt
-                ``value``.
+            dek (bytes | None, optional): The owner's data encryption key used
+                to encrypt ``value``. Required despite the default, which only
+                keeps the signature compatible with the base DAO.
             **kwargs (Any): Field attributes to update; must include the
                 plaintext ``value``.
 
@@ -153,29 +155,31 @@ class FieldDAO(BaseDAO[Field]):
             Field: The newly created field reflecting the updated value.
 
         Raises:
-            ValueError: If ``value`` is not provided in ``kwargs``.
+            ValueError: If ``value`` or ``dek`` is not provided.
 
         """
         kwargs["value"] = self._encrypt_value(kwargs.get("value"), dek)
         return await super().update(pk, pk_column_name, filters, **kwargs)
 
     @staticmethod
-    def _encrypt_value(value: str | None, dek: bytes) -> str:
+    def _encrypt_value(value: str | None, dek: bytes | None) -> str:
         """Encrypt a plaintext field value with the owner's data encryption key.
 
         Args:
             value (str | None): The plaintext value to encrypt.
-            dek (bytes): The owner's data encryption key.
+            dek (bytes | None): The owner's data encryption key.
 
         Returns:
             str: The encrypted value.
 
         Raises:
-            ValueError: If ``value`` is None.
+            ValueError: If ``value`` or ``dek`` is None.
 
         """
         if value is None:
             raise ValueError("Value is required")
+        if dek is None:
+            raise ValueError("Data encryption key is required")
 
         return CryptographyClient().encrypt(value, dek)
 
