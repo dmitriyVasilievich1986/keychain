@@ -1,6 +1,5 @@
 """Tests for the HTTP request logging middleware."""
 
-import pytest
 import structlog
 from starlette.types import Message, Receive, Scope, Send
 from structlog.testing import capture_logs
@@ -77,17 +76,36 @@ async def test_replaces_malformed_incoming_request_id() -> None:
     assert sent[1]["body"] not in (b"", b"bad id\n")
 
 
-async def test_logs_and_reraises_exceptions() -> None:
-    """Exceptions from the app should be logged with the run time and re-raised."""
+async def test_exception_returns_500_with_request_id() -> None:
+    """Unhandled exceptions should be logged once and answered with a 500 carrying the request id."""
 
     async def failing_app(_scope: Scope, _receive: Receive, _send: Send) -> None:
         raise RuntimeError("boom")
 
-    with capture_logs() as logs, pytest.raises(RuntimeError):
-        await _call(HTTPRequestMiddleware(failing_app), _scope())
+    with capture_logs() as logs:
+        sent = await _call(HTTPRequestMiddleware(failing_app), _scope([(b"x-request-id", b"abc-123")]))
 
+    assert sent[0]["status"] == 500
+    assert (b"x-request-id", b"abc-123") in sent[0]["headers"]
+    assert sent[1]["body"] == b"Internal Server Error"
     assert logs[-1]["event"] == "Request failed"
+    assert logs[-1]["status_code"] == 500
     assert "duration_ms" in logs[-1]
+
+
+async def test_exception_after_response_started_sends_nothing_more() -> None:
+    """If the response has already started, the failure is logged with its status and nothing else is sent."""
+
+    async def failing_stream_app(_scope: Scope, _receive: Receive, send: Send) -> None:
+        await send({"type": "http.response.start", "status": 200, "headers": []})
+        raise RuntimeError("boom")
+
+    with capture_logs() as logs:
+        sent = await _call(HTTPRequestMiddleware(failing_stream_app), _scope())
+
+    assert [message["type"] for message in sent] == ["http.response.start"]
+    assert logs[-1]["event"] == "Request failed"
+    assert logs[-1]["status_code"] == 200
 
 
 async def test_passes_through_non_http_scopes() -> None:

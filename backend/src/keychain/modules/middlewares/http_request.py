@@ -9,6 +9,7 @@ from uuid import uuid4
 
 import structlog
 from starlette.datastructures import MutableHeaders
+from starlette.responses import PlainTextResponse
 from starlette.types import ASGIApp, Message, Receive, Scope, Send
 
 REQUEST_ID_HEADER = "X-Request-ID"
@@ -25,6 +26,9 @@ class HTTPRequestMiddleware:
     The request identifier is taken from the ``X-Request-ID`` request header when it is
     present and well-formed, otherwise a new one is generated. It is returned to the
     client in the ``X-Request-ID`` response header.
+
+    Unhandled exceptions are logged once and answered with a ``500 Internal Server Error``
+    response that also carries the ``X-Request-ID`` header.
 
     The structlog context is cleared at the start and end of every request, so values bound
     while handling a request (e.g. ``user_id``) are included in the completion log but do not
@@ -48,9 +52,6 @@ class HTTPRequestMiddleware:
             receive: The ASGI receive callable.
             send: The ASGI send callable.
 
-        Raises:
-            Exception: Any exception raised by the wrapped application is logged and re-raised.
-
         """
         if scope["type"] != "http":
             await self.app(scope, receive, send)
@@ -58,6 +59,7 @@ class HTTPRequestMiddleware:
 
         request_id = self._get_request_id(scope)
         status_code = 500
+        response_started = False
 
         async def send_wrapper(message: Message) -> None:
             """Capture the response status code and add the request id header.
@@ -66,9 +68,10 @@ class HTTPRequestMiddleware:
                 message: The ASGI message sent by the application.
 
             """
-            nonlocal status_code
+            nonlocal status_code, response_started
             if message["type"] == "http.response.start":
                 status_code = message["status"]
+                response_started = True
                 MutableHeaders(scope=message)[REQUEST_ID_HEADER] = request_id
             await send(message)
 
@@ -80,8 +83,12 @@ class HTTPRequestMiddleware:
         try:
             await self.app(scope, receive, send_wrapper)
         except Exception:
-            logger.exception("Request failed", duration_ms=self._elapsed_ms(start))
-            raise
+            logger.exception("Request failed", status_code=status_code, duration_ms=self._elapsed_ms(start))
+            # Answer here rather than re-raising, so the error response carries the request id and
+            # the traceback is not logged a second time by Starlette/uvicorn. If the response has
+            # already started, nothing more can be sent and the server closes the connection.
+            if not response_started:
+                await PlainTextResponse("Internal Server Error", status_code=500)(scope, receive, send_wrapper)
         else:
             logger.info("Request completed", status_code=status_code, duration_ms=self._elapsed_ms(start))
         finally:

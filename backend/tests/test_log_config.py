@@ -8,7 +8,9 @@ from pathlib import Path
 
 import pytest
 import structlog
+from pydantic import ValidationError
 
+from keychain.config.models.info.logs import Logs
 from keychain.utils import configure_logging
 from keychain.utils.log_config import LOG_FILES_MAX_COUNT
 
@@ -35,7 +37,7 @@ def _file_handler() -> TimedRotatingFileHandler:
 
 def test_file_logs_use_gcp_structure(tmp_path: Path) -> None:
     """Log files should contain GCP structured JSON lines with source location."""
-    configure_logging(log_level="INFO", service="keychain", version="1.0", logs_folder_path=tmp_path)
+    configure_logging(Logs(log_level="INFO", logs_folder_path=tmp_path), service="keychain", version="1.0")
 
     structlog.get_logger().debug("hidden")
     structlog.get_logger().info("hello", user_id=1)
@@ -51,7 +53,7 @@ def test_file_logs_use_gcp_structure(tmp_path: Path) -> None:
 
 def test_exception_is_reported_as_gcp_error(tmp_path: Path) -> None:
     """Exceptions should be formatted as Google Cloud Error Reporting events."""
-    configure_logging(service="keychain", version="1.0", logs_folder_path=tmp_path)
+    configure_logging(Logs(logs_folder_path=tmp_path), service="keychain", version="1.0")
 
     try:
         raise ZeroDivisionError("boom")
@@ -67,7 +69,7 @@ def test_exception_is_reported_as_gcp_error(tmp_path: Path) -> None:
 
 def test_logs_rotate_daily_and_keep_limited_files(tmp_path: Path) -> None:
     """The log file should rotate daily and keep at most ``LOG_FILES_MAX_COUNT`` files."""
-    configure_logging(service="keychain", logs_folder_path=tmp_path)
+    configure_logging(Logs(logs_folder_path=tmp_path), service="keychain")
     handler = _file_handler()
     assert handler.when == "MIDNIGHT"
 
@@ -80,14 +82,14 @@ def test_logs_rotate_daily_and_keep_limited_files(tmp_path: Path) -> None:
 
 def test_no_file_logging_without_folder() -> None:
     """Without a logs folder only the terminal handler should be configured."""
-    configure_logging()
+    configure_logging(Logs())
 
     assert not any(isinstance(h, TimedRotatingFileHandler) for h in logging.getLogger().handlers)
 
 
 def test_simple_output_is_human_readable(capsys: pytest.CaptureFixture[str]) -> None:
     """Simple output should render plain lines instead of JSON."""
-    configure_logging(is_simple_output=True)
+    configure_logging(Logs(is_simple_output=True))
 
     structlog.get_logger().info("hello", user_id=1)
 
@@ -95,3 +97,9 @@ def test_simple_output_is_human_readable(capsys: pytest.CaptureFixture[str]) -> 
     assert "hello" in err
     assert "user_id=1" in err
     assert not err.lstrip().startswith("{")
+
+
+def test_log_level_must_be_a_known_level() -> None:
+    """Unknown log levels should be rejected when the configuration is loaded."""
+    with pytest.raises(ValidationError):
+        Logs(log_level="VERBOSE")  # ty: ignore[invalid-argument-type]

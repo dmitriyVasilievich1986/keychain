@@ -5,11 +5,12 @@ __all__ = ("LOG_FILES_MAX_COUNT", "configure_logging")
 import logging
 import sys
 from logging.handlers import TimedRotatingFileHandler
-from pathlib import Path
 
 import structlog
 from structlog.typing import EventDict, Processor, WrappedLogger
 from structlog_gcp import error_reporting, processors as gcp_processors
+
+from keychain.config.models.info.logs import Logs
 
 LOG_FILES_MAX_COUNT = 5
 """Maximum number of log files kept in the logs folder (the active file included)."""
@@ -118,11 +119,9 @@ def _build_simple_formatter(pre_chain: list[Processor]) -> structlog.stdlib.Proc
 
 
 def configure_logging(
-    log_level: str = "INFO",
+    logs: Logs,
     service: str | None = None,
     version: str | None = None,
-    logs_folder_path: Path | None = None,
-    is_simple_output: bool = False,
 ) -> None:
     """Configure structlog and the standard library ``logging`` to emit GCP structured logs.
 
@@ -130,18 +129,18 @@ def configure_logging(
     library ``logging`` module (e.g. third-party libraries) are rendered the same way
     as structlog records. Calling this function again replaces the previous configuration.
 
-    When ``logs_folder_path`` is set, logs are additionally written to that folder in
+    When ``logs.logs_folder_path`` is set, logs are additionally written to that folder in
     the GCP JSON format. The log file is rotated at midnight (UTC), one file per day,
     and at most ``LOG_FILES_MAX_COUNT`` files are kept; older files are removed.
 
+    When ``logs.is_simple_output`` is set, the terminal output is rendered as human-readable
+    lines instead of GCP JSON. It is intended for local development; file logs are always
+    written in the GCP JSON format.
+
     Args:
-        log_level: Minimum log level name (e.g. ``"DEBUG"``, ``"INFO"``).
+        logs: Logs configuration (log level, simple output flag and logs folder).
         service: Service name reported to Google Cloud Error Reporting.
         version: Service version reported to Google Cloud Error Reporting.
-        logs_folder_path: Folder to store log files in. If ``None``, file logging is disabled.
-        is_simple_output: If ``True``, the terminal output is rendered as human-readable
-            lines instead of GCP JSON. Intended for local development; file logs are
-            always written in the GCP JSON format.
 
     """
     pre_chain: list[Processor] = [
@@ -152,14 +151,16 @@ def configure_logging(
 
     console_handler = logging.StreamHandler(sys.stderr)
     console_handler.setFormatter(
-        _build_simple_formatter(pre_chain) if is_simple_output else _build_gcp_formatter(pre_chain, service, version),
+        _build_simple_formatter(pre_chain)
+        if logs.is_simple_output
+        else _build_gcp_formatter(pre_chain, service, version),
     )
     handlers: list[logging.Handler] = [console_handler]
 
-    if logs_folder_path is not None:
-        logs_folder_path.mkdir(parents=True, exist_ok=True)
+    if logs.logs_folder_path is not None:
+        logs.logs_folder_path.mkdir(parents=True, exist_ok=True)
         file_handler = TimedRotatingFileHandler(
-            logs_folder_path / f"{service or 'app'}.log",
+            logs.logs_folder_path / f"{service or 'app'}.log",
             when="midnight",
             backupCount=LOG_FILES_MAX_COUNT - 1,
             encoding="utf-8",
@@ -174,7 +175,7 @@ def configure_logging(
         handler.close()
     for handler in handlers:
         root_logger.addHandler(handler)
-    root_logger.setLevel(log_level.upper())
+    root_logger.setLevel(logs.log_level)
 
     structlog.configure(
         processors=[

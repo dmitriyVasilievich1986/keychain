@@ -40,13 +40,7 @@ def get_app(config: AppConfig | None = None) -> FastAPI:
     config = config or AppConfig.get_or_create()
     # Configured here as well as in the CLI: with uvicorn's reloader the app runs in a
     # separate worker process that only calls this factory.
-    configure_logging(
-        log_level=config.info.logs.log_level,
-        service=config.info.name,
-        version=config.info.version,
-        logs_folder_path=config.info.logs.logs_folder_path,
-        is_simple_output=config.info.logs.is_simple_output,
-    )
+    configure_logging(config.info.logs, service=config.info.name, version=config.info.version)
     logger.debug("Config loaded", config=config.model_dump_json())
 
     app = FastAPI(
