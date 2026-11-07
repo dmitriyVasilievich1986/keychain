@@ -8,6 +8,7 @@ from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.sql import ColumnElement
 
+from keychain.services.cryptography.client import CryptographyClient
 from keychain.services.db_client.models.field import Field
 from keychain.services.db_client.models.password import Password
 
@@ -42,7 +43,8 @@ class FieldDAO(BaseDAO[Field]):
             pk_column_name (str): The name of the primary key column.
             filters (Sequence[ColumnElement[bool]] | None, optional): Additional
                 filters to apply when locating the field. Defaults to None.
-            **kwargs (Any): Field attributes to update; must include ``value``.
+            **kwargs (Any): Field attributes to update; must include the
+                already encrypted ``value``.
 
         Returns:
             Field: The newly created field reflecting the updated value.
@@ -93,23 +95,89 @@ class FieldDAO(BaseDAO[Field]):
         await session.commit()
         return await self._get_by_pk_raw(session, getattr(obj, self.pk_column_name), self.pk_column_name, filters)
 
-    async def create(self, filters: Sequence[ColumnElement[bool]] | None = None, **kwargs: Any) -> Field:
+    async def create(
+        self,
+        filters: Sequence[ColumnElement[bool]] | None = None,
+        *,
+        dek: bytes,
+        **kwargs: Any,
+    ) -> Field:
         """Create a new field, using an existing session or a new one.
 
         Args:
             filters (Sequence[ColumnElement[bool]] | None, optional): Additional
                 filters to apply during creation. Defaults to None.
-            **kwargs (Any): Field attributes; must include ``password_id``.
+            dek (bytes): The owner's data encryption key used to encrypt
+                ``value``.
+            **kwargs (Any): Field attributes; must include ``password_id`` and
+                the plaintext ``value``.
 
         Returns:
             Field: The newly created field.
 
+        Raises:
+            ValueError: If ``value`` is not provided in ``kwargs``.
+
         """
+        kwargs["value"] = self._encrypt_value(kwargs.get("value"), dek)
+
         if self.session is not None:
             return await self._create_raw(self.session, **kwargs, filters=filters)
 
         async with self._session_factory() as session:
             return await self._create_raw(session, **kwargs, filters=filters)
+
+    async def update(
+        self,
+        pk: int | str,
+        pk_column_name: str | None = None,
+        filters: Sequence[ColumnElement[bool]] | None = None,
+        *,
+        dek: bytes,
+        **kwargs: Any,
+    ) -> Field:
+        """Update a field's value by primary key.
+
+        Args:
+            pk (int | str): The primary key of the field to update.
+            pk_column_name (str | None, optional): The name of the primary key
+                column. Defaults to :attr:`pk_column_name`.
+            filters (Sequence[ColumnElement[bool]] | None, optional): Additional
+                filters to apply when locating the field. Defaults to None.
+            dek (bytes): The owner's data encryption key used to encrypt
+                ``value``.
+            **kwargs (Any): Field attributes to update; must include the
+                plaintext ``value``.
+
+        Returns:
+            Field: The newly created field reflecting the updated value.
+
+        Raises:
+            ValueError: If ``value`` is not provided in ``kwargs``.
+
+        """
+        kwargs["value"] = self._encrypt_value(kwargs.get("value"), dek)
+        return await super().update(pk, pk_column_name, filters, **kwargs)
+
+    @staticmethod
+    def _encrypt_value(value: str | None, dek: bytes) -> str:
+        """Encrypt a plaintext field value with the owner's data encryption key.
+
+        Args:
+            value (str | None): The plaintext value to encrypt.
+            dek (bytes): The owner's data encryption key.
+
+        Returns:
+            str: The encrypted value.
+
+        Raises:
+            ValueError: If ``value`` is None.
+
+        """
+        if value is None:
+            raise ValueError("Value is required")
+
+        return CryptographyClient().encrypt(value, dek)
 
     async def _delete_raw(
         self,
