@@ -9,7 +9,7 @@ from keychain.utils import configure_logging
 
 def main() -> None:
     """Configure logging, build the app from config and run it with uvicorn."""
-    config = AppConfig.get_or_create()
+    config = AppConfig()
     configure_logging(config.info.logs, service=config.info.name, version=config.info.version)
 
     app = get_app(config=config)

@@ -1,6 +1,6 @@
 """Application lifespan management for initializing and tearing down services."""
 
-__all__ = ["lifespan"]
+__all__ = ("lifespan",)
 
 from contextlib import asynccontextmanager
 from typing import AsyncGenerator
@@ -35,7 +35,7 @@ async def lifespan(app: FastAPI) -> AsyncGenerator[None, None]:
 
     # Initialize services
     logger.info("Initializing Application services...")
-    app_config = AppConfig.get_or_create()
+    app_config = AppConfig()
     db_client = DBClient(app_config.db.postgresql, app_config.info.debug)
     logger.info("Database client initialized successfully.")
 

@@ -30,7 +30,7 @@ config = context.config
 if config.config_file_name is not None and not logging.getLogger().handlers:
     fileConfig(config.config_file_name)
 
-app_config = AppConfig.get_or_create()
+app_config = AppConfig()
 db_client = DBClient(app_config.db.postgresql, app_config.info.debug)
 
 logger.info("Alembic migrations started")
