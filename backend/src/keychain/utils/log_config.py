@@ -42,6 +42,22 @@ def _drop_callsite(_logger: WrappedLogger, _method_name: str, event_dict: EventD
     return event_dict
 
 
+def _drop_color_message(_logger: WrappedLogger, _method_name: str, event_dict: EventDict) -> EventDict:
+    """Remove the ANSI-colored duplicate of the message that uvicorn adds as an ``extra`` field.
+
+    Args:
+        _logger: The wrapped logger instance (unused).
+        _method_name: The name of the called log method (unused).
+        event_dict: The structlog event dictionary.
+
+    Returns:
+        EventDict: The event dictionary without the ``color_message`` field.
+
+    """
+    event_dict.pop("color_message", None)
+    return event_dict
+
+
 def _build_gcp_formatter(
     pre_chain: list[Processor],
     service: str | None,
@@ -131,6 +147,7 @@ def configure_logging(
     pre_chain: list[Processor] = [
         structlog.contextvars.merge_contextvars,
         structlog.stdlib.ExtraAdder(),
+        _drop_color_message,
     ]
 
     console_handler = logging.StreamHandler(sys.stderr)
