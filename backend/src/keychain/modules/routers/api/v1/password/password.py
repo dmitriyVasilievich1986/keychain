@@ -4,8 +4,8 @@ __all__ = ("router",)
 
 from typing import Annotated
 
+import structlog
 from fastapi import APIRouter, Body, Depends, HTTPException, Path, Query, status
-from loguru import logger
 from sqlalchemy.exc import NoResultFound, SQLAlchemyError
 
 from keychain.config import AppConfig
@@ -26,6 +26,8 @@ from keychain.services.daos.password import PasswordDAO
 from keychain.services.db_client.client import DBClient
 from keychain.services.db_client.models.password import Password
 from keychain.services.db_client.models.user import User
+
+logger = structlog.stdlib.get_logger(__name__)
 
 router = APIRouter(prefix="/password", tags=["Passwords Management"])
 
@@ -57,7 +59,7 @@ async def get_passwords(
         data, total = await password_dao.get_all(filters=filters, **query.model_dump(exclude={"filters"}))
         metadata = PaginationMetadata(total=total, **query.model_dump())
     except SQLAlchemyError as e:
-        logger.exception("Error retrieving passwords", exc_info=e)
+        logger.exception("Error retrieving passwords")
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail="An unexpected error occurred"
         ) from e
@@ -90,10 +92,10 @@ async def get_password(
     try:
         password = await password_dao.get_by_pk(password_id, filters=[Password.user_id == user.id])
     except NoResultFound as e:
-        logger.warning(f"Password {password_id} not found for user {user.id}")
+        logger.warning("Password not found", password_id=password_id)
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Password not found") from e
     except SQLAlchemyError as e:
-        logger.exception("Error retrieving password", exc_info=e)
+        logger.exception("Error retrieving password")
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail="An unexpected error occurred"
         ) from e
@@ -131,7 +133,7 @@ async def create_password(
     try:
         password = await password_dao.create(**body.model_dump(), user_id=user.id)
     except SQLAlchemyError as e:
-        logger.exception("Error creating password", exc_info=e)
+        logger.exception("Error creating password")
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail="An unexpected error occurred"
         ) from e
@@ -167,10 +169,10 @@ async def update_password(
     try:
         password = await password_dao.update(password_id, **body.model_dump(), filters=[Password.user_id == user.id])
     except NoResultFound as e:
-        logger.warning(f"Password {password_id} not found for user {user.id}")
+        logger.warning("Password not found", password_id=password_id)
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Password not found") from e
     except SQLAlchemyError as e:
-        logger.exception("Error updating password", exc_info=e)
+        logger.exception("Error updating password")
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail="An unexpected error occurred"
         ) from e
@@ -210,10 +212,10 @@ async def patch_password(
             password_id, **body.model_dump(exclude_unset=True), filters=[Password.user_id == user.id]
         )
     except NoResultFound as e:
-        logger.warning(f"Password {password_id} not found for user {user.id}")
+        logger.warning("Password not found", password_id=password_id)
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Password not found") from e
     except SQLAlchemyError as e:
-        logger.exception("Error updating password", exc_info=e)
+        logger.exception("Error updating password")
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail="An unexpected error occurred"
         ) from e
@@ -247,10 +249,10 @@ async def delete_password(
     try:
         await password_dao.delete(password_id, filters=[Password.user_id == user.id])
     except NoResultFound as e:
-        logger.warning(f"Password {password_id} not found for user {user.id}")
+        logger.warning("Password not found", password_id=password_id)
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Password not found") from e
     except SQLAlchemyError as e:
-        logger.exception("Error deleting password", exc_info=e)
+        logger.exception("Error deleting password")
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail="An unexpected error occurred"
         ) from e

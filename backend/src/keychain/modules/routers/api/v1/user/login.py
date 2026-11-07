@@ -4,9 +4,9 @@ __all__ = ("router",)
 
 from typing import Annotated
 
+import structlog
 from fastapi import APIRouter, Body, Depends, HTTPException, status
 from jwt.exceptions import PyJWTError
-from loguru import logger
 from sqlalchemy.exc import NoResultFound, SQLAlchemyError
 
 from keychain.config import AppConfig
@@ -18,6 +18,8 @@ from keychain.modules.routers.models.response.user import AccessTokenResponseMod
 from keychain.services.auth.client import AuthClient
 from keychain.services.daos.user import UserDAO
 from keychain.services.db_client.client import DBClient
+
+logger = structlog.stdlib.get_logger(__name__)
 
 router = APIRouter(prefix="/user")
 
@@ -49,23 +51,23 @@ async def login_user(
     try:
         user = await user_dao.get_by_username(body.username)
     except NoResultFound as e:
-        logger.warning(f"User not found: {body.username}")
+        logger.warning("User not found", username=body.username)
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Username or password is incorrect") from e
     except SQLAlchemyError as e:
-        logger.exception("Error logging in user", exc_info=e)
+        logger.exception("Error logging in user")
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail="An unexpected error occurred"
         ) from e
 
     if not user.verify_password(body.password):
-        logger.warning(f"Invalid password for user: {body.username}")
+        logger.warning("Invalid password", username=body.username)
         raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Username or password is incorrect")
 
     auth_service = AuthClient(config=config)
     try:
         access_token = auth_service.encode_token(str(user.id))
     except (ValueError, PyJWTError) as e:
-        logger.exception("Error encoding access token", exc_info=e)
+        logger.exception("Error encoding access token")
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail="An unexpected error occurred"
         ) from e

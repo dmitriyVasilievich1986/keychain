@@ -5,12 +5,14 @@ __all__ = ["lifespan"]
 from contextlib import asynccontextmanager
 from typing import AsyncGenerator
 
+import structlog
 from fastapi import FastAPI
-from loguru import logger
 
 from keychain.config import AppConfig
 from keychain.services.cryptography.client import CryptographyClient
 from keychain.services.db_client.client import DBClient
+
+logger = structlog.stdlib.get_logger(__name__)
 
 
 @asynccontextmanager
@@ -29,7 +31,7 @@ async def lifespan(app: FastAPI) -> AsyncGenerator[None, None]:
 
     """
     logger.info("Starting application lifespan...")
-    logger.info(f"Debug mode: {app.debug}")
+    logger.info("Debug mode", debug=app.debug)
 
     # Initialize services
     logger.info("Initializing Application services...")

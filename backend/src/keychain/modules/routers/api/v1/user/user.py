@@ -4,8 +4,8 @@ __all__ = ("router",)
 
 from typing import Annotated
 
+import structlog
 from fastapi import APIRouter, Body, Depends, HTTPException, status
-from loguru import logger
 from sqlalchemy.exc import NoResultFound, SQLAlchemyError
 
 from keychain.config import AppConfig
@@ -17,6 +17,8 @@ from keychain.modules.routers.models.response.user import UserGetResponseModel
 from keychain.services.daos.user import UserDAO
 from keychain.services.db_client.client import DBClient
 from keychain.services.db_client.models.user import User
+
+logger = structlog.stdlib.get_logger(__name__)
 
 router = APIRouter(prefix="/user")
 
@@ -61,10 +63,10 @@ async def update_user(
     try:
         updated_user = await user_dao.update(user.id, **body.model_dump())
     except NoResultFound as e:
-        logger.warning(f"User not found: {user.id}")
+        logger.warning("User not found")
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="User not found") from e
     except SQLAlchemyError as e:
-        logger.exception(f"Error updating user {user.id}", exc_info="An unexpected error occurred")
+        logger.exception("Error updating user")
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail="An unexpected error occurred"
         ) from e

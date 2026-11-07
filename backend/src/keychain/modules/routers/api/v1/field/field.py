@@ -4,8 +4,8 @@ __all__ = ("router",)
 
 from typing import Annotated
 
+import structlog
 from fastapi import APIRouter, Body, Depends, HTTPException, Path, Query, status
-from loguru import logger
 from sqlalchemy.exc import NoResultFound, SQLAlchemyError
 
 from keychain.config import AppConfig
@@ -21,6 +21,8 @@ from keychain.services.daos.field import FieldDAO
 from keychain.services.db_client.client import DBClient
 from keychain.services.db_client.models.password import Password
 from keychain.services.db_client.models.user import User
+
+logger = structlog.stdlib.get_logger(__name__)
 
 router = APIRouter(prefix="/field", tags=["Fields Management"])
 
@@ -52,7 +54,7 @@ async def get_fields(
         data, total = await field_dao.get_all(filters=filters, **query.model_dump(exclude={"filters"}))
         metadata = PaginationMetadata(total=total, **query.model_dump())
     except SQLAlchemyError as e:
-        logger.exception("Error retrieving fields", exc_info=e)
+        logger.exception("Error retrieving fields")
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail="An unexpected error occurred"
         ) from e
@@ -88,7 +90,7 @@ async def get_field(
         logger.warning("Field not found")
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Field not found") from e
     except SQLAlchemyError as e:
-        logger.exception("Error retrieving field", exc_info=e)
+        logger.exception("Error retrieving field")
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail="An unexpected error occurred"
         ) from e
@@ -130,7 +132,7 @@ async def create_field(
         logger.warning("Password not found")
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Password not found") from e
     except SQLAlchemyError as e:
-        logger.exception("Error creating field", exc_info=e)
+        logger.exception("Error creating field")
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail="An unexpected error occurred"
         ) from e
@@ -168,7 +170,7 @@ async def update_field(
         logger.warning("Field not found")
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Field not found") from e
     except SQLAlchemyError as e:
-        logger.exception("Error updating field", exc_info=e)
+        logger.exception("Error updating field")
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail="An unexpected error occurred"
         ) from e
@@ -204,7 +206,7 @@ async def delete_field(
         logger.warning("Field not found")
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Field not found") from e
     except SQLAlchemyError as e:
-        logger.exception("Error deleting field", exc_info=e)
+        logger.exception("Error deleting field")
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail="An unexpected error occurred"
         ) from e

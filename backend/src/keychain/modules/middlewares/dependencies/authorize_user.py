@@ -4,10 +4,10 @@ __all__ = ["authorize_user"]
 
 from typing import Annotated, Any, Callable, Coroutine
 
+import structlog
 from fastapi import Depends, HTTPException, status
 from fastapi.security import HTTPAuthorizationCredentials, HTTPBearer
 from jwt.exceptions import ExpiredSignatureError, InvalidTokenError, PyJWTError
-from loguru import logger
 from sqlalchemy.exc import NoResultFound, SQLAlchemyError
 
 from keychain.config import AppConfig
@@ -17,6 +17,8 @@ from keychain.services.db_client.client import DBClient
 from keychain.services.db_client.models.user import User
 
 from .get_db import get_db
+
+logger = structlog.stdlib.get_logger(__name__)
 
 user_token = HTTPBearer(scheme_name="User Token")
 
@@ -46,6 +48,9 @@ def authorize_user(
                 extracted from the request.
             db_client (DBClient): The database client used to look up the user.
 
+        The authenticated user's id is bound to structlog's context vars as
+        ``user_id`` for the rest of the request.
+
         Returns:
             User: The authenticated user matching the token.
 
@@ -62,21 +67,24 @@ def authorize_user(
             logger.warning("Expired token")
             raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Expired token") from e
         except (InvalidTokenError, ValueError) as e:
-            logger.exception("Invalid token", exc_info=e)
+            logger.exception("Invalid token")
             raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Invalid token") from e
         except PyJWTError as e:
-            logger.exception("An unexpected error occurred", exc_info=e)
+            logger.exception("An unexpected error occurred")
             raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="An unexpected error occurred") from e
 
         try:
-            return await UserDAO(db_client).get_by_pk(pk=int(result.user_id))
+            user = await UserDAO(db_client).get_by_pk(pk=int(result.user_id))
         except NoResultFound as e:
-            logger.warning(f"User not found: {result.user_id}")
+            logger.warning("User not found", user_id=result.user_id)
             raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="User not found") from e
         except SQLAlchemyError as e:
-            logger.exception("Error retrieving user", exc_info=e)
+            logger.exception("Error retrieving user")
             raise HTTPException(
                 status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail="An unexpected error occurred"
             ) from e
+
+        structlog.contextvars.bind_contextvars(user_id=user.id)
+        return user
 
     return _authorize_user
