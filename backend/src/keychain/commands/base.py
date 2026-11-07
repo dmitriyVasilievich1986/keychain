@@ -1,5 +1,7 @@
 """Abstract base class for async application commands."""
 
+__all__ = ("BaseCommand",)
+
 from abc import ABC, abstractmethod
 from typing import Any
 
