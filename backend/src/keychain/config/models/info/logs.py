@@ -1,10 +1,13 @@
 """Logs configuration model."""
 
-__all__ = ("Logs",)
+__all__ = ("LogLevel", "Logs")
 
 from pathlib import Path
+from typing import Literal
 
 from pydantic import BaseModel, Field
+
+LogLevel = Literal["DEBUG", "INFO", "WARNING", "ERROR", "CRITICAL"]
 
 
 class Logs(BaseModel):
@@ -20,6 +23,6 @@ class Logs(BaseModel):
 
     """
 
-    log_level: str = Field(default="INFO", description="Log level")
+    log_level: LogLevel = Field(default="INFO", description="Log level")
     is_simple_output: bool = Field(default=False, description="Is simple output")
     logs_folder_path: Path | None = Field(None, description="Logs folder path")
