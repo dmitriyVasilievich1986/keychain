@@ -2,7 +2,7 @@
 
 __all__ = ["Singleton"]
 
-from threading import Lock
+from threading import RLock
 from typing import ClassVar
 
 
@@ -23,12 +23,14 @@ class Singleton(type):
 
     Attributes:
         _instances: A dictionary mapping classes to their singleton instances.
-        _lock: A threading lock used to ensure thread-safe instance creation.
+        _lock: A reentrant threading lock used to ensure thread-safe instance
+            creation, allowing singletons to create other singletons in their
+            constructors.
 
     """
 
     _instances: ClassVar[dict] = {}
-    _lock: Lock = Lock()
+    _lock: RLock = RLock()
 
     def __call__(cls, *args, **kwargs):
         """Create or return the existing singleton instance of the class.
