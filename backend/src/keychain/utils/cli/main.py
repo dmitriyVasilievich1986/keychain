@@ -32,7 +32,7 @@ def main(ctx: click.Context) -> None:
 
     """
     ctx.ensure_object(dict)
-    config = AppConfig.get_or_create()
+    config = AppConfig()
     configure_logging(config.info.logs, service=config.info.name, version=config.info.version)
     ctx.obj["config"] = config
 

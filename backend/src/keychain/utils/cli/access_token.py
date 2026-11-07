@@ -7,6 +7,9 @@ import asyncclick as click
 
 from keychain.config import AppConfig
 from keychain.services.auth.client import AuthClient
+from keychain.services.db_client.client import DBClient
+
+from .user_dek import load_user_dek
 
 
 @click.group(help="CLI for managing the access token of the Keychain Application.")
@@ -26,14 +29,33 @@ def access_token(ctx: click.Context) -> None:
 
 @access_token.command(help="Generate a new access token")
 @click.option("--user-id", help="The ID of the user", type=int, required=True)
+@click.option("--user-password", prompt="Enter the user password", help="The password of the user", hide_input=True)
 @click.pass_context
-def generate_access_token(ctx: click.Context, user_id: int) -> None:
+async def generate_access_token(ctx: click.Context, user_id: int, user_password: str) -> None:
     """Generate a new access token for a user.
 
-    This command generates a new access token for a user and outputs the token.
+    This command verifies the user's password, resolves their data encryption
+    key and generates a new access token that carries it.
+
+    Args:
+        ctx (click.Context): Click context object containing the app config
+            and auth client.
+        user_id (int): The unique identifier of the user.
+        user_password (str): The user's password.
+
+    Returns:
+        None
+
     """
+    config: AppConfig = ctx.obj["config"]
     auth_client: AuthClient = ctx.obj["auth_client"]
-    access_token = auth_client.encode_token(str(user_id))
+    db_client = DBClient(config.db.postgresql, config.info.debug)
+    try:
+        dek = await load_user_dek(db_client, user_id, user_password)
+    finally:
+        await db_client.close()
+
+    access_token = auth_client.encode_token(str(user_id), dek)
     click.echo(access_token.model_dump_json(indent=2))
 
 

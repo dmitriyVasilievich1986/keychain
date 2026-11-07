@@ -13,6 +13,7 @@ from keychain.services.cryptography.client import CryptographyClient
 from keychain.services.daos import FieldDAO
 from keychain.services.db_client.client import DBClient
 from keychain.services.db_client.models.password import Password
+from keychain.utils.cli.user_dek import load_user_dek
 
 
 @click.group(help="CLI for managing fields of the Keychain Application.")
@@ -49,8 +50,12 @@ def field(ctx: click.Context) -> None:
     confirmation_prompt=True,
 )
 @click.option("--password-id", help="The ID of the password that owns the field", type=int, required=True)
+@click.option("--user-id", help="The ID of the user who owns the password", type=int, required=True)
+@click.option("--user-password", prompt="Enter the user password", help="The password of the owner", hide_input=True)
 @click.pass_context
-async def create_field(ctx: click.Context, name: str, value: str, password_id: int) -> None:
+async def create_field(
+    ctx: click.Context, name: str, value: str, password_id: int, user_id: int, user_password: str
+) -> None:
     """Create a new field in the database.
 
     This command creates a new field record in the database and outputs the
@@ -63,6 +68,8 @@ async def create_field(ctx: click.Context, name: str, value: str, password_id: i
             storage).
         password_id (int): The unique identifier of the password that owns the
             field.
+        user_id (int): The unique identifier of the user who owns the password.
+        user_password (str): The owner's password, used to decrypt field values.
 
     Returns:
         None
@@ -71,15 +78,18 @@ async def create_field(ctx: click.Context, name: str, value: str, password_id: i
     db_client: DBClient = ctx.obj["db_client_instance"]
     field_dao = FieldDAO(db_client)
     body = FieldCreateRequestModel(name=name, value=value, password_id=password_id)
-    field = await field_dao.create(**body.model_dump())
-    field_response = FieldGetResponseModel.model_validate(field)
+    dek = await load_user_dek(db_client, user_id, user_password)
+    field = await field_dao.create(**body.model_dump(), filters=[Password.user_id == user_id], dek=dek)
+    field_response = FieldGetResponseModel.model_validate(field, context={"dek": dek})
     click.echo(field_response.model_dump_json(indent=2))
 
 
 @field.command(help="Get a field by ID")
 @click.option("--field-id", help="The ID of the field", type=int, required=True)
+@click.option("--user-id", help="The ID of the user who owns the field", type=int, required=True)
+@click.option("--user-password", prompt="Enter the user password", help="The password of the owner", hide_input=True)
 @click.pass_context
-async def get_field(ctx: click.Context, field_id: int) -> None:
+async def get_field(ctx: click.Context, field_id: int, user_id: int, user_password: str) -> None:
     """Retrieve a field from the database by its ID.
 
     This command fetches a field record by ID and outputs the field information
@@ -88,6 +98,8 @@ async def get_field(ctx: click.Context, field_id: int) -> None:
     Args:
         ctx (click.Context): Click context object containing the DB client.
         field_id (int): The unique identifier of the field to retrieve.
+        user_id (int): The unique identifier of the user who owns the field.
+        user_password (str): The owner's password, used to decrypt field values.
 
     Returns:
         None
@@ -95,8 +107,9 @@ async def get_field(ctx: click.Context, field_id: int) -> None:
     """
     db_client: DBClient = ctx.obj["db_client_instance"]
     field_dao = FieldDAO(db_client)
-    field = await field_dao.get_by_pk(field_id)
-    field_response = FieldGetResponseModel.model_validate(field)
+    dek = await load_user_dek(db_client, user_id, user_password)
+    field = await field_dao.get_by_pk(field_id, filters=[Password.user_id == user_id])
+    field_response = FieldGetResponseModel.model_validate(field, context={"dek": dek})
     click.echo(field_response.model_dump_json(indent=2))
 
 
@@ -111,8 +124,10 @@ async def get_field(ctx: click.Context, field_id: int) -> None:
     hide_input=True,
     confirmation_prompt=True,
 )
+@click.option("--user-id", help="The ID of the user who owns the field", type=int, required=True)
+@click.option("--user-password", prompt="Enter the user password", help="The password of the owner", hide_input=True)
 @click.pass_context
-async def update_field(ctx: click.Context, field_id: int, value: str) -> None:
+async def update_field(ctx: click.Context, field_id: int, value: str, user_id: int, user_password: str) -> None:
     """Update a field's value in the database.
 
     This command updates the value of an existing field identified by its ID
@@ -124,6 +139,8 @@ async def update_field(ctx: click.Context, field_id: int, value: str) -> None:
         field_id (int): The unique identifier of the field to update.
         value (str): The new value to assign to the field (encrypted before
             storage).
+        user_id (int): The unique identifier of the user who owns the field.
+        user_password (str): The owner's password, used to decrypt field values.
 
     Returns:
         None
@@ -132,8 +149,9 @@ async def update_field(ctx: click.Context, field_id: int, value: str) -> None:
     db_client: DBClient = ctx.obj["db_client_instance"]
     field_dao = FieldDAO(db_client)
     body = FieldUpdateRequestModel(value=value)
-    field = await field_dao.update(field_id, **body.model_dump())
-    field_response = FieldGetResponseModel.model_validate(field)
+    dek = await load_user_dek(db_client, user_id, user_password)
+    field = await field_dao.update(field_id, **body.model_dump(), filters=[Password.user_id == user_id], dek=dek)
+    field_response = FieldGetResponseModel.model_validate(field, context={"dek": dek})
     click.echo(field_response.model_dump_json(indent=2))
 
 
@@ -161,19 +179,20 @@ async def delete_field(ctx: click.Context, field_id: int) -> None:
 
 
 @field.command(help="List all fields for a user")
-@click.option("--user-id", help="The ID of the user who owns the field", type=int, required=False)
+@click.option("--user-id", help="The ID of the user who owns the field", type=int, required=True)
+@click.option("--user-password", prompt="Enter the user password", help="The password of the owner", hide_input=True)
 @click.pass_context
-async def list_fields(ctx: click.Context, user_id: int | None) -> None:
-    """List all fields, optionally filtered by owner.
+async def list_fields(ctx: click.Context, user_id: int, user_password: str) -> None:
+    """List all fields of a user.
 
-    This command retrieves fields from the database and outputs them as a JSON
-    array. When a user ID is provided, only fields owned by that user are
-    returned. Each field includes its ID, name, and deletion status.
+    This command retrieves the fields owned by a user and outputs them as a
+    JSON array. Each field includes its ID, name, deletion status and
+    decrypted value.
 
     Args:
         ctx (click.Context): Click context object containing the DB client.
-        user_id (int, optional): The unique identifier of the user whose
-            fields to list. Defaults to None.
+        user_id (int): The unique identifier of the user whose fields to list.
+        user_password (str): The owner's password, used to decrypt field values.
 
     Returns:
         None
@@ -181,7 +200,7 @@ async def list_fields(ctx: click.Context, user_id: int | None) -> None:
     """
     db_client: DBClient = ctx.obj["db_client_instance"]
     field_dao = FieldDAO(db_client)
-    filters = [] if user_id is None else [Password.user_id == user_id]
-    fields, _ = await field_dao.get_all(filters=filters)
-    field_responses = [SimpleFieldGet.model_validate(field) for field in fields]
+    dek = await load_user_dek(db_client, user_id, user_password)
+    fields, _ = await field_dao.get_all(filters=[Password.user_id == user_id])
+    field_responses = [SimpleFieldGet.model_validate(field, context={"dek": dek}) for field in fields]
     click.echo(json.dumps([field.model_dump() for field in field_responses], indent=2))
