@@ -8,6 +8,7 @@
 import { useUserStore, type User } from '@store/user';
 
 import { apiClientInstance, useApiClientWrapper } from '../base';
+import { API_PREFIX } from '../constants';
 
 import type { UserPutRequest } from './types';
 
@@ -27,7 +28,7 @@ export const useUserAPIClient = () => {
      * @returns Current user payload from the API.
      */
     getUser: async () => {
-      const response = await apiClientInstance.get<User>('/api/v1/user/me');
+      const response = await apiClientInstance.get<User>(`${API_PREFIX}/api/v1/user/me`);
       return response.data;
     },
     /**
@@ -38,7 +39,7 @@ export const useUserAPIClient = () => {
      */
     putUser: async (request: UserPutRequest) => {
       return wrapper(async () => {
-        const response = await apiClientInstance.put<User>('/api/v1/user', request);
+        const response = await apiClientInstance.put<User>(`${API_PREFIX}/api/v1/user`, request);
         setUser(response.data);
         return response.data;
       });
