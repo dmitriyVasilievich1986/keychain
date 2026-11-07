@@ -1,0 +1,116 @@
+"""ASGI middleware binding request context to structlog and logging request run time."""
+
+__all__ = ["REQUEST_ID_HEADER", "HTTPRequestMiddleware"]
+
+import re
+from time import perf_counter
+from typing import cast
+from uuid import uuid4
+
+import structlog
+from starlette.datastructures import MutableHeaders
+from starlette.types import ASGIApp, Message, Receive, Scope, Send
+
+REQUEST_ID_HEADER = "X-Request-ID"
+"""Header used to receive and return the request identifier."""
+
+_REQUEST_ID_PATTERN = re.compile(r"^[A-Za-z0-9._-]{1,128}$")
+
+logger = structlog.stdlib.get_logger(__name__)
+
+
+class HTTPRequestMiddleware:
+    """Bind ``request_id``, ``path`` and ``method`` to structlog context vars and log request run time.
+
+    The request identifier is taken from the ``X-Request-ID`` request header when it is
+    present and well-formed, otherwise a new one is generated. It is returned to the
+    client in the ``X-Request-ID`` response header.
+    """
+
+    def __init__(self, app: ASGIApp) -> None:
+        """Initialize the middleware.
+
+        Args:
+            app: The wrapped ASGI application.
+
+        """
+        self.app = app
+
+    async def __call__(self, scope: Scope, receive: Receive, send: Send) -> None:
+        """Handle an ASGI call, logging HTTP requests with their run time.
+
+        Args:
+            scope: The ASGI connection scope.
+            receive: The ASGI receive callable.
+            send: The ASGI send callable.
+
+        Raises:
+            Exception: Any exception raised by the wrapped application is logged and re-raised.
+
+        """
+        if scope["type"] != "http":
+            await self.app(scope, receive, send)
+            return
+
+        request_id = self._get_request_id(scope)
+        status_code = 500
+
+        async def send_wrapper(message: Message) -> None:
+            """Capture the response status code and add the request id header.
+
+            Args:
+                message: The ASGI message sent by the application.
+
+            """
+            nonlocal status_code
+            if message["type"] == "http.response.start":
+                status_code = message["status"]
+                MutableHeaders(scope=message)[REQUEST_ID_HEADER] = request_id
+            await send(message)
+
+        with structlog.contextvars.bound_contextvars(
+            request_id=request_id,
+            path=scope["path"],
+            method=scope["method"],
+        ):
+            start = perf_counter()
+            try:
+                await self.app(scope, receive, send_wrapper)
+            except Exception:
+                logger.exception("Request failed", duration_ms=self._elapsed_ms(start))
+                raise
+            logger.info("Request completed", status_code=status_code, duration_ms=self._elapsed_ms(start))
+
+    @staticmethod
+    def _get_request_id(scope: Scope) -> str:
+        """Return the incoming request id if it is well-formed, otherwise generate a new one.
+
+        Args:
+            scope: The ASGI connection scope.
+
+        Returns:
+            str: The request identifier.
+
+        """
+        header = REQUEST_ID_HEADER.lower().encode("latin-1")
+        headers_list = cast(list[tuple[bytes, bytes]], scope["headers"])
+        for name, value in headers_list:
+            if name == header:
+                request_id = value.decode("latin-1")
+                if _REQUEST_ID_PATTERN.fullmatch(request_id):
+                    return request_id
+                break
+        return uuid4().hex
+
+    @staticmethod
+    def _elapsed_ms(start: float) -> float:
+        """Return the time elapsed since ``start`` in milliseconds.
+
+        Args:
+            start: A ``perf_counter`` timestamp.
+
+        Returns:
+            float: Elapsed time in milliseconds, rounded to 3 decimal places.
+
+        """
+        return round((perf_counter() - start) * 1000, 3)
