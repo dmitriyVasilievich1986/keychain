@@ -25,6 +25,10 @@ class HTTPRequestMiddleware:
     The request identifier is taken from the ``X-Request-ID`` request header when it is
     present and well-formed, otherwise a new one is generated. It is returned to the
     client in the ``X-Request-ID`` response header.
+
+    The structlog context is cleared at the start and end of every request, so values bound
+    while handling a request (e.g. ``user_id``) are included in the completion log but do not
+    leak into other requests.
     """
 
     def __init__(self, app: ASGIApp) -> None:
@@ -68,18 +72,20 @@ class HTTPRequestMiddleware:
                 MutableHeaders(scope=message)[REQUEST_ID_HEADER] = request_id
             await send(message)
 
-        with structlog.contextvars.bound_contextvars(
-            request_id=request_id,
-            path=scope["path"],
-            method=scope["method"],
-        ):
-            start = perf_counter()
-            try:
-                await self.app(scope, receive, send_wrapper)
-            except Exception:
-                logger.exception("Request failed", duration_ms=self._elapsed_ms(start))
-                raise
+        # Start from a clean context and clear it afterwards, so values bound further down
+        # (e.g. ``user_id`` by ``authorize_user``) never leak into another request.
+        structlog.contextvars.clear_contextvars()
+        structlog.contextvars.bind_contextvars(request_id=request_id, path=scope["path"], method=scope["method"])
+        start = perf_counter()
+        try:
+            await self.app(scope, receive, send_wrapper)
+        except Exception:
+            logger.exception("Request failed", duration_ms=self._elapsed_ms(start))
+            raise
+        else:
             logger.info("Request completed", status_code=status_code, duration_ms=self._elapsed_ms(start))
+        finally:
+            structlog.contextvars.clear_contextvars()
 
     @staticmethod
     def _get_request_id(scope: Scope) -> str:
