@@ -144,7 +144,8 @@ docker compose -f docker-compose-development.yaml --profile frontend up -d --bui
 **Production-style** (no source mounts; the `nginx` image builds and bundles the frontend):
 
 ```bash
-docker compose -f docker-compose.yaml up -d --build nginx
+docker build -f nginx/Dockerfile -t keychain-nginx:latest .
+docker compose -f docker-compose.yaml up -d
 ```
 
 ### 4. Initialize the database
