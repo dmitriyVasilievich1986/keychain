@@ -16,7 +16,7 @@ def main() -> None:
         app,
         host=config.info.host,
         port=config.info.port,
-        log_level=config.info.log_level.lower(),
+        log_level=config.info.logs.log_level.lower(),
     )
 
 

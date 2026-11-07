@@ -4,7 +4,6 @@ info:
   name: keychain
   host: "0.0.0.0"
   port: 8000
-  log_level: "DEBUG"
   debug: true
   description: Keychain Application to store and retrieve secrets
 
@@ -17,6 +16,11 @@ info:
       - "*"
     allow_headers:
       - "*"
+
+  logs:
+    log_level: "DEBUG"
+    is_simple_output: true
+    logs_folder_path: null
 
 db:
   alembic_ini_path: "Put your path to the alembic.ini file here"
