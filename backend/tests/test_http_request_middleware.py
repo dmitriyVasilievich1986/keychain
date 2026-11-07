@@ -103,3 +103,22 @@ async def test_passes_through_non_http_scopes() -> None:
     await HTTPRequestMiddleware(app)({"type": "lifespan"}, _receive, send)
 
     assert called == ["lifespan"]
+
+
+async def test_values_bound_during_request_do_not_leak() -> None:
+    """Values bound while handling a request should be cleared once it finishes."""
+    seen: list[dict[str, object]] = []
+
+    async def binding_app(scope: Scope, receive: Receive, send: Send) -> None:
+        structlog.contextvars.bind_contextvars(user_id=42)
+        await _ok_app(scope, receive, send)
+
+    async def recording_app(scope: Scope, receive: Receive, send: Send) -> None:
+        seen.append(structlog.contextvars.get_contextvars())
+        await _ok_app(scope, receive, send)
+
+    await _call(HTTPRequestMiddleware(binding_app), _scope())
+    await _call(HTTPRequestMiddleware(recording_app), _scope())
+
+    assert "user_id" not in seen[0]
+    assert structlog.contextvars.get_contextvars() == {}

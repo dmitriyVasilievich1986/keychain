@@ -7,13 +7,15 @@ from os import environ
 from pathlib import Path
 from subprocess import CalledProcessError
 
-from loguru import logger
+import structlog
 
 from keychain.config import AppConfig
 
 from ..base import BaseCommand
 from .models import DBBackup
 from .utils import find_backup_files
+
+logger = structlog.stdlib.get_logger(__name__)
 
 
 class RestoreDBCommand(BaseCommand[DBBackup]):
@@ -101,7 +103,7 @@ class RestoreDBCommand(BaseCommand[DBBackup]):
                     f"No backup files found for provider={provider!r}, db_name={db_name!r} in {self.db_backup_path}"
                 )
             self.backup_file_model = backup_files[0]
-            logger.info(f"Using latest backup file: {self.backup_file_model.backup_path}")
+            logger.info("Using latest backup file", backup_path=str(self.backup_file_model.backup_path))
             return
         self.backup_file_model = DBBackup.factory(self.dump_file_path)
 
@@ -128,5 +130,5 @@ class RestoreDBCommand(BaseCommand[DBBackup]):
         await process.wait()
         if process.returncode != 0:
             raise CalledProcessError(process.returncode or -1, " ".join(command))
-        logger.info(f"Database restored from backup file: {self.backup_file_model.backup_path}")
+        logger.info("Database restored from backup file", backup_path=str(self.backup_file_model.backup_path))
         return self.backup_file_model

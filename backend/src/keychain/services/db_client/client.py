@@ -4,12 +4,14 @@ __all__ = ("DBClient",)
 
 from typing import AsyncGenerator
 
-from loguru import logger
+import structlog
 from sqlalchemy import text
 from sqlalchemy.ext.asyncio import async_sessionmaker, AsyncEngine, AsyncSession, create_async_engine
 
 from keychain.config.models.db.postgresql import PostgresqlConfig
 from keychain.utils.singleton import Singleton
+
+logger = structlog.stdlib.get_logger(__name__)
 
 
 class DBClient(metaclass=Singleton):
@@ -39,7 +41,12 @@ class DBClient(metaclass=Singleton):
         if db_config is None:
             raise RuntimeError("App config is required")
 
-        logger.info(f"Initializing database client with URL: {db_config.sqlalchemy_uri}")
+        logger.info(
+            "Initializing database client",
+            host=db_config.host,
+            port=db_config.port,
+            database=db_config.name,
+        )
 
         self._engine = create_async_engine(
             db_config.sqlalchemy_uri,
@@ -105,7 +112,7 @@ class DBClient(metaclass=Singleton):
             async with self._session_factory() as session:
                 await session.execute(text("SELECT 1"))
         except Exception as e:
-            logger.error(f"Database health check failed: {e}")
+            logger.error("Database health check failed", error=str(e))
             return False
 
         return True

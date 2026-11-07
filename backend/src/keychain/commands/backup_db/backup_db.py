@@ -8,13 +8,15 @@ from os import environ
 from pathlib import Path
 from subprocess import CalledProcessError
 
-from loguru import logger
+import structlog
 
 from keychain.config import AppConfig
 
 from ..base import BaseCommand
 from .models import DBBackup
 from .utils import find_backup_files
+
+logger = structlog.stdlib.get_logger(__name__)
 
 
 class BackupDBCommand(BaseCommand[DBBackup]):
@@ -96,7 +98,8 @@ class BackupDBCommand(BaseCommand[DBBackup]):
         self.new_backup_file_model = DBBackup.factory(self.db_backup_path / new_backup_file_name)
         if self.new_backup_file_model.backup_path.exists():
             logger.warning(
-                f"Backup file already exists: {self.new_backup_file_model.backup_path}, will be overwritten."
+                "Backup file already exists, will be overwritten",
+                backup_path=str(self.new_backup_file_model.backup_path),
             )
 
     async def execute(self, *_, **__) -> DBBackup:
@@ -119,12 +122,12 @@ class BackupDBCommand(BaseCommand[DBBackup]):
         await process.wait()
         if process.returncode != 0:
             raise CalledProcessError(process.returncode or -1, " ".join(command))
-        logger.info(f"Backup file created: {self.new_backup_file_model.backup_path}")
+        logger.info("Backup file created", backup_path=str(self.new_backup_file_model.backup_path))
         backup_files = find_backup_files(
             self.db_backup_path, self.app_config.db.postgresql.provider, self.app_config.db.postgresql.name
         )
         for file in backup_files[self.app_config.db.backup_count :]:
             file.backup_path.unlink()
-            logger.info(f"Deleted old backup file: {file.backup_path}")
+            logger.info("Deleted old backup file", backup_path=str(file.backup_path))
 
         return self.new_backup_file_model

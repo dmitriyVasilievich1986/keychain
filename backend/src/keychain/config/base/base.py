@@ -6,7 +6,7 @@ from os import getenv
 from pathlib import Path
 from typing import Self
 
-from loguru import logger
+import structlog
 from pydantic_settings import (
     BaseSettings,
     PydanticBaseSettingsSource,
@@ -15,6 +15,8 @@ from pydantic_settings import (
 )
 
 from .settings_storage import SettingsStorage
+
+logger = structlog.stdlib.get_logger(__name__)
 
 
 class BaseConfig(BaseSettings):
@@ -75,7 +77,7 @@ class BaseConfig(BaseSettings):
         environment = getenv("ENVIRONMENT", "production")
         file_path = Path(p) if (p := getenv("CONFIG_FILE_PATH")) else Path(f"configurations/{environment}.yaml")
         if not file_path.exists():
-            logger.error(f"Config file path {file_path} does not exist. Using default path.")
+            logger.error("Config file not found", config_file_path=str(file_path))
             raise FileNotFoundError(f"Config file path {file_path} does not exist.")
 
         return (

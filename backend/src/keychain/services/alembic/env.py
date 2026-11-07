@@ -11,25 +11,30 @@ with the proper schema configuration.
 """
 
 import asyncio
+import logging
 from logging.config import fileConfig
 
+import structlog
 from alembic import context
-from loguru import logger
 from sqlalchemy.engine import Connection
 
 from keychain.config import AppConfig
 from keychain.services.db_client import DBClient, models
 from keychain.services.db_client.models.base import mapper_registry
 
+logger = structlog.stdlib.get_logger(__name__)
+
 config = context.config
-if config.config_file_name is not None:
+# Keep the application's logging when migrations run from the keychain CLI; use
+# alembic.ini's logging only when alembic is run on its own.
+if config.config_file_name is not None and not logging.getLogger().handlers:
     fileConfig(config.config_file_name)
 
 app_config = AppConfig.get_or_create()
 db_client = DBClient(app_config.db.postgresql, app_config.info.debug)
 
 logger.info("Alembic migrations started")
-logger.info(f"Models: {models.__all__}")
+logger.info("Alembic models loaded", models=models.__all__)
 
 
 def do_run_migrations(connection: Connection) -> None:

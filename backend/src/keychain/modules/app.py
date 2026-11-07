@@ -7,15 +7,17 @@ routers, middleware, and lifecycle management.
 
 __all__ = ("get_app",)
 
+import structlog
 from fastapi import APIRouter, FastAPI
 from fastapi.middleware.cors import CORSMiddleware
-from loguru import logger
 
 from keychain.config import AppConfig
 from keychain.modules.middlewares import HTTPRequestMiddleware, lifespan
 from keychain.modules.routers.api import router as api_router
 from keychain.modules.routers.system import router as system_router
 from keychain.utils import configure_logging
+
+logger = structlog.stdlib.get_logger(__name__)
 
 
 def get_app(config: AppConfig | None = None) -> FastAPI:
@@ -45,7 +47,7 @@ def get_app(config: AppConfig | None = None) -> FastAPI:
         logs_folder_path=config.info.logs.logs_folder_path,
         is_simple_output=config.info.logs.is_simple_output,
     )
-    logger.debug(f"Config: {config}")
+    logger.debug("Config loaded", config=config.model_dump_json())
 
     app = FastAPI(
         title=config.info.name,

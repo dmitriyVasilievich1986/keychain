@@ -40,4 +40,4 @@ class AppInfo(BaseModel):
     port: int = Field(default=8000, description="Port")
 
     api: API = Field(..., description="API configuration")
-    logs: Logs = Field(..., description="Logs configuration")
+    logs: Logs = Field(default_factory=Logs, description="Logs configuration")
