@@ -102,13 +102,13 @@ def test_database() -> Generator[AppConfig, None, None]:
     ``asyncio.run``), so it must not execute inside a running loop.
     """
     _reset_singletons()
-    config = AppConfig.get_or_create(reload=True)
+    config = AppConfig()
 
     asyncio.run(_create_test_database(config))
 
     # Store the test config so Alembic's env.py picks it up, then run migrations.
     _reset_singletons()
-    AppConfig.get_or_create(reload=True)
+    AppConfig()
     alembic_cfg = Config(str(config.db.alembic_ini_path))
     command.upgrade(alembic_cfg, "head")
 
