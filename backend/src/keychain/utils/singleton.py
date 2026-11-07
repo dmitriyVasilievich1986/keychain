@@ -1,6 +1,6 @@
 """Thread-safe implementation of Singleton."""
 
-__all__ = ["Singleton"]
+__all__ = ("Singleton",)
 
 from threading import RLock
 from typing import ClassVar
@@ -55,3 +55,14 @@ class Singleton(type):
                 cls._instances[cls] = instance
 
         return cls._instances[cls]
+
+    def reset_singleton(cls) -> None:
+        """Discard the cached instance so the next construction builds a new one.
+
+        Called on the class itself, e.g. ``MyClass.reset_singleton()``.
+        Intended for tests and deterministic teardown. Code elsewhere that still
+        holds the previous instance keeps using it, so only reset when nothing
+        depends on the old object staying canonical.
+        """
+        with cls._lock:
+            cls._instances.pop(cls, None)
