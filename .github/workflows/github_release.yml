@@ -1,0 +1,41 @@
+name: GitHub Release
+
+# Publishes a GitHub release for a tag created by the "Tag and Docker push" workflow.
+# Started manually: Actions -> GitHub Release -> Run workflow, then enter the tag.
+# Versions with a suffix (e.g. 1.2.3-alpha) are marked as pre-releases.
+
+on:
+  workflow_dispatch:
+    inputs:
+      tag:
+        description: Existing tag to release (e.g. 1.2.3)
+        required: true
+        type: string
+
+concurrency:
+  group: github-release
+  cancel-in-progress: false
+
+permissions:
+  contents: read
+
+jobs:
+  release:
+    name: Create GitHub release
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - name: Create release
+        env:
+          GH_TOKEN: ${{ github.token }}
+          REPO: ${{ github.repository }}
+          TAG: ${{ inputs.tag }}
+        # --verify-tag fails the run instead of creating a new tag when the
+        # given one does not exist.
+        run: |
+          args=(--repo "${REPO}" --title "${TAG}" --generate-notes --verify-tag)
+          if [[ "${TAG}" == *-* ]]; then
+            args+=(--prerelease)
+          fi
+          gh release create "${TAG}" "${args[@]}"
