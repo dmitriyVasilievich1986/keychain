@@ -90,6 +90,20 @@ describe('CreatePassword', () => {
     });
   });
 
+  it('sends a null image URL when the field is left empty', async () => {
+    postPassword.mockResolvedValue({ id: 43, name: 'GitLab', imageUrl: null });
+    const user = userEvent.setup();
+
+    render(<CreatePassword />);
+    await user.type(getNameField(), 'GitLab');
+    await user.click(screen.getByRole('button', { name: 'Create' }));
+
+    await waitFor(() => {
+      expect(postPassword).toHaveBeenCalledWith({ name: 'GitLab', imageUrl: null });
+      expect(navigate).toHaveBeenCalledWith('/password/43');
+    });
+  });
+
   it('shows an error when create fails', async () => {
     const consoleError = vi.spyOn(console, 'error').mockImplementation(() => {});
     postPassword.mockRejectedValue(new Error('create failed'));

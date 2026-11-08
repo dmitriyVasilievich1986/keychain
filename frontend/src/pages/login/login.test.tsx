@@ -168,6 +168,18 @@ describe('Login', () => {
     });
   });
 
+  it('shows a fallback error when the server response has no detail', async () => {
+    login.mockRejectedValue({ isAxiosError: true, response: { status: 502, data: {} } });
+
+    render(<Login />);
+    await submitLogin('alice', 'secret');
+
+    await waitFor(() => {
+      expect(screen.getAllByText('An unknown error occurred').length).toBeGreaterThan(0);
+    });
+    expect(navigate).not.toHaveBeenCalled();
+  });
+
   it('shows a fallback error for non-axios failures', async () => {
     login.mockRejectedValue(new Error('network down'));
 
