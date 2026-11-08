@@ -3,7 +3,8 @@ name: Pipeline
 # The single entry point for CI. Every stage lives in its own reusable workflow:
 #
 #   changes ─┬─> test-backend   (test_backend.yml)   ─┐
-#            ├─> build-backend  (build_backend.yml)  ─┼─> tag-docker-push (tag_docker_push.yml)
+#            ├─> build-backend  (build_backend.yml)  ─┤
+#            ├─> test-frontend  (test_frontend.yml)  ─┼─> tag-docker-push (tag_docker_push.yml)
 #            ├─> build-frontend (build_frontend.yml) ─┘     merged PRs only
 #            └─> build-docker   (build_docker.yml)          open PRs only
 #
@@ -55,6 +56,7 @@ jobs:
             frontend:
               - 'frontend/**'
               - '.github/workflows/pipeline.yml'
+              - '.github/workflows/test_frontend.yml'
               - '.github/workflows/build_frontend.yml'
             # Everything the root Dockerfile copies (see .dockerignore).
             docker:
@@ -82,6 +84,14 @@ jobs:
     with:
       ref: ${{ needs.changes.outputs.ref }}
 
+  test-frontend:
+    name: Test frontend
+    needs: changes
+    if: needs.changes.outputs.frontend == 'true'
+    uses: ./.github/workflows/test_frontend.yml
+    with:
+      ref: ${{ needs.changes.outputs.ref }}
+
   build-frontend:
     name: Build frontend
     needs: changes
@@ -102,7 +112,7 @@ jobs:
 
   tag-docker-push:
     name: Tag and Docker push
-    needs: [changes, test-backend, build-backend, build-frontend]
+    needs: [changes, test-backend, build-backend, test-frontend, build-frontend]
     # Checks skipped for lack of changes must not block tagging, so run unless
     # something failed or was cancelled.
     if: >-
