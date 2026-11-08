@@ -78,17 +78,20 @@ class FieldDAO(BaseDAO[Field]):
 
         Raises:
             ValueError: If ``password_id`` is not provided in ``kwargs``.
+            NoResultFound: If no password matches ``password_id`` and
+                ``filters``; nothing is written in that case.
 
         """
         filters: Sequence[ColumnElement[bool]] | None = kwargs.pop("filters", None)
         if (password_id := kwargs.get("password_id")) is None:
             raise ValueError("Password ID is required")
 
-        stmt = select(Password).where(Password.id == password_id)
+        stmt = select(Password.id).where(Password.id == password_id)
         if c_filters := self.concat_filters(self.base_filters, filters):
             stmt = stmt.where(*c_filters)
 
-        await session.execute(stmt)
+        # Ensure the parent password exists and passes the caller's filters (e.g. ownership)
+        (await session.execute(stmt)).scalar_one()
 
         obj = self.database_model(**kwargs)
         session.add(obj)
