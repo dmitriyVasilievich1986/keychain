@@ -67,6 +67,6 @@ ENV PATH="/opt/backend/.venv/bin:${PATH}"
 
 USER keychain
 
-EXPOSE 8000
+EXPOSE 8080
 
 ENTRYPOINT ["/opt/backend/scripts/start_app.sh"]

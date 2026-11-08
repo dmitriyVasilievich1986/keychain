@@ -171,7 +171,7 @@ npm run build # writes into ../static/
 
 - App: `http://localhost` (or `https://localhost` when TLS is configured)
 - API via Nginx: `http://localhost/api/`
-- Backend direct (dev compose): `http://localhost:8000`
+- Backend direct (dev compose): `http://localhost:8080`
 
 ## Docker Compose Services
 
@@ -245,8 +245,8 @@ keychain access-token generate 1
 
 With the backend running:
 
-- Swagger UI: `http://localhost:8000/docs`
-- ReDoc: `http://localhost:8000/redoc`
+- Swagger UI: `http://localhost:8080/docs`
+- ReDoc: `http://localhost:8080/redoc`
 
 Useful endpoints:
 

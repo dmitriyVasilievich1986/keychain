@@ -77,7 +77,7 @@ def show_config(ctx: click.Context) -> None:
 
 @main.command(help="Run the Keychain Application server.")
 @click.option("--host", default="0.0.0.0", help="Host to bind the server to.")
-@click.option("--port", default=8000, help="Port to bind the server to.")
+@click.option("--port", default=8080, help="Port to bind the server to.")
 async def run(host: str, port: int) -> None:
     """Start the Keychain Application web server using Uvicorn.
 
@@ -88,7 +88,7 @@ async def run(host: str, port: int) -> None:
 
     Args:
         host: The network interface to bind the server to (default: "0.0.0.0").
-        port: The port number to listen on (default: 8000).
+        port: The port number to listen on (default: 8080).
 
     Returns:
         None

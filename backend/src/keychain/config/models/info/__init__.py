@@ -26,7 +26,7 @@ class AppInfo(BaseModel):
         description: The application description. Defaults to "Keychain Application".
         debug: The debug mode. Defaults to False.
         host: The host the application binds to. Defaults to "0.0.0.0".
-        port: The port the application binds to. Defaults to 8000.
+        port: The port the application binds to. Defaults to 8080.
         api: The API configuration.
 
     """
@@ -37,7 +37,7 @@ class AppInfo(BaseModel):
     description: str = Field(default="Keychain Application", description="Application description")
     debug: bool = Field(default=False, description="Debug mode")
     host: str = Field(default="0.0.0.0", description="Host")
-    port: int = Field(default=8000, description="Port")
+    port: int = Field(default=8080, description="Port")
 
     api: API = Field(..., description="API configuration")
     logs: Logs = Field(..., description="Logs configuration")
