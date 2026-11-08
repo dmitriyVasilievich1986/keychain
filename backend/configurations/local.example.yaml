@@ -30,7 +30,7 @@ db:
     provider: postgresql+asyncpg
     host: db
     port: 5432
-    name: "keychain"
+    name: "keychain_development"
     user: "Put your database user here"
     password: "Put your database password here"
 
