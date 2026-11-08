@@ -4,3 +4,4 @@ nginx/ssl/
 /static/
 /backup/
 **/scripts/sensitive/
+/frontend/coverage/
