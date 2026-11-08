@@ -3,6 +3,7 @@ FROM node:24-slim AS frontend
 
 ENV VITE_API_PREFIX="/keychain"
 ENV VITE_API_HOST=""
+ENV VITE_IMAGES_HOST="/static/i"
 
 RUN apt-get update \
     && apt-get install -y --no-install-recommends ca-certificates git \
