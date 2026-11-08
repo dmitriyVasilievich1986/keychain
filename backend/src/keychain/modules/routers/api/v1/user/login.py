@@ -5,6 +5,7 @@ __all__ = ("router",)
 from typing import Annotated
 
 import structlog
+from cryptography.fernet import InvalidToken
 from fastapi import APIRouter, Body, Depends, HTTPException, status
 from jwt.exceptions import PyJWTError
 from sqlalchemy.exc import NoResultFound, SQLAlchemyError
@@ -44,7 +45,11 @@ async def login_user(
 
     Raises:
         HTTPException: 404 if the username does not exist, 401 if the password
-            is incorrect, or 500 on a database or token encoding error.
+            is incorrect, or 500 on a database, encryption or token encoding
+            error.
+
+    Users created before per-user encryption keys were introduced are migrated
+    on their first successful login.
 
     """
     user_dao = UserDAO(db)
@@ -63,9 +68,21 @@ async def login_user(
         logger.warning("Invalid password", username=body.username)
         raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Username or password is incorrect")
 
+    if user.wrapped_dek is None:
+        logger.warning("User has no encryption keys", user_id=user.id)
+        raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail="An unexpected error occurred")
+
+    try:
+        dek = user.unwrap_dek(body.password)
+    except InvalidToken as e:
+        logger.exception("Error unwrapping user encryption key", user_id=user.id)
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail="An unexpected error occurred"
+        ) from e
+
     auth_service = AuthClient(config=config)
     try:
-        access_token = auth_service.encode_token(str(user.id))
+        access_token = auth_service.encode_token(str(user.id), dek)
     except (ValueError, PyJWTError) as e:
         logger.exception("Error encoding access token")
         raise HTTPException(

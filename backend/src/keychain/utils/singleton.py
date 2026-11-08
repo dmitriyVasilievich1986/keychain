@@ -1,8 +1,8 @@
 """Thread-safe implementation of Singleton."""
 
-__all__ = ["Singleton"]
+__all__ = ("Singleton",)
 
-from threading import Lock
+from threading import RLock
 from typing import ClassVar
 
 
@@ -23,12 +23,14 @@ class Singleton(type):
 
     Attributes:
         _instances: A dictionary mapping classes to their singleton instances.
-        _lock: A threading lock used to ensure thread-safe instance creation.
+        _lock: A reentrant threading lock used to ensure thread-safe instance
+            creation, allowing singletons to create other singletons in their
+            constructors.
 
     """
 
     _instances: ClassVar[dict] = {}
-    _lock: Lock = Lock()
+    _lock: RLock = RLock()
 
     def __call__(cls, *args, **kwargs):
         """Create or return the existing singleton instance of the class.
@@ -53,3 +55,14 @@ class Singleton(type):
                 cls._instances[cls] = instance
 
         return cls._instances[cls]
+
+    def reset_singleton(cls) -> None:
+        """Discard the cached instance so the next construction builds a new one.
+
+        Called on the class itself, e.g. ``MyClass.reset_singleton()``.
+        Intended for tests and deterministic teardown. Code elsewhere that still
+        holds the previous instance keeps using it, so only reset when nothing
+        depends on the old object staying canonical.
+        """
+        with cls._lock:
+            cls._instances.pop(cls, None)

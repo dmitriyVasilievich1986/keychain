@@ -3,7 +3,7 @@ environment: "local"
 info:
   name: keychain
   host: "0.0.0.0"
-  port: 8000
+  port: 8080
   debug: true
   description: Keychain Application to store and retrieve secrets
 
@@ -30,7 +30,7 @@ db:
     provider: postgresql+asyncpg
     host: db
     port: 5432
-    name: "keychain"
+    name: "keychain_development"
     user: "Put your database user here"
     password: "Put your database password here"
 

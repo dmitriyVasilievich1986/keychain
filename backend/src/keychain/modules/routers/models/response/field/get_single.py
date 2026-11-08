@@ -8,8 +8,10 @@ from pydantic import Field
 
 from keychain.modules.routers.models.base.response import BaseResponseFromModelSchema
 
+from .decrypted_value import DecryptedValueMixin
 
-class FieldGetResponseModel(BaseResponseFromModelSchema):
+
+class FieldGetResponseModel(DecryptedValueMixin, BaseResponseFromModelSchema):
     """Field get response model."""
 
     id: int = Field(..., description="The ID of the field")

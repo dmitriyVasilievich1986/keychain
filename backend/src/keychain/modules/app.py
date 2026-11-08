@@ -30,14 +30,14 @@ def get_app(config: AppConfig | None = None) -> FastAPI:
 
     Args:
         config: Optional application configuration. If not provided, the
-            default configuration will be loaded using AppConfig.get_or_create().
+            default configuration will be loaded using AppConfig().
 
     Returns:
         FastAPI: A fully configured FastAPI application instance with all
             routers and middleware attached.
 
     """
-    config = config or AppConfig.get_or_create()
+    config = config or AppConfig()
     # Configured here as well as in the CLI: with uvicorn's reloader the app runs in a
     # separate worker process that only calls this factory.
     configure_logging(config.info.logs, service=config.info.name, version=config.info.version)

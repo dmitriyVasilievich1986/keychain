@@ -9,7 +9,7 @@ from colorama import Fore, Style
 
 from keychain.modules.routers.models.request.user import UserCreateRequestModel, UserUpdateRequestModel
 from keychain.modules.routers.models.response.user import UserGetResponseModel
-from keychain.services.daos import UserDAO
+from keychain.services.daos import EncryptionKeysMissingError, InvalidPasswordError, UserDAO
 from keychain.services.db_client.client import DBClient
 
 
@@ -199,6 +199,9 @@ async def verify_password(ctx: click.Context, user_id: int | None, username: str
 @user.command(help="Reset a user's password by ID")
 @click.option("--user-id", help="The ID of the user", required=True, type=int)
 @click.option(
+    "--old-password", prompt="Enter the current password", help="The current password of the user", hide_input=True
+)
+@click.option(
     "--password",
     prompt="Enter the new password",
     help="The new password of the user",
@@ -206,11 +209,62 @@ async def verify_password(ctx: click.Context, user_id: int | None, username: str
     confirmation_prompt=True,
 )
 @click.pass_context
-async def reset_password(ctx: click.Context, user_id: int, password: str) -> None:
+async def reset_password(ctx: click.Context, user_id: int, old_password: str, password: str) -> None:
     """Reset a user's password.
 
-    This command resets the password for an existing user identified by their ID
-    and outputs the updated user information as JSON.
+    This command changes the password for an existing user identified by their
+    ID and outputs the updated user information as JSON. The user's data stays
+    readable because their data encryption key is re-wrapped with the new
+    password.
+
+    Args:
+        ctx (click.Context): Click context object containing the user DAO.
+        user_id (int): The unique identifier of the user to reset the password
+            for.
+        old_password (str): The current password of the user.
+        password (str): The new password for the user.
+
+    Returns:
+        None
+
+    Raises:
+        click.BadParameter: If the current password is incorrect.
+        click.UsageError: If the user has not been migrated to per-user
+            encryption yet.
+
+    """
+    user_dao: UserDAO = ctx.obj["user_dao"]
+    try:
+        user = await user_dao.reset_password(user_id, old_password, password)
+    except InvalidPasswordError as e:
+        raise click.BadParameter("Invalid current password", param_hint="--old-password") from e
+    except EncryptionKeysMissingError as e:
+        raise click.UsageError(f"{e}. Run `keychain db migrate-fields-encryption --user-id {user_id}`.") from e
+
+    user_response = UserGetResponseModel.model_validate(user)
+    click.echo(user_response.model_dump_json(indent=2))
+
+
+@user.command(help="Reset a user's password without the current one. DELETES all of the user's fields")
+@click.option("--user-id", help="The ID of the user", required=True, type=int)
+@click.option(
+    "--password",
+    prompt="Enter the new password",
+    help="The new password of the user",
+    hide_input=True,
+    confirmation_prompt=True,
+)
+@click.confirmation_option(
+    prompt="Without the current password the user's data cannot be decrypted. "
+    "All of the user's fields will be permanently deleted. Continue?"
+)
+@click.pass_context
+async def force_reset_password(ctx: click.Context, user_id: int, password: str) -> None:
+    """Reset a user's password when the current password is lost.
+
+    The user's data encryption key cannot be recovered without the current
+    password, so all of the user's fields are permanently deleted and a new
+    key is generated. Outputs the updated user information as JSON.
 
     Args:
         ctx (click.Context): Click context object containing the user DAO.
@@ -223,6 +277,6 @@ async def reset_password(ctx: click.Context, user_id: int, password: str) -> Non
 
     """
     user_dao: UserDAO = ctx.obj["user_dao"]
-    user = await user_dao.reset_password(user_id, password)
+    user = await user_dao.force_reset_password(user_id, password)
     user_response = UserGetResponseModel.model_validate(user)
     click.echo(user_response.model_dump_json(indent=2))

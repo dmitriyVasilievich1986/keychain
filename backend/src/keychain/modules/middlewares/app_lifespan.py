@@ -1,6 +1,6 @@
 """Application lifespan management for initializing and tearing down services."""
 
-__all__ = ["lifespan"]
+__all__ = ("lifespan",)
 
 from contextlib import asynccontextmanager
 from typing import AsyncGenerator
@@ -9,7 +9,6 @@ import structlog
 from fastapi import FastAPI
 
 from keychain.config import AppConfig
-from keychain.services.cryptography.client import CryptographyClient
 from keychain.services.db_client.client import DBClient
 
 logger = structlog.stdlib.get_logger(__name__)
@@ -35,12 +34,9 @@ async def lifespan(app: FastAPI) -> AsyncGenerator[None, None]:
 
     # Initialize services
     logger.info("Initializing Application services...")
-    app_config = AppConfig.get_or_create()
+    app_config = AppConfig()
     db_client = DBClient(app_config.db.postgresql, app_config.info.debug)
     logger.info("Database client initialized successfully.")
-
-    CryptographyClient(config=app_config)
-    logger.info("Cryptography client initialized successfully.")
 
     yield
 

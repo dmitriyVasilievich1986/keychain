@@ -3,7 +3,7 @@ environment: "test"
 info:
   name: keychain
   host: "0.0.0.0"
-  port: 8000
+  port: 8080
   debug: true
   description: Keychain Application to store and retrieve secrets
 
@@ -23,8 +23,8 @@ info:
     logs_folder_path: null
 
 db:
-  alembic_ini_path: "Put your path to the alembic.ini file here"
-  backup_folder_path: "Put your path to the backup folder here"
+  alembic_ini_path: "backend/src/keychain/services/alembic/alembic.ini"
+  backup_folder_path: "backup"
   backup_count: 5
   postgresql:
     provider: postgresql+asyncpg

@@ -8,16 +8,16 @@ import pytest
 import structlog
 from fastapi.security import HTTPAuthorizationCredentials
 
-from keychain.config import AppConfig
 from keychain.services.db_client.client import DBClient
 
 authorize_user_module = importlib.import_module("keychain.modules.middlewares.dependencies.authorize_user")
+decode_token_module = importlib.import_module("keychain.utils.decode_token")
 
 
 class _FakeAuthClient:
     """Auth client stub that decodes every token to user ``7``."""
 
-    def __init__(self, config: object) -> None:
+    def __init__(self, config: object = None) -> None:
         """Accept and ignore the application config."""
 
     def decode_token(self, token: str) -> SimpleNamespace:
@@ -39,14 +39,12 @@ class _FakeUserDAO:
 
 async def test_binds_user_id_to_contextvars(monkeypatch: pytest.MonkeyPatch) -> None:
     """The authenticated user's id should be bound to structlog's context vars."""
-    monkeypatch.setattr(authorize_user_module, "AuthClient", _FakeAuthClient)
+    monkeypatch.setattr(decode_token_module, "AuthClient", _FakeAuthClient)
     monkeypatch.setattr(authorize_user_module, "UserDAO", _FakeUserDAO)
-    config = cast(type[AppConfig], SimpleNamespace(get_or_create=lambda: None))
-    dependency = authorize_user_module.authorize_user(config)
 
     structlog.contextvars.clear_contextvars()
     try:
-        user = await dependency(
+        user = await authorize_user_module.authorize_user(
             HTTPAuthorizationCredentials(scheme="Bearer", credentials="token"),
             cast(DBClient, None),
         )

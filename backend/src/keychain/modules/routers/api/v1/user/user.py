@@ -5,16 +5,20 @@ __all__ = ("router",)
 from typing import Annotated
 
 import structlog
+from cryptography.fernet import InvalidToken
 from fastapi import APIRouter, Body, Depends, HTTPException, status
+from jwt.exceptions import PyJWTError
 from sqlalchemy.exc import NoResultFound, SQLAlchemyError
 
 from keychain.config import AppConfig
-from keychain.modules.middlewares.dependencies import authorize_user, get_db
+from keychain.modules.middlewares.dependencies import authorize_user, get_config, get_db
 from keychain.modules.routers.models.request.user import (
+    UserPasswordChangeRequestModel,
     UserUpdateRequestModel,
 )
-from keychain.modules.routers.models.response.user import UserGetResponseModel
-from keychain.services.daos.user import UserDAO
+from keychain.modules.routers.models.response.user import AccessTokenResponseModel, UserGetResponseModel
+from keychain.services.auth.client import AuthClient
+from keychain.services.daos.user import InvalidPasswordError, UserDAO
 from keychain.services.db_client.client import DBClient
 from keychain.services.db_client.models.user import User
 
@@ -24,7 +28,7 @@ router = APIRouter(prefix="/user")
 
 
 @router.get("/me", response_model=UserGetResponseModel, description="Get the current user")
-async def get_user(user: Annotated[User, Depends(authorize_user(AppConfig))]) -> UserGetResponseModel:
+async def get_user(user: Annotated[User, Depends(authorize_user)]) -> UserGetResponseModel:
     """Return the currently authenticated user.
 
     Args:
@@ -41,7 +45,7 @@ async def get_user(user: Annotated[User, Depends(authorize_user(AppConfig))]) ->
 async def update_user(
     body: Annotated[UserUpdateRequestModel, Body(description="Update user request body")],
     db: Annotated[DBClient, Depends(get_db)],
-    user: Annotated[User, Depends(authorize_user(AppConfig))],
+    user: Annotated[User, Depends(authorize_user)],
 ) -> UserGetResponseModel:
     """Update the authenticated user's details.
 
@@ -72,3 +76,59 @@ async def update_user(
         ) from e
 
     return UserGetResponseModel.model_validate(updated_user)
+
+
+@router.put("/password", response_model=AccessTokenResponseModel, description="Change the current user's password")
+async def change_password(
+    body: Annotated[UserPasswordChangeRequestModel, Body(description="Change password request body")],
+    db: Annotated[DBClient, Depends(get_db)],
+    config: Annotated[AppConfig, Depends(get_config)],
+    user: Annotated[User, Depends(authorize_user)],
+) -> AccessTokenResponseModel:
+    """Change the authenticated user's password.
+
+    The user's data encryption key is re-wrapped with the new password, so all
+    stored fields stay readable. A new access token is issued.
+
+    Args:
+        body (UserPasswordChangeRequestModel): The current and new passwords.
+        db (DBClient): The database client used to persist the change.
+        config (AppConfig): The application config used to build the auth
+            client.
+        user (User): The authenticated user resolved from the request token.
+
+    Returns:
+        AccessTokenResponseModel: A new access token for the user.
+
+    Raises:
+        HTTPException: 400 if the current password is incorrect, 404 if the
+            user no longer exists, or 500 on a database, encryption or token
+            encoding error.
+
+    """
+    user_dao = UserDAO(db)
+
+    try:
+        updated_user = await user_dao.reset_password(user.id, body.old_password, body.new_password)
+        dek = updated_user.unwrap_dek(body.new_password)
+    except InvalidPasswordError as e:
+        logger.warning("Invalid current password")
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Current password is incorrect") from e
+    except NoResultFound as e:
+        logger.warning("User not found")
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="User not found") from e
+    except (SQLAlchemyError, InvalidToken) as e:
+        logger.exception("Error changing user password")
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail="An unexpected error occurred"
+        ) from e
+
+    try:
+        access_token = AuthClient(config=config).encode_token(str(updated_user.id), dek)
+    except (ValueError, PyJWTError) as e:
+        logger.exception("Error encoding access token")
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail="An unexpected error occurred"
+        ) from e
+
+    return AccessTokenResponseModel(access_token=access_token.access_token, expires_at=access_token.expires_at)

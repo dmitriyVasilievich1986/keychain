@@ -12,7 +12,7 @@ Keychain is a full-stack password manager for storing and managing secrets. It s
 
 ### Key Features
 
-- **Encrypted fields** — sensitive values encrypted at rest with Fernet
+- **Encrypted fields** — sensitive values encrypted at rest with a per-user key protected by the user's password (Argon2id + Fernet)
 - **JWT authentication** — token-based auth with configurable expiration
 - **Self-hosted** — Docker Compose for local and production-like runs
 - **Modern UI** — React + Material UI
@@ -107,6 +107,8 @@ CRYPTOGRAPHY__SECRET_KEY=<fernet-key>
 AUTH__JWT_SECRET_KEY=<jwt-secret>
 ```
 
+> **Note:** `CRYPTOGRAPHY__SECRET_KEY` is used as a pepper when deriving each user's key from their password and to seal that key inside access tokens. Changing it makes every user's stored data unreadable. User data cannot be recovered without the user's password: an admin reset without the current password (`keychain db user force-reset-password`) deletes the user's fields.
+
 Generate keys (Python 3.13):
 
 ```bash
@@ -169,7 +171,7 @@ npm run build # writes into ../static/
 
 - App: `http://localhost` (or `https://localhost` when TLS is configured)
 - API via Nginx: `http://localhost/api/`
-- Backend direct (dev compose): `http://localhost:8000`
+- Backend direct (dev compose): `http://localhost:8080`
 
 ## Docker Compose Services
 
@@ -243,8 +245,8 @@ keychain access-token generate 1
 
 With the backend running:
 
-- Swagger UI: `http://localhost:8000/docs`
-- ReDoc: `http://localhost:8000/redoc`
+- Swagger UI: `http://localhost:8080/docs`
+- ReDoc: `http://localhost:8080/redoc`
 
 Useful endpoints:
 
