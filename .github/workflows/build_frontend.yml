@@ -40,9 +40,12 @@ jobs:
         working-directory: ./frontend
         run: npm run build
 
+      # vite.config.ts builds into ../static (relative to frontend/), i.e. the
+      # repository-root static/ directory, not frontend/dist/.
       - name: Upload build artifacts
         uses: actions/upload-artifact@v4
         with:
           name: frontend-build
-          path: frontend/dist/
+          path: static/
+          if-no-files-found: error
           retention-days: 30
