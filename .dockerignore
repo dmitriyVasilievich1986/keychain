@@ -1,15 +1,35 @@
-**/node_modules
+# Build context for both ./Dockerfile (backend) and ./nginx/Dockerfile (nginx + frontend).
+# Allowlist: ignore everything, then re-include only what the Dockerfiles COPY.
+# When a Dockerfile starts copying a new path, add it here.
+*
+
+# Application version generation (both images)
+!.git
+!scripts/generate-application-version.sh
+
+# Backend image
+!backend/pyproject.toml
+!backend/uv.lock
+!backend/README.md
+!backend/LICENSE
+!backend/src
+!backend/configurations
+!backend/scripts/start_app.sh
+
+# Nginx image
+!nginx/config
+
+# Frontend sources (built inside the nginx image)
+!frontend
+
+# Re-exclude local, generated and secret files inside the re-included paths
 **/__pycache__
-**/*.pyc
-
-backend/.venv
-backend/htmlcov
-backend/.pytest_cache
-backend/.ruff_cache
-
+**/*.py[cod]
+**/.DS_Store
+**/.env
+**/.env.*
+backend/configurations/local.yaml
+frontend/node_modules
 frontend/dist
-
-static
-db/data
-backup
-nginx/ssl
+frontend/build
+frontend/.vscode
