@@ -4,6 +4,7 @@
  */
 
 import Cookies from 'js-cookie';
+import { useEffect } from 'react';
 import { Navigate, useLocation } from 'react-router';
 
 import { useClearStore } from '@utils/useClearStore';
@@ -23,9 +24,16 @@ export function ProtectedRoute({ children }: { children: React.ReactNode }) {
   const accessToken = Cookies.get('accessToken');
   const { clearAllStores } = useClearStore();
 
+  // Reset the stores after render, not during it: this component subscribes to them, so clearing
+  // them while rendering re-renders it and clears them again, until React aborts the loop.
+  useEffect(() => {
+    if (!accessToken) {
+      clearAllStores();
+    }
+  }, [accessToken]);
+
   if (!accessToken) {
     const redirectTo = encodeURIComponent(`${location.pathname}${location.search}`);
-    clearAllStores();
     return <Navigate to={`/login?redirectTo=${redirectTo}`} replace />;
   }
 
