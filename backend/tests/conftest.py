@@ -24,12 +24,18 @@ from uuid import uuid4
 BACKEND_DIR = Path(__file__).resolve().parent.parent
 TEST_PROJECT_ID = "keychain-test"
 
-# These must be set before importing any ``keychain`` module, because
-# configuration singletons read them on first access. The emulator host is
-# always set so the Firestore client can never reach a real project.
+# Point the settings loader at the test configuration and force the test
+# database name and an absolute Alembic config path (``.env`` may hold a path
+# relative to the repository root). These must be set before importing any
+# ``keychain`` module, because configuration singletons read them on first
+# access.
 os.environ["CONFIG_FILE_PATH"] = str(BACKEND_DIR / "configurations" / "test.yaml")
-os.environ["ENVIRONMENT"] = "test"
-os.environ.setdefault("FIRESTORE_EMULATOR_HOST", "localhost:8080")
+os.environ["DB__POSTGRESQL__NAME"] = TEST_DB_NAME
+os.environ["DB__ALEMBIC_INI_PATH"] = str(BACKEND_DIR / "src/keychain/services/alembic/alembic.ini")
+os.environ.setdefault("DB__POSTGRESQL__HOST", "localhost")
+os.environ.setdefault("DB__POSTGRESQL__PORT", "5432")
+os.environ.setdefault("DB__POSTGRESQL__USER", "root")
+os.environ.setdefault("DB__POSTGRESQL__PASSWORD", "root")
 os.environ.setdefault("CRYPTOGRAPHY__SECRET_KEY", "WcrmZ43_lZNqollPA7g_Bt8pKZq2YBr69OFSjQ0V710=")
 os.environ.setdefault("AUTH__JWT_SECRET_KEY", "test-secret")
 
@@ -58,7 +64,22 @@ def app_config() -> Generator[AppConfig, None, None]:
 
     """
     _reset_singletons()
-    yield AppConfig.get_or_create(reload=True)
+    config = AppConfig()
+
+    asyncio.run(_create_test_database(config))
+
+    # Store the test config so Alembic's env.py picks it up, then run migrations.
+    _reset_singletons()
+    AppConfig()
+    alembic_cfg = Config(str(config.db.alembic_ini_path))
+    command.upgrade(alembic_cfg, "head")
+
+    # env.py builds and disposes its own DBClient; start clean for the tests.
+    _reset_singletons()
+
+    yield config
+
+    asyncio.run(_drop_test_database(config))
     _reset_singletons()
 
 

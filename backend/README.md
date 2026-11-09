@@ -207,10 +207,10 @@ When `FIRESTORE_EMULATOR_HOST` is set, no credentials are needed and nothing rea
 keychain run --reload
 
 # Custom host and port
-keychain run --host 0.0.0.0 --port 8000
+keychain run --host 0.0.0.0 --port 8080
 ```
 
-Defaults are `--host 0.0.0.0` and `--port 8000`.
+Defaults are `--host 0.0.0.0` and `--port 8080`.
 
 ### Using uvicorn directly
 
@@ -227,7 +227,7 @@ The provided multi-stage `Dockerfile` can be built directly:
 docker build -t keychain-backend .
 
 # Run the container
-docker run -p 8000:8000 keychain-backend
+docker run -p 8080:8080 keychain-backend
 ```
 
 ### Using Docker Compose
@@ -239,7 +239,7 @@ is defined in `docker-compose.yaml`:
 docker compose up --build
 ```
 
-The API will be available at `http://localhost:8000`
+The API will be available at `http://localhost:8080`
 
 ## Available CLI Commands
 
@@ -290,8 +290,8 @@ keychain access-token decode-access-token --token TOKEN   # Decode and verify a 
 
 Once the server is running, interactive API documentation is available at:
 
-- Swagger UI: `http://localhost:8000/docs`
-- ReDoc: `http://localhost:8000/redoc`
+- Swagger UI: `http://localhost:8080/docs`
+- ReDoc: `http://localhost:8080/redoc`
 
 ## API Endpoints
 
@@ -335,7 +335,7 @@ import requests
 
 # Login and get access token
 response = requests.post(
-    "http://localhost:8000/api/v1/user/login",
+    "http://localhost:8080/api/v1/user/login",
     json={"username": "admin", "password": "secret"}
 )
 token = response.json()["access_token"]
@@ -350,7 +350,7 @@ Fields are embedded in the password; their order defines their position.
 
 ```python
 response = requests.post(
-    "http://localhost:8000/api/v1/password",
+    "http://localhost:8080/api/v1/password",
     headers=headers,
     json={
         "name": "GitHub",
@@ -369,14 +369,14 @@ password = response.json()
 ```python
 # Get all passwords for authenticated user
 response = requests.get(
-    "http://localhost:8000/api/v1/password",
+    "http://localhost:8080/api/v1/password",
     headers=headers
 )
 passwords = response.json()
 
 # Get specific password with fields
 response = requests.get(
-    f"http://localhost:8000/api/v1/password/{password_id}",
+    f"http://localhost:8080/api/v1/password/{password_id}",
     headers=headers
 )
 password_details = response.json()  # Field values are returned decrypted

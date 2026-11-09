@@ -1,17 +1,3 @@
-FROM node:24-slim AS frontend
-
-RUN apt-get update \
-    && apt-get install -y --no-install-recommends ca-certificates \
-    && rm -rf /var/lib/apt/lists/*
-
-WORKDIR /opt/frontend
-
-COPY ./frontend ./
-
-RUN npm install -g npm@12.0.1 \
-    && npm ci \
-    && npm run build
-
 FROM python:3.13-slim-bookworm AS build
 
 ENV UV_COMPILE_BYTECODE=1
@@ -52,6 +38,12 @@ RUN apt-get update \
     && apt-get install -y --no-install-recommends curl \
     && rm -rf /var/lib/apt/lists/*
 
+# Create an unprivileged user to run the application
+ARG APP_UID=1000
+ARG APP_GID=1000
+RUN groupadd --gid ${APP_GID} keychain \
+    && useradd --uid ${APP_UID} --gid keychain --no-create-home --shell /usr/sbin/nologin keychain
+
 WORKDIR /opt/backend
 
 # Add application
@@ -63,13 +55,18 @@ COPY --from=build /opt/app/backend/src/keychain/application_version.py ./src/key
 # Add configurations
 COPY ./backend/configurations ./configurations
 
-# Add frontend bundle
-COPY --from=frontend /opt/static ./static
+# Add the startup script (migrates the database, then starts the server)
+COPY --chmod=755 ./backend/scripts/start_app.sh ./scripts/start_app.sh
+
+# The backup folder is the only location the application writes to
+RUN mkdir -p ./backup && chown keychain:keychain ./backup
 
 # Add binaries for run inside container
 ENV PYTHONPATH="/opt/backend/src"
 ENV PATH="/opt/backend/.venv/bin:${PATH}"
 
-EXPOSE 8000
+USER keychain
 
-ENTRYPOINT ["python", "-m", "keychain"]
+EXPOSE 8080
+
+ENTRYPOINT ["/opt/backend/scripts/start_app.sh"]

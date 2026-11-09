@@ -1,0 +1,112 @@
+name: Tag and Docker push
+
+# Runs when a PR is merged into development and bumps the patch version.
+# A PR commit with subject "version(application): X.Y.Z[-suffix]" overrides the bump.
+#
+# Stages run strictly in order; each one must succeed for the next to start:
+#   version -> build -> tag -> push-images
+#
+# Publishing a GitHub release for a tag lives in github_release.yml.
+
+on:
+  pull_request:
+    types: [closed]
+    branches: [development]
+
+# Merges into development are tagged one at a time, in order.
+concurrency:
+  group: tag-docker-push
+  cancel-in-progress: false
+
+permissions:
+  contents: read
+
+jobs:
+  version:
+    name: Calculate version
+    if: github.event.pull_request.merged == true
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      pull-requests: read
+    outputs:
+      version: ${{ steps.calc.outputs.version }}
+    steps:
+      - uses: actions/checkout@v5
+        with:
+          fetch-depth: 0
+          fetch-tags: true
+
+      - uses: actions/setup-python@v6
+        with:
+          python-version-file: backend/.python-version
+
+      - name: Get PR commit messages
+        env:
+          GH_TOKEN: ${{ github.token }}
+          REPO: ${{ github.repository }}
+          PR_NUMBER: ${{ github.event.pull_request.number }}
+        # Messages are separated by the ASCII record separator (\u001e) so
+        # multi-line commit messages stay intact.
+        run: |
+          gh api --paginate "repos/${REPO}/pulls/${PR_NUMBER}/commits" \
+            --jq '.[] | .commit.message + "\u001e"' > "${RUNNER_TEMP}/commits.txt"
+
+      - name: Calculate version
+        id: calc
+        run: |
+          python .github/scripts/calculate_version.py \
+            --commits "${RUNNER_TEMP}/commits.txt"
+
+      - name: Summary
+        env:
+          VERSION: ${{ steps.calc.outputs.version }}
+        run: |
+          echo "### Version: \`${VERSION}\`" >> "$GITHUB_STEP_SUMMARY"
+
+  build:
+    name: Build
+    needs: version
+    uses: ./.github/workflows/build_docker.yml
+    with:
+      ref: ${{ github.event.pull_request.merge_commit_sha }}
+      version: ${{ needs.version.outputs.version }}
+
+  tag:
+    name: Create git tag
+    needs: [version, build]
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@v5
+        with:
+          ref: ${{ github.event.pull_request.merge_commit_sha }}
+
+      - name: Create and push tag
+        env:
+          VERSION: ${{ needs.version.outputs.version }}
+          SHA: ${{ github.event.pull_request.merge_commit_sha }}
+          PR_NUMBER: ${{ github.event.pull_request.number }}
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git tag -a "${VERSION}" "${SHA}" -m "Release ${VERSION} (PR #${PR_NUMBER})"
+          git push origin "refs/tags/${VERSION}"
+
+  push-images:
+    name: Push images
+    needs: [version, tag]
+    # Opt-in: runs only while the repository variable PUSH_IMAGES is "true"
+    # (Settings -> Secrets and variables -> Actions -> Variables).
+    if: vars.PUSH_IMAGES == 'true'
+    permissions:
+      contents: read
+      packages: write
+    # Same build as the "build" stage, now pushed; its layers come from that
+    # stage's cache.
+    uses: ./.github/workflows/build_docker.yml
+    with:
+      ref: ${{ github.event.pull_request.merge_commit_sha }}
+      version: ${{ needs.version.outputs.version }}
+      push: true

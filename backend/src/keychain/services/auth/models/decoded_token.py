@@ -4,7 +4,7 @@ This module defines data models for handling decoded JWT tokens,
 including their claims and expiration information.
 """
 
-__all__ = ["DecodedToken"]
+__all__ = ("DecodedToken",)
 
 from datetime import datetime
 
@@ -14,17 +14,19 @@ from pydantic import BaseModel, Field
 class DecodedToken(BaseModel):
     """Model representing a decoded JWT token.
 
-    This model contains the standard JWT claims that are extracted when
-    decoding a token, including the subject (typically a user identifier)
-    and expiration timestamp.
+    This model contains the JWT claims that are extracted when decoding a
+    token, including the subject (typically a user identifier), the sealed
+    data encryption key of the user and expiration timestamp.
 
     Attributes:
         sub: The subject of the token (typically a user ID or username).
+        ek: The user's data encryption key, sealed with the application secret key.
         exp: The expiration time of the token as a Unix timestamp.
 
     """
 
     user_id: str = Field(..., description="The subject of the token", alias="sub")
+    sealed_dek: str = Field(..., description="The sealed data encryption key of the user", alias="ek")
     expires_at: int = Field(..., description="The expiration time of the token", alias="exp")
 
     @property

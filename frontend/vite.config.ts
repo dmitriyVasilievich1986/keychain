@@ -17,7 +17,7 @@ export default defineConfig(({ mode }) => {
         browser: true,
         es2020: true,
       },
-      ignorePatterns: ['dist', 'node_modules'],
+      ignorePatterns: ['dist', 'node_modules', 'coverage'],
       jsPlugins: [
         {
           name: 'vite-plus',
@@ -144,7 +144,7 @@ export default defineConfig(({ mode }) => {
       tabWidth: 2,
       arrowParens: 'always',
       sortPackageJson: false,
-      ignorePatterns: ['dist', 'node_modules'],
+      ignorePatterns: ['dist', 'node_modules', 'coverage'],
       // Import grouping previously enforced by eslint-plugin-import/order.
       sortImports: {
         groups: [
@@ -192,6 +192,20 @@ export default defineConfig(({ mode }) => {
       environment: 'jsdom',
       include: ['src/**/*.test.{ts,tsx}'],
       setupFiles: ['./src/test/setup.ts'],
+      coverage: {
+        provider: 'v8',
+        // Count every source file, not only the ones a test happens to import.
+        include: ['src/**/*.{ts,tsx}'],
+        exclude: [
+          'src/**/*.test.{ts,tsx}',
+          'src/test/**',
+          'src/main.tsx',
+          // Type-only modules and barrel re-exports have no runtime logic.
+          'src/**/types.ts',
+          'src/**/index.ts',
+        ],
+        reporter: ['text', 'html'],
+      },
     },
     build: {
       outDir: '../static',

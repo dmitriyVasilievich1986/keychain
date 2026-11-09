@@ -8,6 +8,7 @@ from keychain import __version__
 from keychain.application_version import APPLICATION_VERSION
 
 from .api import API
+from .logs import Logs
 
 
 class AppInfo(BaseModel):
@@ -25,8 +26,7 @@ class AppInfo(BaseModel):
         description: The application description. Defaults to "Keychain Application".
         debug: The debug mode. Defaults to False.
         host: The host the application binds to. Defaults to "0.0.0.0".
-        port: The port the application binds to. Defaults to 8000.
-        log_level: The logging level. Defaults to "INFO".
+        port: The port the application binds to. Defaults to 8080.
         api: The API configuration.
 
     """
@@ -37,7 +37,7 @@ class AppInfo(BaseModel):
     description: str = Field(default="Keychain Application", description="Application description")
     debug: bool = Field(default=False, description="Debug mode")
     host: str = Field(default="0.0.0.0", description="Host")
-    port: int = Field(default=8000, description="Port")
-    log_level: str = Field(default="INFO", description="Log level")
+    port: int = Field(default=8080, description="Port")
 
     api: API = Field(..., description="API configuration")
+    logs: Logs = Field(..., description="Logs configuration")

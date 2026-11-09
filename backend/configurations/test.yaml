@@ -3,8 +3,7 @@ environment: "test"
 info:
   name: keychain
   host: "0.0.0.0"
-  port: 8000
-  log_level: "INFO"
+  port: 8080
   debug: true
   description: Keychain Application to store and retrieve secrets
 
@@ -18,18 +17,22 @@ info:
     allow_headers:
       - "*"
 
-db:
-  firestore:
-    db_name: "(default)"
-    collection_name: "password"
-  users:
-    db_name: "(default)"
-    collection_name: "users"
+  logs:
+    log_level: "DEBUG"
+    is_simple_output: true
+    logs_folder_path: null
 
-google:
-  # Tests run against the Firestore emulator (FIRESTORE_EMULATOR_HOST), so no
-  # credentials file is needed.
-  project_id: "keychain-test"
+db:
+  alembic_ini_path: "backend/src/keychain/services/alembic/alembic.ini"
+  backup_folder_path: "backup"
+  backup_count: 5
+  postgresql:
+    provider: postgresql+asyncpg
+    host: db
+    port: 5432
+    name: "test_db"
+    user: "Put your database user here"
+    password: "Put your database password here"
 
 cryptography:
   secret_key: "Put your secret key here"

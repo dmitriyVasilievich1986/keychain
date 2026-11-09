@@ -1,0 +1,103 @@
+name: Pipeline
+
+# Runs the tests and builds for every PR into development. Each stage lives in
+# its own reusable workflow:
+#
+#   changes ─┬─> test-backend   (test_backend.yml)
+#            ├─> build-backend  (build_backend.yml)
+#            ├─> test-frontend  (test_frontend.yml)
+#            └─> build-frontend (build_frontend.yml)
+#                       │
+#                       └─> pipeline-result (always runs; the required check)
+#
+# Only the stages for the parts of the repo the PR changes are run.
+
+on:
+  pull_request:
+    types: [opened, synchronize, reopened]
+    branches: [development]
+
+# A new push to a PR cancels its outdated run.
+concurrency:
+  group: pipeline-${{ github.event.pull_request.number }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+jobs:
+  changes:
+    name: Detect changes
+    runs-on: ubuntu-latest
+    permissions:
+      pull-requests: read
+    outputs:
+      backend: ${{ steps.filter.outputs.backend }}
+      frontend: ${{ steps.filter.outputs.frontend }}
+    steps:
+      # On pull_request events the filter lists the PR's files through the
+      # GitHub API, so no checkout is needed.
+      - uses: dorny/paths-filter@v3
+        id: filter
+        with:
+          filters: |
+            backend:
+              - 'backend/**'
+              - '.github/workflows/pipeline.yml'
+              - '.github/workflows/test_backend.yml'
+              - '.github/workflows/build_backend.yml'
+            frontend:
+              - 'frontend/**'
+              - '.github/workflows/pipeline.yml'
+              - '.github/workflows/test_frontend.yml'
+              - '.github/workflows/build_frontend.yml'
+
+  test-backend:
+    name: Test backend
+    needs: changes
+    if: needs.changes.outputs.backend == 'true'
+    uses: ./.github/workflows/test_backend.yml
+
+  build-backend:
+    name: Build backend
+    needs: changes
+    if: needs.changes.outputs.backend == 'true'
+    uses: ./.github/workflows/build_backend.yml
+
+  test-frontend:
+    name: Test frontend
+    needs: changes
+    if: needs.changes.outputs.frontend == 'true'
+    uses: ./.github/workflows/test_frontend.yml
+
+  build-frontend:
+    name: Build frontend
+    needs: changes
+    if: needs.changes.outputs.frontend == 'true'
+    uses: ./.github/workflows/build_frontend.yml
+
+  # Single required check for branch protection. It always runs, even when
+  # every stage above was skipped, and fails only if a stage failed or was
+  # cancelled. Skipped stages count as success.
+  pipeline-result:
+    name: Pipeline result
+    if: always()
+    needs:
+      - changes
+      - test-backend
+      - build-backend
+      - test-frontend
+      - build-frontend
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check stage results
+        env:
+          FAILED: ${{ contains(needs.*.result, 'failure') || contains(needs.*.result, 'cancelled') }}
+          RESULTS: ${{ toJSON(needs) }}
+        run: |
+          echo "$RESULTS"
+          if [ "$FAILED" = "true" ]; then
+            echo "::error::One or more pipeline stages failed or were cancelled."
+            exit 1
+          fi
+          echo "All pipeline stages succeeded or were skipped."

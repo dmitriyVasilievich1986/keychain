@@ -3,8 +3,7 @@ environment: "local"
 info:
   name: keychain
   host: "0.0.0.0"
-  port: 8000
-  log_level: "DEBUG"
+  port: 8080
   debug: true
   description: Keychain Application to store and retrieve secrets
 
@@ -18,17 +17,22 @@ info:
     allow_headers:
       - "*"
 
-db:
-  firestore:
-    db_name: "Put your Firestore database name here"
-    collection_name: "Put your Firestore collection name here"
-  users:
-    db_name: "Put your Firestore database name here"
-    collection_name: "users"
+  logs:
+    log_level: "DEBUG"
+    is_simple_output: true
+    logs_folder_path: null
 
-google:
-  project_id: "Put your Google project ID here"
-  credentials_path: "Put your path to the Google credentials file here"
+db:
+  alembic_ini_path: "Put your path to the alembic.ini file here"
+  backup_folder_path: "Put your path to the backup folder here"
+  backup_count: 5
+  postgresql:
+    provider: postgresql+asyncpg
+    host: db
+    port: 5432
+    name: "keychain_development"
+    user: "Put your database user here"
+    password: "Put your database password here"
 
 cryptography:
   secret_key: "Put your secret key here"

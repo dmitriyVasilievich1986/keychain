@@ -6,12 +6,11 @@ from datetime import datetime, timezone
 from typing import Annotated
 from uuid import UUID
 
+import structlog
 from fastapi import APIRouter, Body, Depends, HTTPException, Path, Query, status
-from google.api_core.exceptions import GoogleAPICallError, NotFound
-from loguru import logger
+from sqlalchemy.exc import NoResultFound, SQLAlchemyError
 
-from keychain.config import AppConfig
-from keychain.modules.middlewares.dependencies import authorize_user, get_firestore
+from keychain.modules.middlewares.dependencies import authorize_user, get_db, get_user_dek
 from keychain.modules.routers.models.base.metadata import PaginationMetadata
 from keychain.modules.routers.models.request.password import (
     GetAllPasswordsQuery,
@@ -29,6 +28,8 @@ from keychain.services.daos.firestore import PasswordDAO
 from keychain.services.daos.firestore.models import Field, FieldValue, Password, User
 from keychain.services.db_client.firestore import FirestoreClient
 from keychain.utils.filter import Filter
+
+logger = structlog.stdlib.get_logger(__name__)
 
 router = APIRouter(prefix="/password", tags=["Passwords Management"])
 
@@ -77,8 +78,8 @@ def build_fields(fields: list[PasswordFieldCreate]) -> list[Field]:
 
 @router.get("", response_model=GetAllPasswordsResponse, description="Get all passwords")
 async def get_passwords(
-    firestore: Annotated[FirestoreClient, Depends(get_firestore)],
-    user: Annotated[User, Depends(authorize_user(AppConfig))],
+    db: Annotated[DBClient, Depends(get_db)],
+    user: Annotated[User, Depends(authorize_user)],
     query: Annotated[GetAllPasswordsQuery, Query(description="The query parameters for getting all passwords")],
 ) -> GetAllPasswordsResponse:
     """Retrieve all passwords belonging to the authenticated user.
@@ -103,12 +104,10 @@ async def get_passwords(
         filters.append(Filter[str](column="deleted_at", operator="isnull", value=None))
 
     try:
-        data, total = await password_dao.get_all(
-            filters=filters, **query.model_dump(exclude={"filters", "show_deleted"})
-        )
-        metadata = PaginationMetadata(total=total, **query.model_dump(exclude={"show_deleted"}))
-    except GoogleAPICallError as e:
-        logger.exception("Error retrieving passwords", exc_info=e)
+        data, total = await password_dao.get_all(filters=filters, **query.model_dump(exclude={"filters"}))
+        metadata = PaginationMetadata(total=total, **query.model_dump())
+    except SQLAlchemyError as e:
+        logger.exception("Error retrieving passwords")
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail="An unexpected error occurred"
         ) from e
@@ -118,9 +117,10 @@ async def get_passwords(
 
 @router.get("/{password_id}", response_model=PasswordGetResponseModel, description="Get a password by ID")
 async def get_password(
-    password_id: Annotated[UUID, Path(description="The unique identifier of the password to retrieve")],
-    firestore: Annotated[FirestoreClient, Depends(get_firestore)],
-    user: Annotated[User, Depends(authorize_user(AppConfig))],
+    password_id: Annotated[int, Path(description="The unique identifier of the password to retrieve")],
+    db: Annotated[DBClient, Depends(get_db)],
+    user: Annotated[User, Depends(authorize_user)],
+    dek: Annotated[bytes, Depends(get_user_dek)],
 ) -> PasswordGetResponseModel:
     """Retrieve a single password by its ID for the authenticated user.
 
@@ -128,6 +128,7 @@ async def get_password(
         password_id (UUID): The unique identifier of the password to retrieve.
         firestore (FirestoreClient): The Firestore client dependency.
         user (User): The authenticated user resolved from the request.
+        dek (bytes): The authenticated user's data encryption key.
 
     Returns:
         PasswordGetResponseModel: The requested password.
@@ -139,17 +140,17 @@ async def get_password(
     """
     password_dao = PasswordDAO(firestore)
     try:
-        password = await get_owned_password(password_dao, password_id, user)
-    except NotFound as e:
-        logger.warning(f"Password {password_id} not found for user {user.id}")
+        password = await password_dao.get_by_pk(password_id, filters=[Password.user_id == user.id])
+    except NoResultFound as e:
+        logger.warning("Password not found", password_id=password_id)
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Password not found") from e
-    except GoogleAPICallError as e:
-        logger.exception("Error retrieving password", exc_info=e)
+    except SQLAlchemyError as e:
+        logger.exception("Error retrieving password")
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail="An unexpected error occurred"
         ) from e
 
-    return PasswordGetResponseModel.model_validate(password)
+    return PasswordGetResponseModel.model_validate(password, context={"dek": dek})
 
 
 @router.post(
@@ -160,8 +161,9 @@ async def get_password(
 )
 async def create_password(
     body: Annotated[PasswordCreateRequestModel, Body(description="The request body for creating a new password")],
-    firestore: Annotated[FirestoreClient, Depends(get_firestore)],
-    user: Annotated[User, Depends(authorize_user(AppConfig))],
+    db: Annotated[DBClient, Depends(get_db)],
+    user: Annotated[User, Depends(authorize_user)],
+    dek: Annotated[bytes, Depends(get_user_dek)],
 ) -> PasswordGetResponseModel:
     """Create a new password for the authenticated user.
 
@@ -169,6 +171,7 @@ async def create_password(
         body (PasswordCreateRequestModel): The data for the new password.
         firestore (FirestoreClient): The Firestore client dependency.
         user (User): The authenticated user resolved from the request.
+        dek (bytes): The authenticated user's data encryption key.
 
     Returns:
         PasswordGetResponseModel: The newly created password.
@@ -180,26 +183,23 @@ async def create_password(
     password_dao = PasswordDAO(firestore)
 
     try:
-        password = await password_dao.create(
-            **body.model_dump(exclude={"fields"}),
-            user_id=str(user.id),
-            fields=build_fields(body.fields),
-        )
-    except GoogleAPICallError as e:
-        logger.exception("Error creating password", exc_info=e)
+        password = await password_dao.create(**body.model_dump(), user_id=user.id)
+    except SQLAlchemyError as e:
+        logger.exception("Error creating password")
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail="An unexpected error occurred"
         ) from e
 
-    return PasswordGetResponseModel.model_validate(password)
+    return PasswordGetResponseModel.model_validate(password, context={"dek": dek})
 
 
 @router.put("/{password_id}", response_model=PasswordGetResponseModel, description="Update a password by ID")
 async def update_password(
     password_id: Annotated[UUID, Path(description="The unique identifier of the password to update")],
     body: Annotated[PasswordUpdateRequestModel, Body(description="The request body for updating a password")],
-    firestore: Annotated[FirestoreClient, Depends(get_firestore)],
-    user: Annotated[User, Depends(authorize_user(AppConfig))],
+    db: Annotated[DBClient, Depends(get_db)],
+    user: Annotated[User, Depends(authorize_user)],
+    dek: Annotated[bytes, Depends(get_user_dek)],
 ) -> PasswordGetResponseModel:
     """Fully update a password by its ID for the authenticated user.
 
@@ -208,6 +208,7 @@ async def update_password(
         body (PasswordUpdateRequestModel): The full set of updated values.
         firestore (FirestoreClient): The Firestore client dependency.
         user (User): The authenticated user resolved from the request.
+        dek (bytes): The authenticated user's data encryption key.
 
     Returns:
         PasswordGetResponseModel: The updated password.
@@ -220,33 +221,26 @@ async def update_password(
     password_dao = PasswordDAO(firestore)
 
     try:
-        current = await get_owned_password(password_dao, password_id, user)
-        if current.deleted_at is not None:
-            raise NotFound(f"Password {password_id} not found")
-        password = await password_dao.update(
-            str(password_id),
-            **body.model_dump(exclude={"fields"}),
-            fields=build_fields(body.fields),
-            updated_at=datetime.now(timezone.utc),
-        )
-    except NotFound as e:
-        logger.warning(f"Password {password_id} not found for user {user.id}")
+        password = await password_dao.update(password_id, **body.model_dump(), filters=[Password.user_id == user.id])
+    except NoResultFound as e:
+        logger.warning("Password not found", password_id=password_id)
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Password not found") from e
-    except GoogleAPICallError as e:
-        logger.exception("Error updating password", exc_info=e)
+    except SQLAlchemyError as e:
+        logger.exception("Error updating password")
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail="An unexpected error occurred"
         ) from e
 
-    return PasswordGetResponseModel.model_validate(password)
+    return PasswordGetResponseModel.model_validate(password, context={"dek": dek})
 
 
 @router.patch("/{password_id}", response_model=PasswordGetResponseModel, description="Patch a password by ID")
 async def patch_password(
     password_id: Annotated[UUID, Path(description="The unique identifier of the password to update")],
     body: Annotated[PasswordPatchRequestModel, Body(description="The request body for updating a password")],
-    firestore: Annotated[FirestoreClient, Depends(get_firestore)],
-    user: Annotated[User, Depends(authorize_user(AppConfig))],
+    db: Annotated[DBClient, Depends(get_db)],
+    user: Annotated[User, Depends(authorize_user)],
+    dek: Annotated[bytes, Depends(get_user_dek)],
 ) -> PasswordGetResponseModel:
     """Update a password partially by its ID for the authenticated user.
 
@@ -258,6 +252,7 @@ async def patch_password(
         body (PasswordPatchRequestModel): The subset of values to update.
         firestore (FirestoreClient): The Firestore client dependency.
         user (User): The authenticated user resolved from the request.
+        dek (bytes): The authenticated user's data encryption key.
 
     Returns:
         PasswordGetResponseModel: The updated password.
@@ -270,30 +265,26 @@ async def patch_password(
     password_dao = PasswordDAO(firestore)
 
     try:
-        current = await get_owned_password(password_dao, password_id, user)
-        if current.deleted_at is not None:
-            raise NotFound(f"Password {password_id} not found")
-        changes = body.model_dump(exclude_unset=True, exclude={"fields"})
-        if body.fields is not None:
-            changes["fields"] = build_fields(body.fields)
-        password = await password_dao.update(str(password_id), **changes, updated_at=datetime.now(timezone.utc))
-    except NotFound as e:
-        logger.warning(f"Password {password_id} not found for user {user.id}")
+        password = await password_dao.update(
+            password_id, **body.model_dump(exclude_unset=True), filters=[Password.user_id == user.id]
+        )
+    except NoResultFound as e:
+        logger.warning("Password not found", password_id=password_id)
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Password not found") from e
-    except GoogleAPICallError as e:
-        logger.exception("Error updating password", exc_info=e)
+    except SQLAlchemyError as e:
+        logger.exception("Error updating password")
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail="An unexpected error occurred"
         ) from e
 
-    return PasswordGetResponseModel.model_validate(password)
+    return PasswordGetResponseModel.model_validate(password, context={"dek": dek})
 
 
 @router.delete("/{password_id}", status_code=status.HTTP_204_NO_CONTENT, description="Delete a password by ID")
 async def delete_password(
-    password_id: Annotated[UUID, Path(description="The unique identifier of the password to delete")],
-    firestore: Annotated[FirestoreClient, Depends(get_firestore)],
-    user: Annotated[User, Depends(authorize_user(AppConfig))],
+    password_id: Annotated[int, Path(description="The unique identifier of the password to delete")],
+    db: Annotated[DBClient, Depends(get_db)],
+    user: Annotated[User, Depends(authorize_user)],
 ) -> None:
     """Delete a password by its ID for the authenticated user.
 
@@ -315,13 +306,12 @@ async def delete_password(
     password_dao = PasswordDAO(firestore)
 
     try:
-        await get_owned_password(password_dao, password_id, user)
-        await password_dao.mark_as_deleted(str(password_id))
-    except NotFound as e:
-        logger.warning(f"Password {password_id} not found for user {user.id}")
+        await password_dao.delete(password_id, filters=[Password.user_id == user.id])
+    except NoResultFound as e:
+        logger.warning("Password not found", password_id=password_id)
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Password not found") from e
-    except GoogleAPICallError as e:
-        logger.exception("Error deleting password", exc_info=e)
+    except SQLAlchemyError as e:
+        logger.exception("Error deleting password")
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail="An unexpected error occurred"
         ) from e

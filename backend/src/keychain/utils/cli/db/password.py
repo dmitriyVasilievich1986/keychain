@@ -11,9 +11,11 @@ import asyncclick as click
 from keychain.config import AppConfig
 from keychain.modules.routers.models.request.password import PasswordCreateRequestModel, PasswordPatchRequestModel
 from keychain.modules.routers.models.response.password import PasswordGetResponseModel, SimplePasswordGet
-from keychain.services.daos.firestore import PasswordDAO
-from keychain.services.db_client.firestore import FirestoreClient
-from keychain.utils.filter import Filter
+from keychain.services.cryptography.client import CryptographyClient
+from keychain.services.daos import PasswordDAO
+from keychain.services.db_client.client import DBClient
+from keychain.services.db_client.models.password import Password
+from keychain.utils.cli.user_dek import load_user_dek
 
 
 @click.group(help="CLI for managing passwords of the Keychain Application.")
@@ -67,25 +69,31 @@ async def create_password(ctx: click.Context, name: str, user_id: UUID, image_ur
 
 
 @password.command(help="Get a password by ID")
-@click.option("--password-id", help="The ID of the password", type=click.UUID, required=True)
+@click.option("--password-id", help="The ID of the password", type=int, required=True)
+@click.option("--user-id", help="The ID of the user who owns the password", type=int, required=True)
+@click.option("--user-password", prompt="Enter the user password", help="The password of the owner", hide_input=True)
 @click.pass_context
-async def get_password(ctx: click.Context, password_id: UUID) -> None:
+async def get_password(ctx: click.Context, password_id: int, user_id: int, user_password: str) -> None:
     """Retrieve a password from the database by its ID.
 
     This command fetches a password document by ID and outputs the password
     information as JSON.
 
     Args:
-        ctx (click.Context): Click context object containing the password DAO.
-        password_id (UUID): The unique identifier of the password to retrieve.
+        ctx (click.Context): Click context object containing the DB client.
+        password_id (int): The unique identifier of the password to retrieve.
+        user_id (int): The unique identifier of the user who owns the password.
+        user_password (str): The owner's password, used to decrypt field values.
 
     Returns:
         None
 
     """
-    password_dao: PasswordDAO = ctx.obj["password_dao"]
-    password = await password_dao.get_by_id(str(password_id))
-    password_response = PasswordGetResponseModel.model_validate(password)
+    db_client: DBClient = ctx.obj["db_client_instance"]
+    password_dao = PasswordDAO(db_client)
+    dek = await load_user_dek(db_client, user_id, user_password)
+    password = await password_dao.get_by_pk(password_id, filters=[Password.user_id == user_id])
+    password_response = PasswordGetResponseModel.model_validate(password, context={"dek": dek})
     click.echo(password_response.model_dump_json(indent=2))
 
 
@@ -93,8 +101,12 @@ async def get_password(ctx: click.Context, password_id: UUID) -> None:
 @click.option("--password-id", help="The ID of the password", type=click.UUID, required=True)
 @click.option("--name", help="The new name of the password", type=str, required=True)
 @click.option("--image-url", help="The new image URL of the password", type=str, required=False)
+@click.option("--user-id", help="The ID of the user who owns the password", type=int, required=True)
+@click.option("--user-password", prompt="Enter the user password", help="The password of the owner", hide_input=True)
 @click.pass_context
-async def update_password(ctx: click.Context, password_id: UUID, name: str, image_url: str | None) -> None:
+async def update_password(
+    ctx: click.Context, password_id: int, name: str, image_url: str | None, user_id: int, user_password: str
+) -> None:
     """Update a password's name and/or image URL in the database.
 
     This command updates the name and/or image URL of an existing password
@@ -106,19 +118,19 @@ async def update_password(ctx: click.Context, password_id: UUID, name: str, imag
         name (str): The new name to assign to the password.
         image_url (str, optional): New image URL to assign to the password.
             Defaults to None.
+        user_id (int): The unique identifier of the user who owns the password.
+        user_password (str): The owner's password, used to decrypt field values.
 
     Returns:
         None
 
     """
-    password_dao: PasswordDAO = ctx.obj["password_dao"]
-    body = PasswordPatchRequestModel(name=name, image_url=image_url)
-    password = await password_dao.update(
-        str(password_id),
-        **body.model_dump(exclude={"fields"}),
-        updated_at=datetime.now(timezone.utc),
-    )
-    password_response = PasswordGetResponseModel.model_validate(password)
+    db_client: DBClient = ctx.obj["db_client_instance"]
+    password_dao = PasswordDAO(db_client)
+    body = PasswordUpdateRequestModel(name=name, image_url=image_url)
+    dek = await load_user_dek(db_client, user_id, user_password)
+    password = await password_dao.update(password_id, **body.model_dump(), filters=[Password.user_id == user_id])
+    password_response = PasswordGetResponseModel.model_validate(password, context={"dek": dek})
     click.echo(password_response.model_dump_json(indent=2))
 
 

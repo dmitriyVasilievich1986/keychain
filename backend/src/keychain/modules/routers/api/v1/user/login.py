@@ -4,10 +4,12 @@ __all__ = ("router",)
 
 from typing import Annotated
 
+import structlog
+from cryptography.fernet import InvalidToken
 from fastapi import APIRouter, Body, Depends, HTTPException, status
 from google.api_core.exceptions import GoogleAPICallError, NotFound
 from jwt.exceptions import PyJWTError
-from loguru import logger
+from sqlalchemy.exc import NoResultFound, SQLAlchemyError
 
 from keychain.config import AppConfig
 from keychain.modules.middlewares.dependencies import get_config, get_firestore
@@ -18,6 +20,8 @@ from keychain.modules.routers.models.response.user import AccessTokenResponseMod
 from keychain.services.auth.client import AuthClient
 from keychain.services.daos.firestore import UserDAO
 from keychain.services.db_client.firestore import FirestoreClient
+
+logger = structlog.stdlib.get_logger(__name__)
 
 router = APIRouter(prefix="/user")
 
@@ -43,30 +47,46 @@ async def login_user(
 
     Raises:
         HTTPException: 404 if the username does not exist, 401 if the password
-            is incorrect, or 500 on a Firestore or token encoding error.
+            is incorrect, or 500 on a database, encryption or token encoding
+            error.
+
+    Users created before per-user encryption keys were introduced are migrated
+    on their first successful login.
 
     """
     user_dao = UserDAO(firestore, collection_name=config.db.users.collection_name)
     try:
         user = await user_dao.get_by_username(body.username)
-    except NotFound as e:
-        logger.warning(f"User not found: {body.username}")
+    except NoResultFound as e:
+        logger.warning("User not found", username=body.username)
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Username or password is incorrect") from e
-    except GoogleAPICallError as e:
-        logger.exception("Error logging in user", exc_info=e)
+    except SQLAlchemyError as e:
+        logger.exception("Error logging in user")
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail="An unexpected error occurred"
         ) from e
 
     if not user.verify_password(body.password):
-        logger.warning(f"Invalid password for user: {body.username}")
+        logger.warning("Invalid password", username=body.username)
         raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Username or password is incorrect")
+
+    if user.wrapped_dek is None:
+        logger.warning("User has no encryption keys", user_id=user.id)
+        raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail="An unexpected error occurred")
+
+    try:
+        dek = user.unwrap_dek(body.password)
+    except InvalidToken as e:
+        logger.exception("Error unwrapping user encryption key", user_id=user.id)
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail="An unexpected error occurred"
+        ) from e
 
     auth_service = AuthClient(config=config)
     try:
-        access_token = auth_service.encode_token(str(user.id))
+        access_token = auth_service.encode_token(str(user.id), dek)
     except (ValueError, PyJWTError) as e:
-        logger.exception("Error encoding access token", exc_info=e)
+        logger.exception("Error encoding access token")
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail="An unexpected error occurred"
         ) from e

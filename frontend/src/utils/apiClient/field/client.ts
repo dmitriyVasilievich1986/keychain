@@ -5,6 +5,7 @@
 import { type PasswordField } from '@store/passwords';
 
 import { apiClientInstance, useApiClientWrapper } from '../base';
+import { API_PREFIX } from '../constants';
 
 import type { FieldPostRequest, FieldPutRequest } from './types';
 
@@ -19,13 +20,19 @@ export const useFieldAPIClient = () => {
   return {
     postField: async (request: FieldPostRequest): Promise<PasswordField> => {
       return wrapper(async () => {
-        const response = await apiClientInstance.post<PasswordField>(`/api/v1/field`, request);
+        const response = await apiClientInstance.post<PasswordField>(
+          `${API_PREFIX}/api/v1/field`,
+          request
+        );
         return response.data;
       });
     },
     putField: async (id: number, request: FieldPutRequest): Promise<PasswordField> => {
       return wrapper(async () => {
-        const response = await apiClientInstance.put<PasswordField>(`/api/v1/field/${id}`, request);
+        const response = await apiClientInstance.put<PasswordField>(
+          `${API_PREFIX}/api/v1/field/${id}`,
+          request
+        );
         return response.data;
       });
     },

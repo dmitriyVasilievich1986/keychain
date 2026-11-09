@@ -5,6 +5,7 @@
 import { type PasswordSimple, type Password } from '@store/passwords';
 
 import { apiClientInstance, useApiClientWrapper } from '../base';
+import { API_PREFIX } from '../constants';
 
 import type { FilterType, PaginationMetadata } from '../types';
 import type { PasswordPostRequest } from './types';
@@ -25,7 +26,7 @@ export const usePasswordAPIClient = () => {
      * @returns Full password entity from the API.
      */
     getPassword: async (id: number): Promise<Password> => {
-      const response = await apiClientInstance.get<Password>(`/api/v1/password/${id}`);
+      const response = await apiClientInstance.get<Password>(`${API_PREFIX}/api/v1/password/${id}`);
       return response.data;
     },
     /**
@@ -48,7 +49,7 @@ export const usePasswordAPIClient = () => {
       const response = await apiClientInstance.get<{
         data: PasswordSimple[];
         metadata: PaginationMetadata;
-      }>(`/api/v1/password`, {
+      }>(`${API_PREFIX}/api/v1/password`, {
         params: {
           limit,
           offset,
@@ -67,7 +68,10 @@ export const usePasswordAPIClient = () => {
      */
     postPassword: async (request: PasswordPostRequest): Promise<Password> => {
       return wrapper(async () => {
-        const response = await apiClientInstance.post<Password>(`/api/v1/password`, request);
+        const response = await apiClientInstance.post<Password>(
+          `${API_PREFIX}/api/v1/password`,
+          request
+        );
         return response.data;
       });
     },

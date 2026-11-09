@@ -1,5 +1,6 @@
 """Cryptography services."""
 
-from .client import CryptographyClient
+__all__ = ("CryptographyClient", "UserKeys")
 
-__all__ = ["CryptographyClient"]
+from .client import CryptographyClient
+from .models import UserKeys

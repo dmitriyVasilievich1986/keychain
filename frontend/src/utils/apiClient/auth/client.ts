@@ -8,6 +8,7 @@
 import axios from 'axios';
 
 import { useApiClientWrapper } from '../base';
+import { API_PREFIX, API_BASE_URL } from '../constants';
 
 import type { LoginResponse } from './types';
 
@@ -28,10 +29,9 @@ export const useAuthAPIClient = () => {
      * @returns A promise that resolves with the login response payload (`access_token`, etc.).
      */
     login: async (username: string, password: string) => {
-      const apiHost = import.meta.env.VITE_API_HOST ?? '';
       return wrapper(async () => {
         const response = await axios.post<LoginResponse>(
-          `${apiHost}/api/v1/user/login`,
+          `${API_BASE_URL}${API_PREFIX}/api/v1/user/login`,
           {
             username,
             password,

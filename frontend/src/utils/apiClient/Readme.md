@@ -6,7 +6,7 @@ A small, hook-based wrapper around [Axios](https://axios-http.com/) that central
 
 The foundation everything else builds on.
 
-- **`apiClientInstance`** — a pre-configured Axios instance pointed at `VITE_API_HOST` with JSON defaults. It has two interceptors:
+- **`apiClientInstance`** — a pre-configured Axios instance pointed at `API_BASE_URL` (`VITE_API_HOST`) with JSON defaults. Request paths are prefixed with `API_PREFIX` (`VITE_API_PREFIX`, e.g. `/keychain`); both constants live in `constants.ts`. It has two interceptors:
   - **Request interceptor** — reads the `accessToken` cookie. If it is missing, the user is redirected to `/login?redirectTo=<current path>` and the request is aborted; otherwise it attaches an `Authorization: Bearer <token>` header.
   - **Response interceptor** — on an HTTP `401` it performs the same login redirect (skipped when already on `/login` to avoid loops), then rejects so callers still see the error.
 - **`useApiClientWrapper()`** — a hook returning a `wrapper(func)` helper. It toggles the global loading flag (`useUserStore`) on for the duration of the wrapped promise, logs errors, and always resets loading afterward.
