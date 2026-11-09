@@ -1,8 +1,8 @@
 name: build-docker
 
 # Reusable stage: builds the backend Docker image without pushing it.
-# Called from pipeline.yml as a PR check, and from tag_docker_push.yml with the
-# calculated version before that version is tagged.
+# Called from tag_docker_push.yml with the calculated version before that
+# version is tagged.
 
 on:
   workflow_call:

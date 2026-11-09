@@ -1,0 +1,168 @@
+name: Tag and Docker push
+
+# Runs when a PR is merged into development and bumps the patch version.
+# A PR commit with subject "version(application): X.Y.Z[-suffix]" overrides the bump.
+#
+# Stages run strictly in order; each one must succeed for the next to start:
+#   version -> build -> tag -> push-images (disabled)
+#
+# Publishing a GitHub release for a tag lives in github_release.yml.
+
+# TEMPORARY: runs on open PRs to test this workflow before merge.
+# Restore to `types: [closed]` once tested.
+# While a PR is not merged, the run builds the PR's merge ref and the tag is
+# only pushed with --dry-run, so no real tag is created.
+on:
+  pull_request:
+    types: [opened, synchronize, reopened]
+    branches: [development]
+
+# Merges into development are tagged one at a time, in order.
+concurrency:
+  group: tag-docker-push
+  cancel-in-progress: false
+
+permissions:
+  contents: read
+
+jobs:
+  version:
+    name: Calculate version
+    # TEMPORARY: restore when switching the trigger back to `closed`.
+    # if: github.event.pull_request.merged == true
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      pull-requests: read
+    outputs:
+      version: ${{ steps.calc.outputs.version }}
+    steps:
+      - uses: actions/checkout@v5
+        with:
+          fetch-depth: 0
+          fetch-tags: true
+
+      - uses: actions/setup-python@v6
+        with:
+          python-version-file: backend/.python-version
+
+      - name: Get PR commit messages
+        env:
+          GH_TOKEN: ${{ github.token }}
+          REPO: ${{ github.repository }}
+          PR_NUMBER: ${{ github.event.pull_request.number }}
+        # Messages are separated by the ASCII record separator (\u001e) so
+        # multi-line commit messages stay intact.
+        run: |
+          gh api --paginate "repos/${REPO}/pulls/${PR_NUMBER}/commits" \
+            --jq '.[] | .commit.message + "\u001e"' > "${RUNNER_TEMP}/commits.txt"
+
+      - name: Calculate version
+        id: calc
+        run: |
+          python .github/scripts/calculate_version.py \
+            --commits "${RUNNER_TEMP}/commits.txt"
+
+      - name: Summary
+        env:
+          VERSION: ${{ steps.calc.outputs.version }}
+        run: |
+          echo "### Version: \`${VERSION}\`" >> "$GITHUB_STEP_SUMMARY"
+
+  build:
+    name: Build
+    needs: version
+    uses: ./.github/workflows/build_docker.yml
+    with:
+      # TEMPORARY: an open PR has no merge commit yet, so use its merge ref.
+      # Restore to `github.event.pull_request.merge_commit_sha`.
+      ref: ${{ github.event.pull_request.merged && github.event.pull_request.merge_commit_sha || github.sha }}
+      version: ${{ needs.version.outputs.version }}
+
+  tag:
+    name: Create git tag
+    needs: [version, build]
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      # TEMPORARY: both refs below fall back to the PR merge ref while testing.
+      # Restore them to `github.event.pull_request.merge_commit_sha`.
+      - uses: actions/checkout@v5
+        with:
+          ref: ${{ github.event.pull_request.merged && github.event.pull_request.merge_commit_sha || github.sha }}
+
+      - name: Create and push tag
+        env:
+          VERSION: ${{ needs.version.outputs.version }}
+          SHA: ${{ github.event.pull_request.merged && github.event.pull_request.merge_commit_sha || github.sha }}
+          PR_NUMBER: ${{ github.event.pull_request.number }}
+          # TEMPORARY: remove together with the --dry-run branch below.
+          MERGED: ${{ github.event.pull_request.merged }}
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git tag -a "${VERSION}" "${SHA}" -m "Release ${VERSION} (PR #${PR_NUMBER})"
+          if [ "${MERGED}" = "true" ]; then
+            git push origin "refs/tags/${VERSION}"
+          else
+            git push --dry-run origin "refs/tags/${VERSION}"
+          fi
+
+  push-images:
+    name: Push images
+    needs: [version, tag]
+    # TEMPORARY: always runs while testing. Restore the gate below to make
+    # pushing opt-in through the repository variable PUSH_IMAGES=true.
+    # if: vars.PUSH_IMAGES == 'true'
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      packages: write
+    steps:
+      # TEMPORARY: restore to `github.event.pull_request.merge_commit_sha`.
+      - uses: actions/checkout@v5
+        with:
+          ref: ${{ github.event.pull_request.merged && github.event.pull_request.merge_commit_sha || github.sha }}
+
+      # The image reads its application version from git tags in .git, and the
+      # checkout has no tags, so add the version tag locally (as build_docker.yml does).
+      - name: Add local version tag
+        env:
+          VERSION: ${{ needs.version.outputs.version }}
+        run: git tag "${VERSION}"
+
+      # Docker image names must be lowercase; the GitHub owner name may not be.
+      - name: Compute image name
+        id: image
+        env:
+          OWNER: ${{ github.repository_owner }}
+          VERSION: ${{ needs.version.outputs.version }}
+        run: |
+          owner="$(echo "${OWNER}" | tr '[:upper:]' '[:lower:]')"
+          echo "tag=ghcr.io/${owner}/test_actions-backend:${VERSION}" >> "$GITHUB_OUTPUT"
+
+      - uses: docker/setup-buildx-action@v4
+
+      # GITHUB_TOKEN can push to this repository's GHCR packages; no secret needed.
+      - uses: docker/login-action@v4
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ github.token }}
+
+      - name: Build and push image
+        uses: docker/build-push-action@v7
+        with:
+          context: .
+          file: ./Dockerfile
+          push: true
+          tags: ${{ steps.image.outputs.tag }}
+          # Reuses the layers cached by the build stage.
+          cache-from: type=gha,scope=backend
+
+      - name: Summary
+        env:
+          IMAGE: ${{ steps.image.outputs.tag }}
+        run: |
+          echo "### Pushed image: \`${IMAGE}\`" >> "$GITHUB_STEP_SUMMARY"

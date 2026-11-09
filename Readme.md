@@ -1,6 +1,4 @@
-[![build-backend](https://github.com/dmitriyVasilievich1986/keychain/actions/workflows/build_backend.yml/badge.svg)](https://github.com/dmitriyVasilievich1986/keychain/actions/workflows/build_backend.yml)
-[![build-frontend](https://github.com/dmitriyVasilievich1986/keychain/actions/workflows/build_frontend.yml/badge.svg)](https://github.com/dmitriyVasilievich1986/keychain/actions/workflows/build_frontend.yml)
-[![test-backend](https://github.com/dmitriyVasilievich1986/keychain/actions/workflows/test_backend.yml/badge.svg)](https://github.com/dmitriyVasilievich1986/keychain/actions/workflows/test_backend.yml)
+[![pipeline](https://github.com/dmitriyVasilievich1986/keychain/actions/workflows/pipeline.yml/badge.svg)](https://github.com/dmitriyVasilievich1986/keychain/actions/workflows/pipeline.yml)
 
 # Keychain
 
@@ -295,9 +293,14 @@ VITE_SOURCEMAP     # Enable source maps when building/serving
 
 GitHub Actions workflows:
 
-- `build_backend.yml` — backend image/build checks
-- `build_frontend.yml` — frontend install + build (uses npm 12.0.1)
-- `test_backend.yml` — backend tests
+- `pipeline.yml` — tests and builds for PRs into `development`; it runs the stages below
+  - `test_backend.yml` — backend tests
+  - `build_backend.yml` — backend lint, type check and package build
+  - `test_frontend.yml` — frontend format, lint, type check and tests (`npm test`)
+  - `build_frontend.yml` — frontend install + build (uses npm 12.0.1)
+- `tag_docker_push.yml` — when a PR is merged into `development`: calculate the version, build the Docker image, push the git tag
+  - `build_docker.yml` — backend Docker image build (no push)
+- `github_release.yml` — manually publish a GitHub release for an existing tag
 - `auto_bump_version.yml` — version bump automation
 
 Local quality gates use [pre-commit](https://pre-commit.com) (`.pre-commit-config.yaml`): Ruff, Pyright, and frontend `vp fmt` / `vp lint`.
