@@ -1,0 +1,102 @@
+name: build-docker
+
+# Reusable stage: builds the backend Docker image for linux/amd64 and
+# linux/arm64, and optionally pushes it to GitHub Container Registry.
+# Called from tag_docker_push.yml twice: once to check the build before the
+# version is tagged, and once with `push: true` to publish it.
+
+on:
+  workflow_call:
+    inputs:
+      ref:
+        description: Git ref to check out (defaults to the triggering commit)
+        type: string
+        default: ""
+      version:
+        description: >-
+          Application version baked into the image. Empty for a check build,
+          which then uses the latest tag in the checkout (0.0.0 if none).
+        type: string
+        default: ""
+      push:
+        description: >-
+          Push the image to ghcr.io. The caller must grant `packages: write`.
+        type: boolean
+        default: false
+
+jobs:
+  build-docker:
+    name: ${{ inputs.push && 'Build and push backend image' || 'Build backend image' }}
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v5
+        with:
+          ref: ${{ inputs.ref }}
+
+      # The image reads its application version from git tags in .git
+      # (scripts/generate-application-version.sh). The checkout has no tags,
+      # and the real tag may not be pushed yet, so add it locally.
+      - name: Add local version tag
+        if: inputs.version != ''
+        env:
+          VERSION: ${{ inputs.version }}
+        run: git tag "${VERSION}"
+
+      # Docker image names must be lowercase; the GitHub owner name may not be.
+      # The image is tagged with its version and with "latest". A pre-release
+      # version (one with a "-suffix", e.g. 1.2.0-rc1) does not move "latest".
+      - name: Compute image tags
+        id: image
+        env:
+          OWNER: ${{ github.repository_owner }}
+          VERSION: ${{ inputs.version }}
+        run: |
+          owner="$(echo "${OWNER}" | tr '[:upper:]' '[:lower:]')"
+          image="ghcr.io/${owner}/keychain-backend"
+          tags="${image}:${VERSION:-check}"
+          if [[ -n "${VERSION}" && "${VERSION}" != *-* ]]; then
+            tags="${tags},${image}:latest"
+          fi
+          echo "tags=${tags}" >> "$GITHUB_OUTPUT"
+
+      # QEMU lets the amd64 runner build the arm64 image too.
+      - uses: docker/setup-qemu-action@v4
+        with:
+          platforms: arm64
+
+      - uses: docker/setup-buildx-action@v4
+
+      # GITHUB_TOKEN can push to this repository's GHCR packages; no secret needed.
+      - name: Log in to GitHub Container Registry
+        if: inputs.push
+        uses: docker/login-action@v4
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ github.token }}
+
+      # The backend Dockerfile lives at the repository root and copies
+      # ./backend, ./scripts and ./.git, so the context is the repository root.
+      # One tag serves both Intel/AMD hosts and ARM hosts (e.g. Apple Silicon).
+      - name: Build image
+        uses: docker/build-push-action@v7
+        with:
+          context: .
+          file: ./Dockerfile
+          platforms: linux/amd64,linux/arm64
+          push: ${{ inputs.push }}
+          tags: ${{ steps.image.outputs.tags }}
+          cache-from: type=gha,scope=backend
+          # GitHub may hand this job a read-only cache token, so a failed cache
+          # upload must not fail the build itself.
+          cache-to: type=gha,mode=max,scope=backend,ignore-error=true
+
+      - name: Summary
+        if: inputs.push
+        env:
+          TAGS: ${{ steps.image.outputs.tags }}
+        run: |
+          echo "### Pushed images" >> "$GITHUB_STEP_SUMMARY"
+          for tag in ${TAGS//,/ }; do
+            echo "- \`${tag}\`" >> "$GITHUB_STEP_SUMMARY"
+          done

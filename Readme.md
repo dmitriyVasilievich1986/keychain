@@ -1,6 +1,4 @@
-[![build-backend](https://github.com/dmitriyVasilievich1986/keychain/actions/workflows/build_backend.yml/badge.svg)](https://github.com/dmitriyVasilievich1986/keychain/actions/workflows/build_backend.yml)
-[![build-frontend](https://github.com/dmitriyVasilievich1986/keychain/actions/workflows/build_frontend.yml/badge.svg)](https://github.com/dmitriyVasilievich1986/keychain/actions/workflows/build_frontend.yml)
-[![test-backend](https://github.com/dmitriyVasilievich1986/keychain/actions/workflows/test_backend.yml/badge.svg)](https://github.com/dmitriyVasilievich1986/keychain/actions/workflows/test_backend.yml)
+[![pipeline](https://github.com/dmitriyVasilievich1986/keychain/actions/workflows/pipeline.yml/badge.svg)](https://github.com/dmitriyVasilievich1986/keychain/actions/workflows/pipeline.yml)
 
 # Keychain
 
@@ -143,12 +141,15 @@ docker compose -f docker-compose-development.yaml up -d --build
 docker compose -f docker-compose-development.yaml --profile frontend up -d --build
 ```
 
-**Production-style** (no source mounts; the `nginx` image builds and bundles the frontend):
+**Production-style** (no source mounts; the `nginx` image builds and bundles the frontend; the backend image `ghcr.io/dmitriyvasilievich1986/keychain-backend:latest` is pulled from GitHub Container Registry):
 
 ```bash
 docker build -f nginx/Dockerfile -t keychain-nginx:latest .
+docker compose -f docker-compose.yaml pull backend
 docker compose -f docker-compose.yaml up -d
 ```
+
+If the backend package is private, log in first with `docker login ghcr.io` using a classic personal access token with the `read:packages` scope.
 
 ### 4. Initialize the database
 
@@ -295,9 +296,14 @@ VITE_SOURCEMAP     # Enable source maps when building/serving
 
 GitHub Actions workflows:
 
-- `build_backend.yml` — backend image/build checks
-- `build_frontend.yml` — frontend install + build (uses npm 12.0.1)
-- `test_backend.yml` — backend tests
+- `pipeline.yml` — tests and builds for PRs into `development`; it runs the stages below
+  - `test_backend.yml` — backend tests
+  - `build_backend.yml` — backend lint, type check and package build
+  - `test_frontend.yml` — frontend format, lint, type check and tests (`npm test`)
+  - `build_frontend.yml` — frontend install + build (uses npm 12.0.1)
+- `tag_docker_push.yml` — when a PR is merged into `development`: calculate the version, build the Docker image, push the git tag
+  - `build_docker.yml` — backend Docker image build for amd64 and arm64; pushes to GHCR when `PUSH_IMAGES` is `true`
+- `github_release.yml` — manually publish a GitHub release for an existing tag
 - `auto_bump_version.yml` — version bump automation
 
 Local quality gates use [pre-commit](https://pre-commit.com) (`.pre-commit-config.yaml`): Ruff, Pyright, and frontend `vp fmt` / `vp lint`.
