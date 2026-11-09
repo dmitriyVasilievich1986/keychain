@@ -1,10 +1,18 @@
 name: GitHub Release
 
 # Publishes a GitHub release for a tag created by the "Tag and Docker push" workflow.
-# Started manually: Actions -> GitHub Release -> Run workflow, then enter the tag.
+#
+# Runs when a PR is merged into master: releases the latest tag reachable from
+# the PR's head commit (the development tip that was merged). If that tag
+# already has a release, the run does nothing.
+# Can also be started manually: Actions -> GitHub Release -> Run workflow,
+# then enter the tag.
 # Versions with a suffix (e.g. 1.2.3-alpha) are marked as pre-releases.
 
 on:
+  pull_request:
+    types: [closed]
+    branches: [master]
   workflow_dispatch:
     inputs:
       tag:
@@ -22,18 +30,49 @@ permissions:
 jobs:
   release:
     name: Create GitHub release
+    if: github.event_name == 'workflow_dispatch' || github.event.pull_request.merged == true
     runs-on: ubuntu-latest
     permissions:
       contents: write
     steps:
+      # The head commit is used rather than the merge commit so the tag is
+      # found even when the PR is squash- or rebase-merged.
+      - uses: actions/checkout@v5
+        if: github.event_name == 'pull_request'
+        with:
+          ref: ${{ github.event.pull_request.head.sha }}
+          fetch-depth: 0
+          fetch-tags: true
+
+      - name: Resolve tag
+        id: tag
+        env:
+          INPUT_TAG: ${{ inputs.tag }}
+        run: |
+          if [[ -n "${INPUT_TAG}" ]]; then
+            tag="${INPUT_TAG}"
+          else
+            if ! tag="$(git describe --tags --abbrev=0 HEAD)"; then
+              echo "::error::No tag is reachable from the merged commit."
+              exit 1
+            fi
+          fi
+          echo "tag=${tag}" >> "$GITHUB_OUTPUT"
+          echo "### Tag: \`${tag}\`" >> "$GITHUB_STEP_SUMMARY"
+
       - name: Create release
         env:
           GH_TOKEN: ${{ github.token }}
           REPO: ${{ github.repository }}
-          TAG: ${{ inputs.tag }}
+          TAG: ${{ steps.tag.outputs.tag }}
         # --verify-tag fails the run instead of creating a new tag when the
         # given one does not exist.
         run: |
+          if gh release view "${TAG}" --repo "${REPO}" > /dev/null 2>&1; then
+            echo "Release ${TAG} already exists; nothing to do."
+            echo "Release \`${TAG}\` already exists; skipped." >> "$GITHUB_STEP_SUMMARY"
+            exit 0
+          fi
           args=(--repo "${REPO}" --title "${TAG}" --generate-notes --verify-tag)
           if [[ "${TAG}" == *-* ]]; then
             args+=(--prerelease)
