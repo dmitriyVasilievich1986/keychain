@@ -117,14 +117,21 @@ jobs:
         run: git tag "${VERSION}"
 
       # Docker image names must be lowercase; the GitHub owner name may not be.
-      - name: Compute image name
+      # The image is tagged with its version and with "latest". A pre-release
+      # version (one with a "-suffix", e.g. 1.2.0-rc1) does not move "latest".
+      - name: Compute image tags
         id: image
         env:
           OWNER: ${{ github.repository_owner }}
           VERSION: ${{ needs.version.outputs.version }}
         run: |
           owner="$(echo "${OWNER}" | tr '[:upper:]' '[:lower:]')"
-          echo "tag=ghcr.io/${owner}/keychain-backend:${VERSION}" >> "$GITHUB_OUTPUT"
+          image="ghcr.io/${owner}/keychain-backend"
+          tags="${image}:${VERSION}"
+          if [[ "${VERSION}" != *-* ]]; then
+            tags="${tags},${image}:latest"
+          fi
+          echo "tags=${tags}" >> "$GITHUB_OUTPUT"
 
       - uses: docker/setup-buildx-action@v4
 
@@ -141,12 +148,15 @@ jobs:
           context: .
           file: ./Dockerfile
           push: true
-          tags: ${{ steps.image.outputs.tag }}
+          tags: ${{ steps.image.outputs.tags }}
           # Reuses the layers cached by the build stage.
           cache-from: type=gha,scope=backend
 
       - name: Summary
         env:
-          IMAGE: ${{ steps.image.outputs.tag }}
+          TAGS: ${{ steps.image.outputs.tags }}
         run: |
-          echo "### Pushed image: \`${IMAGE}\`" >> "$GITHUB_STEP_SUMMARY"
+          echo "### Pushed images" >> "$GITHUB_STEP_SUMMARY"
+          for tag in ${TAGS//,/ }; do
+            echo "- \`${tag}\`" >> "$GITHUB_STEP_SUMMARY"
+          done
