@@ -4,17 +4,13 @@ name: Tag and Docker push
 # A PR commit with subject "version(application): X.Y.Z[-suffix]" overrides the bump.
 #
 # Stages run strictly in order; each one must succeed for the next to start:
-#   version -> build -> tag -> push-images (disabled)
+#   version -> build -> tag -> push-images
 #
 # Publishing a GitHub release for a tag lives in github_release.yml.
 
-# TEMPORARY: runs on open PRs to test this workflow before merge.
-# Restore to `types: [closed]` once tested.
-# While a PR is not merged, the run builds the PR's merge ref and the tag is
-# only pushed with --dry-run, so no real tag is created.
 on:
   pull_request:
-    types: [opened, synchronize, reopened]
+    types: [closed]
     branches: [development]
 
 # Merges into development are tagged one at a time, in order.
@@ -28,8 +24,7 @@ permissions:
 jobs:
   version:
     name: Calculate version
-    # TEMPORARY: restore when switching the trigger back to `closed`.
-    # if: github.event.pull_request.merged == true
+    if: github.event.pull_request.merged == true
     runs-on: ubuntu-latest
     permissions:
       contents: read
@@ -74,9 +69,7 @@ jobs:
     needs: version
     uses: ./.github/workflows/build_docker.yml
     with:
-      # TEMPORARY: an open PR has no merge commit yet, so use its merge ref.
-      # Restore to `github.event.pull_request.merge_commit_sha`.
-      ref: ${{ github.event.pull_request.merged && github.event.pull_request.merge_commit_sha || github.sha }}
+      ref: ${{ github.event.pull_request.merge_commit_sha }}
       version: ${{ needs.version.outputs.version }}
 
   tag:
@@ -86,44 +79,35 @@ jobs:
     permissions:
       contents: write
     steps:
-      # TEMPORARY: both refs below fall back to the PR merge ref while testing.
-      # Restore them to `github.event.pull_request.merge_commit_sha`.
       - uses: actions/checkout@v5
         with:
-          ref: ${{ github.event.pull_request.merged && github.event.pull_request.merge_commit_sha || github.sha }}
+          ref: ${{ github.event.pull_request.merge_commit_sha }}
 
       - name: Create and push tag
         env:
           VERSION: ${{ needs.version.outputs.version }}
-          SHA: ${{ github.event.pull_request.merged && github.event.pull_request.merge_commit_sha || github.sha }}
+          SHA: ${{ github.event.pull_request.merge_commit_sha }}
           PR_NUMBER: ${{ github.event.pull_request.number }}
-          # TEMPORARY: remove together with the --dry-run branch below.
-          MERGED: ${{ github.event.pull_request.merged }}
         run: |
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
           git tag -a "${VERSION}" "${SHA}" -m "Release ${VERSION} (PR #${PR_NUMBER})"
-          if [ "${MERGED}" = "true" ]; then
-            git push origin "refs/tags/${VERSION}"
-          else
-            git push --dry-run origin "refs/tags/${VERSION}"
-          fi
+          git push origin "refs/tags/${VERSION}"
 
   push-images:
     name: Push images
     needs: [version, tag]
-    # TEMPORARY: always runs while testing. Restore the gate below to make
-    # pushing opt-in through the repository variable PUSH_IMAGES=true.
-    # if: vars.PUSH_IMAGES == 'true'
+    # Opt-in: runs only while the repository variable PUSH_IMAGES is "true"
+    # (Settings -> Secrets and variables -> Actions -> Variables).
+    if: vars.PUSH_IMAGES == 'true'
     runs-on: ubuntu-latest
     permissions:
       contents: read
       packages: write
     steps:
-      # TEMPORARY: restore to `github.event.pull_request.merge_commit_sha`.
       - uses: actions/checkout@v5
         with:
-          ref: ${{ github.event.pull_request.merged && github.event.pull_request.merge_commit_sha || github.sha }}
+          ref: ${{ github.event.pull_request.merge_commit_sha }}
 
       # The image reads its application version from git tags in .git, and the
       # checkout has no tags, so add the version tag locally (as build_docker.yml does).
@@ -140,7 +124,7 @@ jobs:
           VERSION: ${{ needs.version.outputs.version }}
         run: |
           owner="$(echo "${OWNER}" | tr '[:upper:]' '[:lower:]')"
-          echo "tag=ghcr.io/${owner}/test_actions-backend:${VERSION}" >> "$GITHUB_OUTPUT"
+          echo "tag=ghcr.io/${owner}/keychain-backend:${VERSION}" >> "$GITHUB_OUTPUT"
 
       - uses: docker/setup-buildx-action@v4
 
