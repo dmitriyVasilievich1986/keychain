@@ -1,28 +1,24 @@
 name: Pipeline
 
-# The single entry point for CI. Every stage lives in its own reusable workflow:
+# Runs the tests and builds for every PR into development. Each stage lives in
+# its own reusable workflow:
 #
-#   changes ─┬─> test-backend   (test_backend.yml)   ─┐
-#            ├─> build-backend  (build_backend.yml)  ─┤
-#            ├─> test-frontend  (test_frontend.yml)  ─┼─> tag-docker-push (tag_docker_push.yml)
-#            ├─> build-frontend (build_frontend.yml) ─┘     merged PRs only
-#            └─> build-docker   (build_docker.yml)          open PRs only
+#   changes ─┬─> test-backend   (test_backend.yml)
+#            ├─> build-backend  (build_backend.yml)
+#            ├─> test-frontend  (test_frontend.yml)
+#            └─> build-frontend (build_frontend.yml)
 #
-# * PR opened / updated: run the checks for the parts of the repo it changes,
-#   including a Docker image build.
-# * PR merged: run the same checks on the merge commit, then version, build
-#   the Docker image and tag it, but only if no check failed.
-# * PR closed without merging: nothing runs.
+# Only the stages for the parts of the repo the PR changes are run.
 
 on:
   pull_request:
-    types: [opened, synchronize, reopened, closed]
+    types: [opened, synchronize, reopened]
     branches: [development]
 
-# New pushes to a PR cancel its outdated run; a merge run is never cancelled.
+# A new push to a PR cancels its outdated run.
 concurrency:
   group: pipeline-${{ github.event.pull_request.number }}
-  cancel-in-progress: ${{ github.event.action != 'closed' }}
+  cancel-in-progress: true
 
 permissions:
   contents: read
@@ -30,17 +26,12 @@ permissions:
 jobs:
   changes:
     name: Detect changes
-    if: github.event.action != 'closed' || github.event.pull_request.merged == true
     runs-on: ubuntu-latest
     permissions:
       pull-requests: read
     outputs:
       backend: ${{ steps.filter.outputs.backend }}
       frontend: ${{ steps.filter.outputs.frontend }}
-      docker: ${{ steps.filter.outputs.docker }}
-      # A merged PR is checked on its merge commit; otherwise on GitHub's
-      # test merge of the PR (the default checkout).
-      ref: ${{ github.event.pull_request.merged && github.event.pull_request.merge_commit_sha || github.sha }}
     steps:
       # On pull_request events the filter lists the PR's files through the
       # GitHub API, so no checkout is needed.
@@ -58,77 +49,27 @@ jobs:
               - '.github/workflows/pipeline.yml'
               - '.github/workflows/test_frontend.yml'
               - '.github/workflows/build_frontend.yml'
-            # Everything the root Dockerfile copies (see .dockerignore).
-            docker:
-              - 'Dockerfile'
-              - '.dockerignore'
-              - 'backend/**'
-              - 'scripts/**'
-              - 'frontend/src/utils/application-version.json'
-              - '.github/workflows/pipeline.yml'
-              - '.github/workflows/build_docker.yml'
 
   test-backend:
     name: Test backend
     needs: changes
     if: needs.changes.outputs.backend == 'true'
     uses: ./.github/workflows/test_backend.yml
-    with:
-      ref: ${{ needs.changes.outputs.ref }}
 
   build-backend:
     name: Build backend
     needs: changes
     if: needs.changes.outputs.backend == 'true'
     uses: ./.github/workflows/build_backend.yml
-    with:
-      ref: ${{ needs.changes.outputs.ref }}
 
   test-frontend:
     name: Test frontend
     needs: changes
     if: needs.changes.outputs.frontend == 'true'
     uses: ./.github/workflows/test_frontend.yml
-    with:
-      ref: ${{ needs.changes.outputs.ref }}
 
   build-frontend:
     name: Build frontend
     needs: changes
     if: needs.changes.outputs.frontend == 'true'
     uses: ./.github/workflows/build_frontend.yml
-    with:
-      ref: ${{ needs.changes.outputs.ref }}
-
-  # On merge the image is built by tag-docker-push with the real version, so
-  # this check only runs while the PR is open.
-  build-docker:
-    name: Build Docker image
-    needs: changes
-    if: needs.changes.outputs.docker == 'true' && github.event.action != 'closed'
-    uses: ./.github/workflows/build_docker.yml
-    with:
-      ref: ${{ needs.changes.outputs.ref }}
-
-  tag-docker-push:
-    name: Tag and Docker push
-    needs: [changes, test-backend, build-backend, test-frontend, build-frontend]
-    # Checks skipped for lack of changes must not block tagging, so run unless
-    # something failed or was cancelled.
-    if: >-
-      !cancelled()
-      && github.event.pull_request.merged == true
-      && needs.changes.result == 'success'
-      && !contains(needs.*.result, 'failure')
-      && !contains(needs.*.result, 'cancelled')
-    # Merges into development are tagged one at a time, in order.
-    concurrency:
-      group: tag-docker-push
-      cancel-in-progress: false
-    # A called workflow can only use permissions granted here.
-    # packages: write is for the (disabled by default) push-images stage.
-    permissions:
-      contents: write
-      pull-requests: read
-      packages: write
-    uses: ./.github/workflows/tag_docker_push.yml
