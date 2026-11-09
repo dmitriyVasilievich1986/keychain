@@ -9,8 +9,9 @@ import asyncclick as click
 from alembic import command
 from alembic.config import Config
 
-from keychain.commands import BackupDBCommand, RestoreDBCommand
+from keychain.commands import BackupDBCommand, MigrateFieldsEncryptionCommand, RestoreDBCommand
 from keychain.config import AppConfig
+from keychain.services.daos import InvalidPasswordError
 from keychain.services.db_client.client import DBClient
 
 from .field import field
@@ -37,7 +38,7 @@ def db(ctx: click.Context) -> None:
     config: AppConfig = ctx.obj["config"]
     alembic_cfg = Config(config.db.alembic_ini_path)
     ctx.obj["alembic_cfg"] = alembic_cfg
-    ctx.obj["db_client_instance"] = DBClient(app_config=config)
+    ctx.obj["db_client_instance"] = DBClient(config.db.postgresql, config.info.debug)
 
 
 @db.command()
@@ -154,7 +155,7 @@ async def backup(
     if backup_folder_path is not None:
         app_config.db.backup_folder_path = Path(backup_folder_path)
     if db_name is not None:
-        app_config.db.name = db_name
+        app_config.db.postgresql.name = db_name
     if backup_count is not None:
         app_config.db.backup_count = backup_count
     cmd = BackupDBCommand(app_config)
@@ -206,10 +207,47 @@ async def restore(
     if backup_folder_path is not None:
         app_config.db.backup_folder_path = Path(backup_folder_path)
     if db_name is not None:
-        app_config.db.name = db_name
+        app_config.db.postgresql.name = db_name
     cmd = RestoreDBCommand(app_config, dump_file_path=backup_file_path)
     await cmd.validate()
     await cmd.execute()
+
+
+@db.command(help="Migrate a user's fields to a per-user encryption key.")
+@click.option("--user-id", help="The ID of the user to migrate", required=True, type=int)
+@click.option("--password", prompt="Enter the user password", help="The password of the user", hide_input=True)
+@click.pass_context
+async def migrate_fields_encryption(ctx: click.Context, user_id: int, password: str) -> None:
+    """Migrate a legacy user's fields to their own encryption key.
+
+    Users created before per-user encryption keys were introduced have their
+    fields encrypted with the application-wide key and cannot log in until
+    they are migrated. Validates and runs ``MigrateFieldsEncryptionCommand``.
+
+    Args:
+        ctx (click.Context): Click context object containing the DB client.
+        user_id (int): The unique identifier of the user to migrate.
+        password (str): The current password of the user.
+
+    Returns:
+        None
+
+    Raises:
+        click.BadParameter: If the password is incorrect.
+        click.UsageError: If the user is already migrated.
+
+    """
+    db_client: DBClient = ctx.obj["db_client_instance"]
+    cmd = MigrateFieldsEncryptionCommand(db_client, user_id, password)
+    try:
+        await cmd.validate()
+        user = await cmd.execute()
+    except InvalidPasswordError as e:
+        raise click.BadParameter("Invalid password", param_hint="--password") from e
+    except ValueError as e:
+        raise click.UsageError(str(e)) from e
+
+    click.echo(f"User {user.id} migrated to per-user encryption")
 
 
 db.add_command(user)

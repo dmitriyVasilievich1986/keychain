@@ -1,6 +1,6 @@
 """Data access object for password records."""
 
-__all__ = ["PasswordDAO"]
+__all__ = ("PasswordDAO",)
 
 from keychain.services.db_client.models.password import Password
 

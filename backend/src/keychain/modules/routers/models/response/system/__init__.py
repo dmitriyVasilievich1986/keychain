@@ -1,7 +1,6 @@
 """System response models."""
 
-from .health import HealthResponse
-from .unhealth import ErrorResponse
-from .version import VersionResponse
+__all__ = ("HealthResponse", "ServiceHealth", "VersionResponse")
 
-__all__ = ["ErrorResponse", "HealthResponse", "VersionResponse"]
+from .health import HealthResponse, ServiceHealth
+from .version import VersionResponse

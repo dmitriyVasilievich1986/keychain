@@ -1,5 +1,5 @@
 """Utility functions and classes."""
 
-from .singleton import Singleton
+__all__ = ["configure_logging"]
 
-__all__ = ["Singleton"]
+from .log_config import configure_logging

@@ -20,15 +20,17 @@ TEST_DB_NAME = "test_db"
 MAINTENANCE_DB_NAME = "postgres"
 
 # Point the settings loader at the test configuration and force the test
-# database name. These must be set before importing any ``keychain`` module,
-# because configuration singletons read them on first access.
+# database name and an absolute Alembic config path (``.env`` may hold a path
+# relative to the repository root). These must be set before importing any
+# ``keychain`` module, because configuration singletons read them on first
+# access.
 os.environ["CONFIG_FILE_PATH"] = str(BACKEND_DIR / "configurations" / "test.yaml")
-os.environ["DB__NAME"] = TEST_DB_NAME
-os.environ.setdefault("DB__HOST", "localhost")
-os.environ.setdefault("DB__PORT", "5432")
-os.environ.setdefault("DB__USER", "root")
-os.environ.setdefault("DB__PASSWORD", "root")
-os.environ.setdefault("DB__ALEMBIC_INI_PATH", str(BACKEND_DIR / "src/keychain/services/alembic/alembic.ini"))
+os.environ["DB__POSTGRESQL__NAME"] = TEST_DB_NAME
+os.environ["DB__ALEMBIC_INI_PATH"] = str(BACKEND_DIR / "src/keychain/services/alembic/alembic.ini")
+os.environ.setdefault("DB__POSTGRESQL__HOST", "localhost")
+os.environ.setdefault("DB__POSTGRESQL__PORT", "5432")
+os.environ.setdefault("DB__POSTGRESQL__USER", "root")
+os.environ.setdefault("DB__POSTGRESQL__PASSWORD", "root")
 os.environ.setdefault("CRYPTOGRAPHY__SECRET_KEY", "WcrmZ43_lZNqollPA7g_Bt8pKZq2YBr69OFSjQ0V710=")
 os.environ.setdefault("AUTH__JWT_SECRET_KEY", "test-secret")
 
@@ -60,11 +62,13 @@ def _maintenance_url(config: AppConfig) -> URL:
     being (re)created, so we connect to the default ``postgres`` database using
     the same credentials.
     """
-    db = config.db
+    db = config.db.postgresql
+    assert db.user is not None
+    assert db.password is not None
     return URL.create(
         "postgresql+asyncpg",
-        username=db.user.get_secret_value(),  # type: ignore[union-attr]
-        password=db.password.get_secret_value(),  # type: ignore[union-attr]
+        username=db.user.get_secret_value(),
+        password=db.password.get_secret_value(),
         host=db.host,
         port=db.port,
         database=MAINTENANCE_DB_NAME,
@@ -100,13 +104,13 @@ def test_database() -> Generator[AppConfig, None, None]:
     ``asyncio.run``), so it must not execute inside a running loop.
     """
     _reset_singletons()
-    config = AppConfig.get_or_create(reload=True)
+    config = AppConfig()
 
     asyncio.run(_create_test_database(config))
 
     # Store the test config so Alembic's env.py picks it up, then run migrations.
     _reset_singletons()
-    AppConfig.get_or_create(reload=True)
+    AppConfig()
     alembic_cfg = Config(str(config.db.alembic_ini_path))
     command.upgrade(alembic_cfg, "head")
 
@@ -133,7 +137,7 @@ async def db_client(app_config: AppConfig) -> AsyncGenerator[DBClient, None]:
     created and torn down on the loop that uses them.
     """
     _reset_singletons()
-    client = DBClient(app_config=app_config)
+    client = DBClient(app_config.db.postgresql, app_config.info.debug)
     yield client
     await client.close()
     _reset_singletons()

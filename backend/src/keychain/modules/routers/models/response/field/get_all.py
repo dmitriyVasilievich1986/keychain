@@ -7,8 +7,10 @@ from pydantic import Field
 from keychain.modules.routers.models.base.metadata import PaginationMetadata
 from keychain.modules.routers.models.base.response import BaseResponseFromModelSchema
 
+from .decrypted_value import DecryptedValueMixin
 
-class SimpleFieldGet(BaseResponseFromModelSchema):
+
+class SimpleFieldGet(DecryptedValueMixin, BaseResponseFromModelSchema):
     """Response model for getting a simple field in list view."""
 
     id: int = Field(..., description="The unique identifier for the field")

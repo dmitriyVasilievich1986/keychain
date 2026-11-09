@@ -1,6 +1,6 @@
 """Authentication token models."""
 
-__all__ = ["EncodedToken"]
+__all__ = ("EncodedToken",)
 
 from datetime import datetime
 

@@ -6,16 +6,16 @@ import asyncio
 from os import environ
 from pathlib import Path
 from subprocess import CalledProcessError
-from typing import cast
 
-from loguru import logger
-from pydantic import SecretStr
+import structlog
 
 from keychain.config import AppConfig
 
 from ..base import BaseCommand
 from .models import DBBackup
 from .utils import find_backup_files
+
+logger = structlog.stdlib.get_logger(__name__)
 
 
 class RestoreDBCommand(BaseCommand[DBBackup]):
@@ -36,6 +36,16 @@ class RestoreDBCommand(BaseCommand[DBBackup]):
         self.db_backup_path = Path(app_config.db.backup_folder_path)
         self.app_config = app_config
 
+    async def initialize(self, *args, **kwargs) -> None:
+        """Initialize the backup command.
+
+        Args:
+            *args (Any): Positional arguments to initialize the command.
+            **kwargs (Any): Keyword arguments to initialize the command.
+
+        """
+        pass
+
     def _get_bash_command(self, backup_file_path: Path) -> tuple[list[str], dict[str, str]]:
         """Build the restore argv and env vars for the configured provider.
 
@@ -50,25 +60,25 @@ class RestoreDBCommand(BaseCommand[DBBackup]):
             ValueError: If the configured database provider is unsupported.
 
         """
-        match self.app_config.db.provider:
-            case "postgresql":
+        match self.app_config.db.postgresql.provider:
+            case "postgresql+asyncpg":
                 return [
                     "pg_restore",
                     "-U",
-                    cast(str, cast(SecretStr, self.app_config.db.user).get_secret_value()),
+                    self.app_config.db.postgresql.user.get_secret_value(),
                     "-h",
-                    self.app_config.db.host,
+                    self.app_config.db.postgresql.host,
                     "-p",
-                    str(self.app_config.db.port),
+                    str(self.app_config.db.postgresql.port),
                     "-d",
-                    cast(str, self.app_config.db.name),
+                    self.app_config.db.postgresql.name,
                     "-c",
                     "--if-exists",
                     "-v",
                     str(backup_file_path),
-                ], {"PGPASSWORD": cast(str, cast(SecretStr, self.app_config.db.password).get_secret_value())}
+                ], {"PGPASSWORD": self.app_config.db.postgresql.password.get_secret_value()}
             case _:
-                raise ValueError(f"Invalid database provider: {self.app_config.db.provider}")
+                raise ValueError(f"Invalid database provider: {self.app_config.db.postgresql.provider}")
 
     async def validate(self, *_, **__) -> None:
         """Validate config and resolve the backup file to restore.
@@ -88,11 +98,11 @@ class RestoreDBCommand(BaseCommand[DBBackup]):
                 missing, no backups are found, or the dump file is invalid.
 
         """
-        if self.app_config.db.provider not in self.available_db_types:
-            raise ValueError(f"Invalid database provider: {self.app_config.db.provider}")
+        if self.app_config.db.postgresql.provider not in self.available_db_types:
+            raise ValueError(f"Invalid database provider: {self.app_config.db.postgresql.provider}")
 
-        db_name = cast(str, self.app_config.db.name)
-        provider = self.app_config.db.provider
+        db_name = self.app_config.db.postgresql.name
+        provider = self.app_config.db.postgresql.provider
 
         if self.dump_file_path is None:
             if not self.db_backup_path.is_dir() or not self.db_backup_path.exists():
@@ -103,7 +113,7 @@ class RestoreDBCommand(BaseCommand[DBBackup]):
                     f"No backup files found for provider={provider!r}, db_name={db_name!r} in {self.db_backup_path}"
                 )
             self.backup_file_model = backup_files[0]
-            logger.info(f"Using latest backup file: {self.backup_file_model.backup_path}")
+            logger.info("Using latest backup file", backup_path=str(self.backup_file_model.backup_path))
             return
         self.backup_file_model = DBBackup.factory(self.dump_file_path)
 
@@ -130,5 +140,5 @@ class RestoreDBCommand(BaseCommand[DBBackup]):
         await process.wait()
         if process.returncode != 0:
             raise CalledProcessError(process.returncode or -1, " ".join(command))
-        logger.info(f"Database restored from backup file: {self.backup_file_model.backup_path}")
+        logger.info("Database restored from backup file", backup_path=str(self.backup_file_model.backup_path))
         return self.backup_file_model

@@ -8,6 +8,7 @@ from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.sql import ColumnElement
 
+from keychain.services.cryptography.client import CryptographyClient
 from keychain.services.db_client.models.field import Field
 from keychain.services.db_client.models.password import Password
 
@@ -42,7 +43,8 @@ class FieldDAO(BaseDAO[Field]):
             pk_column_name (str): The name of the primary key column.
             filters (Sequence[ColumnElement[bool]] | None, optional): Additional
                 filters to apply when locating the field. Defaults to None.
-            **kwargs (Any): Field attributes to update; must include ``value``.
+            **kwargs (Any): Field attributes to update; must include the
+                already encrypted ``value``.
 
         Returns:
             Field: The newly created field reflecting the updated value.
@@ -62,59 +64,127 @@ class FieldDAO(BaseDAO[Field]):
 
         return await self._get_by_pk_raw(session, new_field.id, pk_column_name, filters)
 
-    async def _create_raw(  # type: ignore[reportIncompatibleMethodOverride]
-        self,
-        session: AsyncSession,
-        filters: Sequence[ColumnElement[bool]] | None,
-        **kwargs: Any,
-    ) -> Field:
+    async def _create_raw(self, session: AsyncSession, **kwargs: Any) -> Field:
         """Create a new field associated with an existing password.
 
         Args:
             session (AsyncSession): The database session to use.
-            filters (Sequence[ColumnElement[bool]] | None, optional): Additional
-                filters to apply when validating the parent password. Defaults
-                to None.
             **kwargs (Any): Field attributes; must include ``password_id``.
+                An optional ``filters`` (Sequence[ColumnElement[bool]] | None)
+                restricts which parent passwords are considered valid.
 
         Returns:
             Field: The newly created field.
 
         Raises:
             ValueError: If ``password_id`` is not provided in ``kwargs``.
+            NoResultFound: If no password matches ``password_id`` and
+                ``filters``; nothing is written in that case.
 
         """
+        filters: Sequence[ColumnElement[bool]] | None = kwargs.pop("filters", None)
         if (password_id := kwargs.get("password_id")) is None:
             raise ValueError("Password ID is required")
 
-        stmt = select(Password).where(Password.id == password_id)
+        stmt = select(Password.id).where(Password.id == password_id)
         if c_filters := self.concat_filters(self.base_filters, filters):
             stmt = stmt.where(*c_filters)
 
-        await session.execute(stmt)
+        # Ensure the parent password exists and passes the caller's filters (e.g. ownership)
+        (await session.execute(stmt)).scalar_one()
 
         obj = self.database_model(**kwargs)
         session.add(obj)
         await session.commit()
         return await self._get_by_pk_raw(session, getattr(obj, self.pk_column_name), self.pk_column_name, filters)
 
-    async def create(self, filters: Sequence[ColumnElement[bool]] | None = None, **kwargs: Any) -> Field:  # type: ignore[reportIncompatibleMethodOverride]
+    async def create(
+        self,
+        filters: Sequence[ColumnElement[bool]] | None = None,
+        *,
+        dek: bytes | None = None,
+        **kwargs: Any,
+    ) -> Field:
         """Create a new field, using an existing session or a new one.
 
         Args:
             filters (Sequence[ColumnElement[bool]] | None, optional): Additional
                 filters to apply during creation. Defaults to None.
-            **kwargs (Any): Field attributes; must include ``password_id``.
+            dek (bytes | None, optional): The owner's data encryption key used
+                to encrypt ``value``. Required despite the default, which only
+                keeps the signature compatible with the base DAO.
+            **kwargs (Any): Field attributes; must include ``password_id`` and
+                the plaintext ``value``.
 
         Returns:
             Field: The newly created field.
 
+        Raises:
+            ValueError: If ``value`` or ``dek`` is not provided.
+
         """
+        kwargs["value"] = self._encrypt_value(kwargs.get("value"), dek)
+
         if self.session is not None:
             return await self._create_raw(self.session, **kwargs, filters=filters)
 
-        async with self.database_client.session_factory() as session:  # type: ignore[union-attr]
+        async with self._session_factory() as session:
             return await self._create_raw(session, **kwargs, filters=filters)
+
+    async def update(
+        self,
+        pk: int | str,
+        pk_column_name: str | None = None,
+        filters: Sequence[ColumnElement[bool]] | None = None,
+        *,
+        dek: bytes | None = None,
+        **kwargs: Any,
+    ) -> Field:
+        """Update a field's value by primary key.
+
+        Args:
+            pk (int | str): The primary key of the field to update.
+            pk_column_name (str | None, optional): The name of the primary key
+                column. Defaults to :attr:`pk_column_name`.
+            filters (Sequence[ColumnElement[bool]] | None, optional): Additional
+                filters to apply when locating the field. Defaults to None.
+            dek (bytes | None, optional): The owner's data encryption key used
+                to encrypt ``value``. Required despite the default, which only
+                keeps the signature compatible with the base DAO.
+            **kwargs (Any): Field attributes to update; must include the
+                plaintext ``value``.
+
+        Returns:
+            Field: The newly created field reflecting the updated value.
+
+        Raises:
+            ValueError: If ``value`` or ``dek`` is not provided.
+
+        """
+        kwargs["value"] = self._encrypt_value(kwargs.get("value"), dek)
+        return await super().update(pk, pk_column_name, filters, **kwargs)
+
+    @staticmethod
+    def _encrypt_value(value: str | None, dek: bytes | None) -> str:
+        """Encrypt a plaintext field value with the owner's data encryption key.
+
+        Args:
+            value (str | None): The plaintext value to encrypt.
+            dek (bytes | None): The owner's data encryption key.
+
+        Returns:
+            str: The encrypted value.
+
+        Raises:
+            ValueError: If ``value`` or ``dek`` is None.
+
+        """
+        if value is None:
+            raise ValueError("Value is required")
+        if dek is None:
+            raise ValueError("Data encryption key is required")
+
+        return CryptographyClient().encrypt(value, dek)
 
     async def _delete_raw(
         self,

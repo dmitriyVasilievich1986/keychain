@@ -106,7 +106,8 @@ class Filter[ColumnType: str](BaseModel):
             case "lt":
                 return column < self.value
             case "in":
-                return column.in_(self.value)  # type: ignore[arg-type]
+                assert isinstance(self.value, list)
+                return column.in_(self.value)
             case "like":
                 return column.like(f"%{self.value}%")
             case "ilike":

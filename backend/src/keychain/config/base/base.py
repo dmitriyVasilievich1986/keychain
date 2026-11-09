@@ -1,12 +1,11 @@
 """Base configuration class for application settings."""
 
-__all__ = ["BaseConfig"]
+__all__ = ("BaseConfig",)
 
 from os import getenv
 from pathlib import Path
-from typing import Self
 
-from loguru import logger
+import structlog
 from pydantic_settings import (
     BaseSettings,
     PydanticBaseSettingsSource,
@@ -14,7 +13,7 @@ from pydantic_settings import (
     YamlConfigSettingsSource,
 )
 
-from .settings_storage import SettingsStorage
+logger = structlog.stdlib.get_logger(__name__)
 
 
 class BaseConfig(BaseSettings):
@@ -23,7 +22,6 @@ class BaseConfig(BaseSettings):
     This class provides a foundation for application configuration with support for:
     - Environment variables (with nested delimiter support)
     - YAML configuration files
-    - Singleton pattern for settings storage
 
     The configuration sources are prioritized in the following order:
     1. Initialization parameters
@@ -72,9 +70,10 @@ class BaseConfig(BaseSettings):
             FileNotFoundError: If the specified YAML configuration file does not exist.
 
         """
-        file_path = Path(getenv("CONFIG_FILE_PATH", "configurations/production.yaml"))
+        environment = getenv("ENVIRONMENT", "production")
+        file_path = Path(p) if (p := getenv("CONFIG_FILE_PATH")) else Path(f"configurations/{environment}.yaml")
         if not file_path.exists():
-            logger.error(f"Config file path {file_path} does not exist. Using default path.")
+            logger.error("Config file not found", config_file_path=str(file_path))
             raise FileNotFoundError(f"Config file path {file_path} does not exist.")
 
         return (
@@ -90,28 +89,3 @@ class BaseConfig(BaseSettings):
                 yaml_file=file_path,
             ),
         )
-
-    @classmethod
-    def get_or_create(cls, reload: bool = False) -> Self:
-        """Get the existing settings instance or create a new one.
-
-        This method implements a singleton pattern for configuration settings.
-        It retrieves the settings from the SettingsStorage singleton, or creates
-        a new instance if one doesn't exist or if reload is requested.
-
-        Args:
-            reload: If True, forces creation of a new settings instance even if
-                one already exists. Defaults to False.
-
-        Returns:
-            The settings instance, either retrieved from storage or newly created.
-
-        """
-        storage = SettingsStorage[Self]()
-
-        if not reload and storage.settings:
-            return storage.settings
-
-        settings = cls()
-        storage.settings = settings
-        return settings

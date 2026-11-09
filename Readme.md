@@ -1,6 +1,4 @@
-[![build-backend](https://github.com/dmitriyVasilievich1986/keychain/actions/workflows/build_backend.yml/badge.svg)](https://github.com/dmitriyVasilievich1986/keychain/actions/workflows/build_backend.yml)
-[![build-frontend](https://github.com/dmitriyVasilievich1986/keychain/actions/workflows/build_frontend.yml/badge.svg)](https://github.com/dmitriyVasilievich1986/keychain/actions/workflows/build_frontend.yml)
-[![test-backend](https://github.com/dmitriyVasilievich1986/keychain/actions/workflows/test_backend.yml/badge.svg)](https://github.com/dmitriyVasilievich1986/keychain/actions/workflows/test_backend.yml)
+[![pipeline](https://github.com/dmitriyVasilievich1986/keychain/actions/workflows/pipeline.yml/badge.svg)](https://github.com/dmitriyVasilievich1986/keychain/actions/workflows/pipeline.yml)
 
 # Keychain
 
@@ -12,7 +10,7 @@ Keychain is a full-stack password manager for storing and managing secrets. It s
 
 ### Key Features
 
-- **Encrypted fields** — sensitive values encrypted at rest with Fernet
+- **Encrypted fields** — sensitive values encrypted at rest with a per-user key protected by the user's password (Argon2id + Fernet)
 - **JWT authentication** — token-based auth with configurable expiration
 - **Self-hosted** — Docker Compose for local and production-like runs
 - **Modern UI** — React + Material UI
@@ -63,7 +61,7 @@ keychain/
 │   ├── vite.config.ts               # Vite+, lint, fmt, aliases
 │   ├── package.json
 │   └── README.md
-├── nginx/                           # Reverse proxy image + config
+├── nginx/                           # Reverse proxy image (builds the frontend) + config
 ├── static/                          # Frontend build output + images
 ├── db/                              # Postgres data volume (local)
 ├── docker-compose.yaml              # Production-style stack
@@ -107,6 +105,8 @@ CRYPTOGRAPHY__SECRET_KEY=<fernet-key>
 AUTH__JWT_SECRET_KEY=<jwt-secret>
 ```
 
+> **Note:** `CRYPTOGRAPHY__SECRET_KEY` is used as a pepper when deriving each user's key from their password and to seal that key inside access tokens. Changing it makes every user's stored data unreadable. User data cannot be recovered without the user's password: an admin reset without the current password (`keychain db user force-reset-password`) deletes the user's fields.
+
 Generate keys (Python 3.13):
 
 ```bash
@@ -141,11 +141,15 @@ docker compose -f docker-compose-development.yaml up -d --build
 docker compose -f docker-compose-development.yaml --profile frontend up -d --build
 ```
 
-**Production-style** (pre-built images; no source mounts):
+**Production-style** (no source mounts; the `nginx` image builds and bundles the frontend; the backend image `ghcr.io/dmitriyvasilievich1986/keychain-backend:latest` is pulled from GitHub Container Registry):
 
 ```bash
+docker build -f nginx/Dockerfile -t keychain-nginx:latest .
+docker compose -f docker-compose.yaml pull backend
 docker compose -f docker-compose.yaml up -d
 ```
+
+If the backend package is private, log in first with `docker login ghcr.io` using a classic personal access token with the `read:packages` scope.
 
 ### 4. Initialize the database
 
@@ -168,7 +172,7 @@ npm run build # writes into ../static/
 
 - App: `http://localhost` (or `https://localhost` when TLS is configured)
 - API via Nginx: `http://localhost/api/`
-- Backend direct (dev compose): `http://localhost:8000`
+- Backend direct (dev compose): `http://localhost:8080`
 
 ## Docker Compose Services
 
@@ -242,8 +246,8 @@ keychain access-token generate 1
 
 With the backend running:
 
-- Swagger UI: `http://localhost:8000/docs`
-- ReDoc: `http://localhost:8000/redoc`
+- Swagger UI: `http://localhost:8080/docs`
+- ReDoc: `http://localhost:8080/redoc`
 
 Useful endpoints:
 
@@ -274,6 +278,7 @@ Postgres container variables live in `backend/db.env`.
 
 ```bash
 VITE_API_HOST      # API base URL (empty = relative URLs through Nginx)
+VITE_API_PREFIX    # Path prefix appended to VITE_API_HOST (e.g. /keychain)
 VITE_IMAGES_HOST   # Image path prefix (e.g. /static/i)
 VITE_SOURCEMAP     # Enable source maps when building/serving
 ```
@@ -291,9 +296,14 @@ VITE_SOURCEMAP     # Enable source maps when building/serving
 
 GitHub Actions workflows:
 
-- `build_backend.yml` — backend image/build checks
-- `build_frontend.yml` — frontend install + build (uses npm 12.0.1)
-- `test_backend.yml` — backend tests
+- `pipeline.yml` — tests and builds for PRs into `development`; it runs the stages below
+  - `test_backend.yml` — backend tests
+  - `build_backend.yml` — backend lint, type check and package build
+  - `test_frontend.yml` — frontend format, lint, type check and tests (`npm test`)
+  - `build_frontend.yml` — frontend install + build (uses npm 12.0.1)
+- `tag_docker_push.yml` — when a PR is merged into `development`: calculate the version, build the Docker image, push the git tag
+  - `build_docker.yml` — backend Docker image build for amd64 and arm64; pushes to GHCR when `PUSH_IMAGES` is `true`
+- `github_release.yml` — manually publish a GitHub release for an existing tag
 - `auto_bump_version.yml` — version bump automation
 
 Local quality gates use [pre-commit](https://pre-commit.com) (`.pre-commit-config.yaml`): Ruff, Pyright, and frontend `vp fmt` / `vp lint`.
