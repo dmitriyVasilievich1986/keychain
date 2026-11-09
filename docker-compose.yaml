@@ -46,7 +46,9 @@ services:
       start_period: 10s
 
   backend:
-    image: keychain:latest
+    # Published by .github/workflows/tag_docker_push.yml on every merge into development.
+    # Run `docker compose -f docker-compose.yaml pull backend` to get the newest image.
+    image: ghcr.io/dmitriyvasilievich1986/keychain-backend:latest
     container_name: keychain-backend
     env_file:
       - path: ./backend/.env
