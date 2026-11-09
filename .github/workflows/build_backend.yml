@@ -4,11 +4,6 @@ name: build-backend
 
 on:
   workflow_call:
-    inputs:
-      ref:
-        description: Git ref to check out (defaults to the triggering commit)
-        type: string
-        default: ""
 
 jobs:
   build-backend:
@@ -19,8 +14,6 @@ jobs:
 
     steps:
       - uses: actions/checkout@v4
-        with:
-          ref: ${{ inputs.ref }}
 
       - name: Set up Python
         uses: actions/setup-python@v5

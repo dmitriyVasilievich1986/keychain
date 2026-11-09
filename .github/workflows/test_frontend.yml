@@ -4,11 +4,6 @@ name: test-frontend
 
 on:
   workflow_call:
-    inputs:
-      ref:
-        description: Git ref to check out (defaults to the triggering commit)
-        type: string
-        default: ""
 
 jobs:
   test-frontend:
@@ -20,8 +15,6 @@ jobs:
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
-        with:
-          ref: ${{ inputs.ref }}
 
       - name: Setup Node.js
         uses: actions/setup-node@v4

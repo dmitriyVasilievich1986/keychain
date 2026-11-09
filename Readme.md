@@ -302,7 +302,7 @@ GitHub Actions workflows:
   - `test_frontend.yml` — frontend format, lint, type check and tests (`npm test`)
   - `build_frontend.yml` — frontend install + build (uses npm 12.0.1)
 - `tag_docker_push.yml` — when a PR is merged into `development`: calculate the version, build the Docker image, push the git tag
-  - `build_docker.yml` — backend Docker image build (no push)
+  - `build_docker.yml` — backend Docker image build for amd64 and arm64; pushes to GHCR when `PUSH_IMAGES` is `true`
 - `github_release.yml` — manually publish a GitHub release for an existing tag
 - `auto_bump_version.yml` — version bump automation
 
