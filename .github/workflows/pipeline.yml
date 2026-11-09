@@ -7,6 +7,8 @@ name: Pipeline
 #            ├─> build-backend  (build_backend.yml)
 #            ├─> test-frontend  (test_frontend.yml)
 #            └─> build-frontend (build_frontend.yml)
+#                       │
+#                       └─> pipeline-result (always runs; the required check)
 #
 # Only the stages for the parts of the repo the PR changes are run.
 
@@ -73,3 +75,29 @@ jobs:
     needs: changes
     if: needs.changes.outputs.frontend == 'true'
     uses: ./.github/workflows/build_frontend.yml
+
+  # Single required check for branch protection. It always runs, even when
+  # every stage above was skipped, and fails only if a stage failed or was
+  # cancelled. Skipped stages count as success.
+  pipeline-result:
+    name: Pipeline result
+    if: always()
+    needs:
+      - changes
+      - test-backend
+      - build-backend
+      - test-frontend
+      - build-frontend
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check stage results
+        env:
+          FAILED: ${{ contains(needs.*.result, 'failure') || contains(needs.*.result, 'cancelled') }}
+          RESULTS: ${{ toJSON(needs) }}
+        run: |
+          echo "$RESULTS"
+          if [ "$FAILED" = "true" ]; then
+            echo "::error::One or more pipeline stages failed or were cancelled."
+            exit 1
+          fi
+          echo "All pipeline stages succeeded or were skipped."
