@@ -141,12 +141,15 @@ docker compose -f docker-compose-development.yaml up -d --build
 docker compose -f docker-compose-development.yaml --profile frontend up -d --build
 ```
 
-**Production-style** (no source mounts; the `nginx` image builds and bundles the frontend):
+**Production-style** (no source mounts; the `nginx` image builds and bundles the frontend; the backend image `ghcr.io/dmitriyvasilievich1986/keychain-backend:latest` is pulled from GitHub Container Registry):
 
 ```bash
 docker build -f nginx/Dockerfile -t keychain-nginx:latest .
+docker compose -f docker-compose.yaml pull backend
 docker compose -f docker-compose.yaml up -d
 ```
+
+If the backend package is private, log in first with `docker login ghcr.io` using a classic personal access token with the `read:packages` scope.
 
 ### 4. Initialize the database
 

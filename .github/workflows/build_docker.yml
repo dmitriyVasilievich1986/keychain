@@ -46,15 +46,23 @@ jobs:
           owner="$(echo "${OWNER}" | tr '[:upper:]' '[:lower:]')"
           echo "tag=ghcr.io/${owner}/keychain-backend:${VERSION}" >> "$GITHUB_OUTPUT"
 
+      # QEMU lets the amd64 runner build the arm64 image too.
+      - uses: docker/setup-qemu-action@v4
+        with:
+          platforms: arm64
+
       - uses: docker/setup-buildx-action@v4
 
       # The backend Dockerfile lives at the repository root and copies
       # ./backend, ./scripts and ./.git, so the context is the repository root.
+      # Both platforms are built here so an arm64 failure stops the release
+      # before the tag is pushed; keep this list in sync with tag_docker_push.yml.
       - name: Build image
         uses: docker/build-push-action@v7
         with:
           context: .
           file: ./Dockerfile
+          platforms: linux/amd64,linux/arm64
           push: false
           tags: ${{ steps.image.outputs.tag }}
           cache-from: type=gha,scope=backend
