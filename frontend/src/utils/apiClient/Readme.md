@@ -46,7 +46,7 @@ Log in:
 import { useAuthAPIClient } from '@utils/apiClient';
 
 const { login } = useAuthAPIClient();
-const { access_token } = await login('john', 's3cret');
+const { accessToken, expiresAt } = await login('john', 's3cret');
 ```
 
 List passwords with pagination and create a new one:
