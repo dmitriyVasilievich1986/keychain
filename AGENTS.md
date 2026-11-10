@@ -4,14 +4,14 @@ This file describes project-level architecture and workflow rules. Tool-specific
 
 ## Architecture
 
-- **Backend** (`backend/`): written in Python. It exposes an HTTP API and is the only component that talks to the database.
+- **Backend** (`backend/`): written in Python. It exposes an HTTP API and is the only component that talks to the database (Google Cloud Firestore).
 - **Frontend** (`frontend/`): written in TypeScript + React. It works exclusively through the backend's API and never accesses the database directly.
 - **Database**: owned entirely by the backend; nothing outside `backend/` should read from or write to it directly.
 
 ## Running the Project
 
 - The project is primarily run via `docker-compose.yaml` (production) and `docker-compose-development.yaml` (development), at the repository root. Use `docker compose -f docker-compose.yaml up` (or the development file) rather than starting backend/frontend services individually, unless working on one service in isolation for local development.
-- The compose stack wires together `nginx`, `db`, and `backend`; the frontend is built into static assets served by `nginx` in the production compose file.
+- The compose stack wires together `nginx` and `backend` (the database is Firestore, hosted on GCP); the frontend is built into static assets served by `nginx` in the production compose file.
 
 ## Git Workflow
 

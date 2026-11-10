@@ -2,16 +2,17 @@
 
 __all__ = ("router",)
 
+import asyncio
 from typing import Annotated
 
 from fastapi import APIRouter, Depends, Response, status
 
-from keychain.modules.middlewares.dependencies import get_db
+from keychain.modules.middlewares.dependencies import get_password_db, get_users_db
 from keychain.modules.routers.models.response.system import (
     HealthResponse,
     ServiceHealth,
 )
-from keychain.services.db_client.client import DBClient
+from keychain.services.db_client.firestore import PasswordsFirestoreClient, UsersFirestoreClient
 
 router = APIRouter()
 
@@ -32,25 +33,29 @@ router = APIRouter()
         },
     },
 )
-async def health_check(db: Annotated[DBClient, Depends(get_db)]) -> Response:
-    """Report service health based on database connectivity.
+async def health_check(
+    users_db: Annotated[UsersFirestoreClient, Depends(get_users_db)],
+    password_db: Annotated[PasswordsFirestoreClient, Depends(get_password_db)],
+) -> Response:
+    """Report service health based on connectivity to both Firestore databases.
 
     Args:
-        db (DBClient): The database client used to verify connectivity.
+        users_db (UsersFirestoreClient): The users database client.
+        password_db (PasswordsFirestoreClient): The passwords database client.
 
     Returns:
-        Response: A response indicating the service is healthy.
-
-    Raises:
-        HTTPException: 503 if the database health check fails.
+        Response: 200 if every service is up, otherwise 503.
 
     """
-    services: list[ServiceHealth] = []
-    services.append(ServiceHealth(name="postgres", status="UP" if await db.healthcheck() else "DOWN"))
-    is_healthy = any(service.status == "DOWN" for service in services)
+    users_up, passwords_up = await asyncio.gather(users_db.healthcheck(), password_db.healthcheck())
+    services = [
+        ServiceHealth(name="users-db", status="UP" if users_up else "DOWN"),
+        ServiceHealth(name="passwords-db", status="UP" if passwords_up else "DOWN"),
+    ]
+    is_down = any(service.status == "DOWN" for service in services)
 
     return Response(
-        status_code=status.HTTP_200_OK if not is_healthy else status.HTTP_503_SERVICE_UNAVAILABLE,
-        content=HealthResponse(status="UP" if not is_healthy else "DOWN", services=services).model_dump_json(),
+        status_code=status.HTTP_200_OK if not is_down else status.HTTP_503_SERVICE_UNAVAILABLE,
+        content=HealthResponse(status="UP" if not is_down else "DOWN", services=services).model_dump_json(),
         headers={"Content-Type": "application/json"},
     )

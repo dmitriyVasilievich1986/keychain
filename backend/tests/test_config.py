@@ -3,14 +3,12 @@
 from keychain.config import AppConfig
 
 
-def test_config_targets_test_database(app_config: AppConfig) -> None:
-    """The active configuration must point at the throw-away ``test_db``."""
-    assert app_config.db.postgresql.provider == "postgresql+asyncpg"
-    assert app_config.db.postgresql.name == "test_db"
+def test_config_uses_test_environment(app_config: AppConfig) -> None:
+    """The active configuration must be loaded from ``test.yaml``."""
+    assert app_config.is_test is True
 
 
-def test_sqlalchemy_uri_uses_asyncpg(app_config: AppConfig) -> None:
-    """The SQLAlchemy URL should use asyncpg and target ``test_db``."""
-    uri = str(app_config.db.postgresql.sqlalchemy_uri)
-    assert uri.startswith("postgresql+asyncpg://")
-    assert uri.endswith("/test_db")
+def test_config_has_firestore_collections(app_config: AppConfig) -> None:
+    """Passwords and users live in separate Firestore collections."""
+    assert app_config.db.firestore.collection_name == "password"
+    assert app_config.db.users.collection_name == "users"

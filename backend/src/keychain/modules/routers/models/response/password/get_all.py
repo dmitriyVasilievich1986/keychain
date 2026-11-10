@@ -2,6 +2,8 @@
 
 __all__ = ("GetAllPasswordsResponse", "SimplePasswordGet")
 
+from uuid import UUID
+
 from pydantic import Field
 
 from keychain.modules.routers.models.base.metadata import PaginationMetadata
@@ -11,7 +13,7 @@ from keychain.modules.routers.models.base.response import BaseResponseFromModelS
 class SimplePasswordGet(BaseResponseFromModelSchema):
     """Response model for getting a simple password in list view."""
 
-    id: int = Field(..., description="The unique identifier for the password")
+    id: UUID = Field(..., description="The unique identifier for the password")
     name: str = Field(..., description="The name of the password")
     image_url: str | None = Field(..., description="The URL of the image associated with the password")
 

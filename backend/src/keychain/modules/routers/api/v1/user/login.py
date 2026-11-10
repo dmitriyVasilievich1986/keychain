@@ -7,18 +7,18 @@ from typing import Annotated
 import structlog
 from cryptography.fernet import InvalidToken
 from fastapi import APIRouter, Body, Depends, HTTPException, status
+from google.api_core.exceptions import GoogleAPICallError, NotFound
 from jwt.exceptions import PyJWTError
-from sqlalchemy.exc import NoResultFound, SQLAlchemyError
 
 from keychain.config import AppConfig
-from keychain.modules.middlewares.dependencies import get_config, get_db
+from keychain.modules.middlewares.dependencies import get_config, get_users_db
 from keychain.modules.routers.models.request.user import (
     LoginRequestModel,
 )
 from keychain.modules.routers.models.response.user import AccessTokenResponseModel
 from keychain.services.auth.client import AuthClient
-from keychain.services.daos.user import UserDAO
-from keychain.services.db_client.client import DBClient
+from keychain.services.daos.firestore import UserDAO
+from keychain.services.db_client.firestore import UsersFirestoreClient
 
 logger = structlog.stdlib.get_logger(__name__)
 
@@ -28,7 +28,7 @@ router = APIRouter(prefix="/user")
 @router.post("/login", response_model=AccessTokenResponseModel, description="Login a user")
 async def login_user(
     body: Annotated[LoginRequestModel, Body(description="Login request body")],
-    db: Annotated[DBClient, Depends(get_db)],
+    users_db: Annotated[UsersFirestoreClient, Depends(get_users_db)],
     config: Annotated[AppConfig, Depends(get_config)],
 ) -> AccessTokenResponseModel:
     """Authenticate a user and issue an access token.
@@ -36,7 +36,8 @@ async def login_user(
     Args:
         body (LoginRequestModel): The login request containing username and
             password.
-        db (DBClient): The database client used to look up the user.
+        users_db (UsersFirestoreClient): The users database client used to
+            look up the user.
         config (AppConfig): The application config used to build the auth
             client.
 
@@ -48,17 +49,17 @@ async def login_user(
             is incorrect, or 500 on a database, encryption or token encoding
             error.
 
-    Users created before per-user encryption keys were introduced are migrated
-    on their first successful login.
+    Users created before per-user encryption keys were introduced cannot log
+    in until they are migrated with ``keychain db migrate-fields-encryption``.
 
     """
-    user_dao = UserDAO(db)
+    user_dao = UserDAO(users_db)
     try:
         user = await user_dao.get_by_username(body.username)
-    except NoResultFound as e:
+    except NotFound as e:
         logger.warning("User not found", username=body.username)
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Username or password is incorrect") from e
-    except SQLAlchemyError as e:
+    except GoogleAPICallError as e:
         logger.exception("Error logging in user")
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail="An unexpected error occurred"
@@ -68,7 +69,7 @@ async def login_user(
         logger.warning("Invalid password", username=body.username)
         raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Username or password is incorrect")
 
-    if user.wrapped_dek is None:
+    if not user.has_encryption_keys:
         logger.warning("User has no encryption keys", user_id=user.id)
         raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail="An unexpected error occurred")
 

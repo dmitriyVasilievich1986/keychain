@@ -1,74 +1,102 @@
-"""Tests for :class:`MigrateFieldsEncryptionCommand` against the test database."""
+"""Tests for :class:`MigrateFieldsEncryptionCommand` against the Firestore emulator."""
 
 import pytest
-from sqlalchemy import select, update
-from sqlalchemy.ext.asyncio import AsyncSession
 
 from keychain.commands import MigrateFieldsEncryptionCommand
+from keychain.config.models.db.firestore import FirestoreConfig
+from keychain.config.models.google import GoogleConfig
 from keychain.services.cryptography import CryptographyClient
-from keychain.services.daos import FieldDAO, InvalidPasswordError, PasswordDAO, UserDAO
-from keychain.services.db_client import DBClient
-from keychain.services.db_client.models.field import Field
-from keychain.services.db_client.models.password import Password
-from keychain.services.db_client.models.user import User
+from keychain.services.daos import InvalidPasswordError, PasswordDAO, UserDAO
+from keychain.services.daos.firestore.models import Field, FieldValue, User
+from keychain.services.db_client.firestore import PasswordsFirestoreClient
+from keychain.utils.singleton import Singleton
 
 pytestmark = pytest.mark.integration
 
 
-async def _create_legacy_user(db_session: AsyncSession, password: str, values: list[str]) -> User:
-    """Create a user whose fields are encrypted with the application-wide key and who has no keys."""
+async def _create_legacy_user(
+    user_dao: UserDAO, password_dao: PasswordDAO, password: str, values: list[str]
+) -> tuple[User, str]:
+    """Create a user without keys whose field values use the application-wide key.
+
+    Returns:
+        tuple[User, str]: The legacy user and the ID of their password.
+
+    """
     client = CryptographyClient()
-    user = await UserDAO(session=db_session, database_client=None).create(name="legacy", password=password)
-    pwd = await PasswordDAO(session=db_session, database_client=None).create(name="github", user_id=user.id)
-    field_dao = FieldDAO(session=db_session, database_client=None)
-    for i, value in enumerate(values):
-        field = await field_dao.create(
-            name=f"field-{i}", value="placeholder", password_id=pwd.id, dek=user.unwrap_dek(password)
-        )
-        field.value = client.fernet.encrypt(value.encode()).decode()
+    user = await user_dao.create(name="legacy", password=password)
+    user = await user_dao.update(user.id, encryption_salt=None, wrapped_dek=None)
 
-    await db_session.execute(update(User).where(User.id == user.id).values(encryption_salt=None, wrapped_dek=None))
-    await db_session.commit()
-    return user
-
-
-async def _user_field_values(db_session: AsyncSession, user_id: int) -> list[str]:
-    """Return the stored (encrypted) field values of a user."""
-    db_session.expire_all()
-    stmt = select(Field.value).join(Password).where(Password.user_id == user_id).order_by(Field.id)
-    return list((await db_session.execute(stmt)).scalars())
+    pwd = await password_dao.create(name="github", user_id=user.id, fields=[])
+    fields = [
+        Field(
+            name=f"field-{i}",
+            position=i,
+            values=[FieldValue(value=client.fernet.encrypt(value.encode()).decode())],
+        ).model_dump()
+        for i, value in enumerate(values)
+    ]
+    # Legacy ciphertext cannot be written through the DAO, which requires a key for field values.
+    await password_dao.collection.document(pwd.id).update({"fields": fields})
+    return user, pwd.id
 
 
-async def test_migrates_legacy_fields(db_session: AsyncSession, db_client: DBClient) -> None:
+async def _stored_values(password_dao: PasswordDAO, password_id: str) -> list[str]:
+    """Return the stored (encrypted) field values of a password."""
+    password = await password_dao.get_by_id(password_id)
+    return [value.value for field in password.fields for value in field.values]
+
+
+async def test_migrates_legacy_fields(user_dao: UserDAO, password_dao: PasswordDAO) -> None:
     """Legacy fields are re-encrypted with a new per-user key protected by the password."""
-    user_id = (await _create_legacy_user(db_session, "pw", ["a", "b"])).id
-    cmd = MigrateFieldsEncryptionCommand(db_client, user_id, "pw")
+    user, password_id = await _create_legacy_user(user_dao, password_dao, "pw", ["a", "b"])
+    cmd = MigrateFieldsEncryptionCommand(user_dao, password_dao, user.id, "pw")
 
     await cmd.validate()
     migrated = await cmd.execute()
 
     dek = migrated.unwrap_dek("pw")
     client = CryptographyClient()
-    assert [client.decrypt(v, dek) for v in await _user_field_values(db_session, user_id)] == ["a", "b"]
+    assert [client.decrypt(v, dek) for v in await _stored_values(password_dao, password_id)] == ["a", "b"]
 
 
-async def test_rejects_wrong_password(db_session: AsyncSession, db_client: DBClient) -> None:
+async def test_rejects_wrong_password(user_dao: UserDAO, password_dao: PasswordDAO) -> None:
     """A wrong password fails validation and leaves the user untouched."""
-    user_id = (await _create_legacy_user(db_session, "pw", ["a"])).id
-    encrypted_before = await _user_field_values(db_session, user_id)
+    user, password_id = await _create_legacy_user(user_dao, password_dao, "pw", ["a"])
+    encrypted_before = await _stored_values(password_dao, password_id)
 
     with pytest.raises(InvalidPasswordError):
-        await MigrateFieldsEncryptionCommand(db_client, user_id, "wrong").validate()
+        await MigrateFieldsEncryptionCommand(user_dao, password_dao, user.id, "wrong").validate()
 
-    assert await _user_field_values(db_session, user_id) == encrypted_before
+    assert await _stored_values(password_dao, password_id) == encrypted_before
 
 
-async def test_rejects_already_migrated_user(db_session: AsyncSession, db_client: DBClient) -> None:
+async def test_rejects_already_migrated_user(user_dao: UserDAO, password_dao: PasswordDAO) -> None:
     """A user that already has per-user keys cannot be migrated again."""
-    user = await UserDAO(session=db_session, database_client=None).create(name="modern", password="pw")
-    cmd = MigrateFieldsEncryptionCommand(db_client, user.id, "pw")
+    user = await user_dao.create(name="modern", password="pw")
+    cmd = MigrateFieldsEncryptionCommand(user_dao, password_dao, user.id, "pw")
 
     with pytest.raises(ValueError, match="already uses per-user encryption"):
         await cmd.validate()
     with pytest.raises(ValueError, match="already uses per-user encryption"):
         await cmd.execute()
+
+
+async def test_rejects_password_dao_with_dek(user_dao: UserDAO, encrypting_password_dao: PasswordDAO) -> None:
+    """The command needs raw access to the stored ciphertext."""
+    with pytest.raises(ValueError, match="must not hold a data encryption key"):
+        MigrateFieldsEncryptionCommand(user_dao, encrypting_password_dao, "user", "pw")
+
+
+def test_rejects_users_and_passwords_in_different_databases(user_dao: UserDAO) -> None:
+    """The migration writes users and passwords in one batch, so both must share a database."""
+    Singleton._instances.pop(PasswordsFirestoreClient, None)  # noqa: SLF001
+    try:
+        other_db = PasswordsFirestoreClient(
+            FirestoreConfig(db_name="other-db", collection_name="password"),
+            GoogleConfig(project_id="keychain-test"),
+        )
+        with pytest.raises(ValueError, match="same database"):
+            MigrateFieldsEncryptionCommand(user_dao, PasswordDAO(other_db), "user", "pw")
+    finally:
+        Singleton._instances.pop(PasswordsFirestoreClient, None)  # noqa: SLF001

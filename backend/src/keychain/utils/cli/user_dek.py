@@ -1,19 +1,49 @@
 """Helpers for resolving a user's data encryption key in CLI commands."""
 
-__all__ = ("load_user_dek",)
+__all__ = ("build_password_dao", "build_user_dao", "load_user_dek")
 
 import asyncclick as click
 
-from keychain.services.daos import UserDAO
-from keychain.services.db_client.client import DBClient
+from keychain.config import AppConfig
+from keychain.services.daos import PasswordDAO, UserDAO
+from keychain.services.db_client.firestore import PasswordsFirestoreClient, UsersFirestoreClient
 
 
-async def load_user_dek(db_client: DBClient, user_id: int, password: str) -> bytes:
+def build_user_dao(config: AppConfig) -> UserDAO:
+    """Build a user DAO on the configured users database and collection.
+
+    Args:
+        config (AppConfig): The application config.
+
+    Returns:
+        UserDAO: The user DAO.
+
+    """
+    return UserDAO(UsersFirestoreClient(config.db.users, config.google))
+
+
+def build_password_dao(config: AppConfig) -> PasswordDAO:
+    """Build a password DAO on the configured passwords database and collection.
+
+    The DAO holds no data encryption key, so it works on the stored
+    ciphertext as is.
+
+    Args:
+        config (AppConfig): The application config.
+
+    Returns:
+        PasswordDAO: The password DAO.
+
+    """
+    return PasswordDAO(PasswordsFirestoreClient(config.db.firestore, config.google))
+
+
+async def load_user_dek(user_dao: UserDAO, user_id: str, password: str) -> bytes:
     """Verify a user's password and return their data encryption key.
 
     Args:
-        db_client (DBClient): The database client used to look up the user.
-        user_id (int): The unique identifier of the user.
+        user_dao (UserDAO): The DAO used to look up the user.
+        user_id (str): The unique identifier of the user.
         password (str): The user's plaintext password.
 
     Returns:
@@ -25,12 +55,11 @@ async def load_user_dek(db_client: DBClient, user_id: int, password: str) -> byt
             encryption yet.
 
     """
-    user_dao = UserDAO(db_client)
-    user = await user_dao.get_by_pk(user_id)
+    user = await user_dao.get_by_id(user_id)
     if not user.verify_password(password):
         raise click.BadParameter("Invalid user password", param_hint="--user-password")
 
-    if user.wrapped_dek is None:
+    if not user.has_encryption_keys:
         raise click.UsageError(
             f"User {user_id} has no encryption keys. Run `keychain db migrate-fields-encryption --user-id {user_id}`."
         )
