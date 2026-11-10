@@ -60,7 +60,11 @@ class Singleton(type):
         if (instance := Singleton._instances.get(cls)) is not None:
             return instance
 
-        return cls._instances[cls]
+        with Singleton._lock:
+            if cls not in Singleton._instances:
+                Singleton._instances[cls] = super().__call__(*args, **kwargs)
+
+        return Singleton._instances[cls]
 
     def reset_singleton(cls) -> None:
         """Discard the cached instance so the next construction builds a new one.
