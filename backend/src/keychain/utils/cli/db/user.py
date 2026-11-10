@@ -11,8 +11,8 @@ from colorama import Fore, Style
 from keychain.config import AppConfig
 from keychain.modules.routers.models.request.user import UserCreateRequestModel, UserUpdateRequestModel
 from keychain.modules.routers.models.response.user import UserGetResponseModel
-from keychain.services.daos import EncryptionKeysMissingError, InvalidPasswordError, UserDAO
-from keychain.services.db_client.client import DBClient
+from keychain.services.daos import EncryptionKeysMissingError, InvalidPasswordError, PasswordDAO, UserDAO
+from keychain.utils.cli.user_dek import build_user_dao
 
 
 @click.group(help="CLI for managing users of the Keychain Application.")
@@ -33,10 +33,7 @@ def user(ctx: click.Context) -> None:
 
     """
     config: AppConfig = ctx.obj["config"]
-    ctx.obj["user_dao"] = UserDAO(
-        FirestoreClient(config.db.firestore, config.google),
-        collection_name=config.db.users.collection_name,
-    )
+    ctx.obj["user_dao"] = build_user_dao(config)
 
 
 @user.command(help="Create a new user")
@@ -214,7 +211,7 @@ async def verify_password(ctx: click.Context, user_id: UUID | None, username: st
     confirmation_prompt=True,
 )
 @click.pass_context
-async def reset_password(ctx: click.Context, user_id: int, old_password: str, password: str) -> None:
+async def reset_password(ctx: click.Context, user_id: UUID, old_password: str, password: str) -> None:
     """Reset a user's password.
 
     This command changes the password for an existing user identified by their
@@ -224,7 +221,7 @@ async def reset_password(ctx: click.Context, user_id: int, old_password: str, pa
 
     Args:
         ctx (click.Context): Click context object containing the user DAO.
-        user_id (int): The unique identifier of the user to reset the password
+        user_id (UUID): The unique identifier of the user to reset the password
             for.
         old_password (str): The current password of the user.
         password (str): The new password for the user.
@@ -240,7 +237,7 @@ async def reset_password(ctx: click.Context, user_id: int, old_password: str, pa
     """
     user_dao: UserDAO = ctx.obj["user_dao"]
     try:
-        user = await user_dao.reset_password(user_id, old_password, password)
+        user = await user_dao.reset_password(str(user_id), old_password, password)
     except InvalidPasswordError as e:
         raise click.BadParameter("Invalid current password", param_hint="--old-password") from e
     except EncryptionKeysMissingError as e:
@@ -251,7 +248,7 @@ async def reset_password(ctx: click.Context, user_id: int, old_password: str, pa
 
 
 @user.command(help="Reset a user's password without the current one. DELETES all of the user's fields")
-@click.option("--user-id", help="The ID of the user", required=True, type=int)
+@click.option("--user-id", help="The ID of the user", required=True, type=click.UUID)
 @click.option(
     "--password",
     prompt="Enter the new password",
@@ -264,7 +261,7 @@ async def reset_password(ctx: click.Context, user_id: int, old_password: str, pa
     "All of the user's fields will be permanently deleted. Continue?"
 )
 @click.pass_context
-async def force_reset_password(ctx: click.Context, user_id: int, password: str) -> None:
+async def force_reset_password(ctx: click.Context, user_id: UUID, password: str) -> None:
     """Reset a user's password when the current password is lost.
 
     The user's data encryption key cannot be recovered without the current
@@ -282,6 +279,6 @@ async def force_reset_password(ctx: click.Context, user_id: int, password: str) 
 
     """
     user_dao: UserDAO = ctx.obj["user_dao"]
-    user = await user_dao.force_reset_password(user_id, password)
+    user = await user_dao.force_reset_password(str(user_id), password, PasswordDAO(user_dao.firestore_client))
     user_response = UserGetResponseModel.model_validate(user)
     click.echo(user_response.model_dump_json(indent=2))

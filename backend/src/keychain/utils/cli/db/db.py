@@ -2,14 +2,15 @@
 
 __all__ = ("db",)
 
+from uuid import UUID
+
 import asyncclick as click
 
-from keychain.commands import BackupDBCommand, MigrateFieldsEncryptionCommand, RestoreDBCommand
+from keychain.commands import MigrateFieldsEncryptionCommand
 from keychain.config import AppConfig
-from keychain.services.daos import InvalidPasswordError
-from keychain.services.db_client.client import DBClient
+from keychain.services.daos import InvalidPasswordError, PasswordDAO
+from keychain.utils.cli.user_dek import build_user_dao
 
-from .field import field
 from .password import password
 from .user import user
 
@@ -28,10 +29,10 @@ def db() -> None:
 
 
 @db.command(help="Migrate a user's fields to a per-user encryption key.")
-@click.option("--user-id", help="The ID of the user to migrate", required=True, type=int)
+@click.option("--user-id", help="The ID of the user to migrate", required=True, type=click.UUID)
 @click.option("--password", prompt="Enter the user password", help="The password of the user", hide_input=True)
 @click.pass_context
-async def migrate_fields_encryption(ctx: click.Context, user_id: int, password: str) -> None:
+async def migrate_fields_encryption(ctx: click.Context, user_id: UUID, password: str) -> None:
     """Migrate a legacy user's fields to their own encryption key.
 
     Users created before per-user encryption keys were introduced have their
@@ -39,8 +40,8 @@ async def migrate_fields_encryption(ctx: click.Context, user_id: int, password: 
     they are migrated. Validates and runs ``MigrateFieldsEncryptionCommand``.
 
     Args:
-        ctx (click.Context): Click context object containing the DB client.
-        user_id (int): The unique identifier of the user to migrate.
+        ctx (click.Context): Click context object containing the app config.
+        user_id (UUID): The unique identifier of the user to migrate.
         password (str): The current password of the user.
 
     Returns:
@@ -51,8 +52,9 @@ async def migrate_fields_encryption(ctx: click.Context, user_id: int, password: 
         click.UsageError: If the user is already migrated.
 
     """
-    db_client: DBClient = ctx.obj["db_client_instance"]
-    cmd = MigrateFieldsEncryptionCommand(db_client, user_id, password)
+    config: AppConfig = ctx.obj["config"]
+    user_dao = build_user_dao(config)
+    cmd = MigrateFieldsEncryptionCommand(user_dao, PasswordDAO(user_dao.firestore_client), str(user_id), password)
     try:
         await cmd.validate()
         user = await cmd.execute()
