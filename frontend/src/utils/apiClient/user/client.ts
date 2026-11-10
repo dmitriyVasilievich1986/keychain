@@ -34,7 +34,7 @@ export const useUserAPIClient = () => {
     /**
      * Sends a full profile update (`PUT /api/v1/user`) and passes the response to `setUser` so the main store matches the server.
      *
-     * @param request - Body with `firstName`, `lastName`, and `photoUrl`.
+     * @param request - Body with the user's `name` (3–50 characters).
      * @returns Updated user returned by the API (also written to the store).
      */
     putUser: async (request: UserPutRequest) => {
