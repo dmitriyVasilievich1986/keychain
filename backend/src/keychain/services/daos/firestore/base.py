@@ -2,6 +2,7 @@
 
 __all__ = ("BaseFirestoreDAO",)
 
+import asyncio
 from abc import ABC
 from datetime import date, datetime, time, timezone
 from typing import Any, Literal
@@ -290,7 +291,6 @@ class BaseFirestoreDAO[DocumentModel: BaseModel](ABC):
 
         """
         query = self._build_query(filters)
-        total = await self.get_total(filters)
 
         if sort_by:
             field_path = DOCUMENT_ID_FIELD_PATH if sort_by == self.id_field else sort_by
@@ -301,7 +301,8 @@ class BaseFirestoreDAO[DocumentModel: BaseModel](ABC):
         if limit:
             query = query.limit(limit)
 
-        snapshots = await query.get()
+        # The count and the page are independent reads, so run them concurrently.
+        total, snapshots = await asyncio.gather(self.get_total(filters), query.get())
         return [self.to_model(snapshot) for snapshot in snapshots], total
 
     async def create(self, **kwargs: Any) -> DocumentModel:
