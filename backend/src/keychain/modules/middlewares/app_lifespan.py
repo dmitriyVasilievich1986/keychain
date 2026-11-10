@@ -9,7 +9,7 @@ import structlog
 from fastapi import FastAPI
 
 from keychain.config import AppConfig
-from keychain.services.db_client.firestore import FirestoreClient
+from keychain.services.db_client.firestore import PasswordsFirestoreClient, UsersFirestoreClient
 
 logger = structlog.stdlib.get_logger(__name__)
 
@@ -18,9 +18,9 @@ logger = structlog.stdlib.get_logger(__name__)
 async def lifespan(app: FastAPI) -> AsyncGenerator[None, None]:
     """Manage startup and shutdown of application services.
 
-    Initializes the Firestore client on startup, yields
-    control while the application runs, and closes the Firestore client on
-    shutdown.
+    Initializes the Firestore clients for the users and passwords databases on
+    startup, yields control while the application runs, and closes both
+    clients on shutdown.
 
     Args:
         app (FastAPI): The FastAPI application instance being started.
@@ -35,12 +35,14 @@ async def lifespan(app: FastAPI) -> AsyncGenerator[None, None]:
     # Initialize services
     logger.info("Initializing Application services...")
     app_config = AppConfig()
-    firestore_client = FirestoreClient(app_config.db.firestore, app_config.google)
-    logger.info("Firestore client initialized successfully.")
+    users_client = UsersFirestoreClient(app_config.db.users, app_config.google)
+    passwords_client = PasswordsFirestoreClient(app_config.db.firestore, app_config.google)
+    logger.info("Firestore clients initialized successfully.")
 
     yield
 
     # Cleanup
     logger.info("Shutting down application lifespan...")
-    await firestore_client.close()
-    logger.info("Firestore client closed successfully.")
+    await users_client.close()
+    await passwords_client.close()
+    logger.info("Firestore clients closed successfully.")

@@ -2,16 +2,17 @@
 
 __all__ = ("router",)
 
+import asyncio
 from typing import Annotated
 
 from fastapi import APIRouter, Depends, Response, status
 
-from keychain.modules.middlewares.dependencies import get_firestore
+from keychain.modules.middlewares.dependencies import get_password_db, get_users_db
 from keychain.modules.routers.models.response.system import (
     HealthResponse,
     ServiceHealth,
 )
-from keychain.services.db_client.firestore import FirestoreClient
+from keychain.services.db_client.firestore import PasswordsFirestoreClient, UsersFirestoreClient
 
 router = APIRouter()
 
@@ -33,20 +34,23 @@ router = APIRouter()
     },
 )
 async def health_check(
-    firestore: Annotated[FirestoreClient, Depends(get_firestore)],
+    users_db: Annotated[UsersFirestoreClient, Depends(get_users_db)],
+    password_db: Annotated[PasswordsFirestoreClient, Depends(get_password_db)],
 ) -> Response:
-    """Report service health based on Firestore connectivity.
+    """Report service health based on connectivity to both Firestore databases.
 
     Args:
-        firestore (FirestoreClient): The Firestore client used to verify connectivity.
+        users_db (UsersFirestoreClient): The users database client.
+        password_db (PasswordsFirestoreClient): The passwords database client.
 
     Returns:
         Response: 200 if every service is up, otherwise 503.
 
     """
-    firestore_up = await firestore.healthcheck()
+    users_up, passwords_up = await asyncio.gather(users_db.healthcheck(), password_db.healthcheck())
     services = [
-        ServiceHealth(name="firestore", status="UP" if firestore_up else "DOWN"),
+        ServiceHealth(name="users-db", status="UP" if users_up else "DOWN"),
+        ServiceHealth(name="passwords-db", status="UP" if passwords_up else "DOWN"),
     ]
     is_down = any(service.status == "DOWN" for service in services)
 

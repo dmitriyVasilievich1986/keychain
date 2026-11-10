@@ -20,13 +20,13 @@ from .password import PasswordDAO
 class UserDAO(BaseFirestoreDAO[User]):
     """Provide Firestore access operations for :class:`User` documents.
 
-    Users live in the ``users`` collection by default, and new documents get
-    a random UUID4 as their document ID.
+    Users live in the collection configured on the Firestore client unless a
+    ``collection_name`` is given, and new documents get a random UUID4 as
+    their document ID.
     """
 
     id_field: str = "id"
     document_model: type[User] = User
-    collection_name: str | None = "users"
 
     async def create(self, **kwargs: Any) -> User:
         """Validate and insert a new user document.
@@ -117,7 +117,12 @@ class UserDAO(BaseFirestoreDAO[User]):
         Without the current password the user's data encryption key cannot be
         recovered, so the fields of all of the user's passwords are permanently
         deleted and a new key is generated. Password documents themselves are
-        kept. All changes are written atomically in one batch.
+        kept.
+
+        Users and passwords may live in different databases, so the changes
+        cannot share one batch. The fields are cleared first and the user's
+        credentials are replaced afterwards: if the second step fails, the
+        user keeps their old password and the reset can simply be repeated.
 
         Args:
             document_id (str): Document ID of the user.
@@ -134,22 +139,17 @@ class UserDAO(BaseFirestoreDAO[User]):
         """
         user = await self.get_by_id(document_id)
         keys = CryptographyClient().create_user_keys(new_password)
-        now = datetime.now(timezone.utc)
 
-        batch = self.firestore_client.client.batch()
+        batch = password_dao.firestore_client.client.batch()
         passwords = await password_dao.collection.where(filter=FieldFilter("user_id", "==", user.id)).get()
+        now = datetime.now(timezone.utc)
         for snapshot in passwords:
             batch.update(snapshot.reference, {"fields": [], "updated_at": now})
-
-        batch.update(
-            self.collection.document(document_id),
-            {
-                "password_hash": generate_password_hash(new_password),
-                "encryption_salt": keys.salt,
-                "wrapped_dek": keys.wrapped_dek,
-                "updated_at": now,
-            },
-        )
         await batch.commit()
 
-        return await self.get_by_id(document_id)
+        return await self.update(
+            document_id,
+            password_hash=generate_password_hash(new_password),
+            encryption_salt=keys.salt,
+            wrapped_dek=keys.wrapped_dek,
+        )

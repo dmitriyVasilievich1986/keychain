@@ -11,8 +11,8 @@ from colorama import Fore, Style
 from keychain.config import AppConfig
 from keychain.modules.routers.models.request.user import UserCreateRequestModel, UserUpdateRequestModel
 from keychain.modules.routers.models.response.user import UserGetResponseModel
-from keychain.services.daos import EncryptionKeysMissingError, InvalidPasswordError, PasswordDAO, UserDAO
-from keychain.utils.cli.user_dek import build_user_dao
+from keychain.services.daos import EncryptionKeysMissingError, InvalidPasswordError, UserDAO
+from keychain.utils.cli.user_dek import build_password_dao, build_user_dao
 
 
 @click.group(help="CLI for managing users of the Keychain Application.")
@@ -279,6 +279,7 @@ async def force_reset_password(ctx: click.Context, user_id: UUID, password: str)
 
     """
     user_dao: UserDAO = ctx.obj["user_dao"]
-    user = await user_dao.force_reset_password(str(user_id), password, PasswordDAO(user_dao.firestore_client))
+    config: AppConfig = ctx.obj["config"]
+    user = await user_dao.force_reset_password(str(user_id), password, build_password_dao(config))
     user_response = UserGetResponseModel.model_validate(user)
     click.echo(user_response.model_dump_json(indent=2))

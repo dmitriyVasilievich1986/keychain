@@ -40,11 +40,16 @@ class MigrateFieldsEncryptionCommand(BaseCommand[User]):
             password (str): The user's current plaintext password.
 
         Raises:
-            ValueError: If ``password_dao`` holds a data encryption key.
+            ValueError: If ``password_dao`` holds a data encryption key, or if
+                users and passwords live in different databases, since the
+                migration must write both in one atomic batch.
 
         """
         if password_dao.dek is not None:
             raise ValueError("The password DAO must not hold a data encryption key")
+
+        if not user_dao.firestore_client.is_same_database(password_dao.firestore_client):
+            raise ValueError("Users and passwords must live in the same database to be migrated atomically")
 
         self.user_dao = user_dao
         self.password_dao = password_dao

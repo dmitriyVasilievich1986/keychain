@@ -1,6 +1,6 @@
 """Async Firestore client management for the application."""
 
-__all__ = ("FirestoreClient",)
+__all__ = ("FirestoreClient", "PasswordsFirestoreClient", "UsersFirestoreClient")
 
 import asyncio
 
@@ -15,10 +15,17 @@ logger = structlog.stdlib.get_logger(__name__)
 
 
 class FirestoreClient(metaclass=Singleton):
-    """Singleton that owns the async Firestore client."""
+    """Singleton that owns the async Firestore client for one database.
+
+    The singleton is cached per class, so each subclass bound to a different
+    database (see :class:`UsersFirestoreClient` and
+    :class:`PasswordsFirestoreClient`) gets its own instance.
+    """
 
     _client: AsyncClient
     _collection_name: str
+    _project_id: str
+    _db_name: str
     _healthcheck_timeout_seconds: float = 5.0
 
     def __init__(
@@ -60,6 +67,8 @@ class FirestoreClient(metaclass=Singleton):
             database=firestore_config.db_name,
         )
         self._collection_name = firestore_config.collection_name
+        self._project_id = google_config.project_id
+        self._db_name = firestore_config.db_name
         logger.info("Firestore client initialized successfully.")
 
     @property
@@ -81,6 +90,31 @@ class FirestoreClient(metaclass=Singleton):
 
         """
         return self._client.collection(self._collection_name)
+
+    @property
+    def database_path(self) -> str:
+        """Return the resource path of the database this client talks to.
+
+        Returns:
+            str: ``projects/<project_id>/databases/<db_name>``.
+
+        """
+        return f"projects/{self._project_id}/databases/{self._db_name}"
+
+    def is_same_database(self, other: "FirestoreClient") -> bool:
+        """Check whether another client talks to the same Firestore database.
+
+        Writes to several collections can only share one batch or transaction
+        when the collections live in the same database.
+
+        Args:
+            other (FirestoreClient): The client to compare with.
+
+        Returns:
+            bool: True if both clients use the same project and database.
+
+        """
+        return self.database_path == other.database_path
 
     async def close(self) -> None:
         """Close the gRPC channel and release client resources.
@@ -117,3 +151,11 @@ class FirestoreClient(metaclass=Singleton):
             return False
 
         return True
+
+
+class UsersFirestoreClient(FirestoreClient):
+    """Singleton Firestore client for the database holding user documents."""
+
+
+class PasswordsFirestoreClient(FirestoreClient):
+    """Singleton Firestore client for the database holding password documents."""

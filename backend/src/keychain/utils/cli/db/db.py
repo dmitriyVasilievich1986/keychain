@@ -8,8 +8,8 @@ import asyncclick as click
 
 from keychain.commands import MigrateFieldsEncryptionCommand
 from keychain.config import AppConfig
-from keychain.services.daos import InvalidPasswordError, PasswordDAO
-from keychain.utils.cli.user_dek import build_user_dao
+from keychain.services.daos import InvalidPasswordError
+from keychain.utils.cli.user_dek import build_password_dao, build_user_dao
 
 from .password import password
 from .user import user
@@ -53,8 +53,7 @@ async def migrate_fields_encryption(ctx: click.Context, user_id: UUID, password:
 
     """
     config: AppConfig = ctx.obj["config"]
-    user_dao = build_user_dao(config)
-    cmd = MigrateFieldsEncryptionCommand(user_dao, PasswordDAO(user_dao.firestore_client), str(user_id), password)
+    cmd = MigrateFieldsEncryptionCommand(build_user_dao(config), build_password_dao(config), str(user_id), password)
     try:
         await cmd.validate()
         user = await cmd.execute()

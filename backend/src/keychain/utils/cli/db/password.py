@@ -12,8 +12,7 @@ from keychain.modules.routers.models.request.password import PasswordCreateReque
 from keychain.modules.routers.models.response.password import PasswordGetResponseModel, SimplePasswordGet
 from keychain.services.daos import PasswordDAO
 from keychain.services.daos.firestore.models import Password
-from keychain.services.db_client.firestore import FirestoreClient
-from keychain.utils.cli.user_dek import build_user_dao, load_user_dek
+from keychain.utils.cli.user_dek import build_password_dao, build_user_dao, load_user_dek
 from keychain.utils.filter import Filter
 
 
@@ -35,7 +34,7 @@ def password(ctx: click.Context) -> None:
 
     """
     config: AppConfig = ctx.obj["config"]
-    ctx.obj["password_dao"] = PasswordDAO(FirestoreClient(config.db.firestore, config.google))
+    ctx.obj["password_dao"] = build_password_dao(config)
 
 
 async def _owner_password_dao(ctx: click.Context, user_id: UUID, user_password: str) -> PasswordDAO:

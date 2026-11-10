@@ -1,16 +1,16 @@
 """Helpers for resolving a user's data encryption key in CLI commands."""
 
-__all__ = ("build_user_dao", "load_user_dek")
+__all__ = ("build_password_dao", "build_user_dao", "load_user_dek")
 
 import asyncclick as click
 
 from keychain.config import AppConfig
-from keychain.services.daos import UserDAO
-from keychain.services.db_client.firestore import FirestoreClient
+from keychain.services.daos import PasswordDAO, UserDAO
+from keychain.services.db_client.firestore import PasswordsFirestoreClient, UsersFirestoreClient
 
 
 def build_user_dao(config: AppConfig) -> UserDAO:
-    """Build a user DAO for the configured users collection.
+    """Build a user DAO on the configured users database and collection.
 
     Args:
         config (AppConfig): The application config.
@@ -19,7 +19,23 @@ def build_user_dao(config: AppConfig) -> UserDAO:
         UserDAO: The user DAO.
 
     """
-    return UserDAO(FirestoreClient(config.db.firestore, config.google), collection_name=config.db.users.collection_name)
+    return UserDAO(UsersFirestoreClient(config.db.users, config.google))
+
+
+def build_password_dao(config: AppConfig) -> PasswordDAO:
+    """Build a password DAO on the configured passwords database and collection.
+
+    The DAO holds no data encryption key, so it works on the stored
+    ciphertext as is.
+
+    Args:
+        config (AppConfig): The application config.
+
+    Returns:
+        PasswordDAO: The password DAO.
+
+    """
+    return PasswordDAO(PasswordsFirestoreClient(config.db.firestore, config.google))
 
 
 async def load_user_dek(user_dao: UserDAO, user_id: str, password: str) -> bytes:

@@ -11,7 +11,7 @@ from google.api_core.exceptions import GoogleAPICallError, NotFound
 from jwt.exceptions import PyJWTError
 
 from keychain.config import AppConfig
-from keychain.modules.middlewares.dependencies import authorize_user, get_config, get_firestore
+from keychain.modules.middlewares.dependencies import authorize_user, get_config, get_users_db
 from keychain.modules.routers.models.request.user import (
     UserPasswordChangeRequestModel,
     UserUpdateRequestModel,
@@ -20,7 +20,7 @@ from keychain.modules.routers.models.response.user import AccessTokenResponseMod
 from keychain.services.auth.client import AuthClient
 from keychain.services.daos import EncryptionKeysMissingError, InvalidPasswordError, UserDAO
 from keychain.services.daos.firestore.models import User
-from keychain.services.db_client.firestore import FirestoreClient
+from keychain.services.db_client.firestore import UsersFirestoreClient
 
 logger = structlog.stdlib.get_logger(__name__)
 
@@ -44,18 +44,15 @@ async def get_user(user: Annotated[User, Depends(authorize_user)]) -> UserGetRes
 @router.put("", response_model=UserGetResponseModel, description="Update a user by ID")
 async def update_user(
     body: Annotated[UserUpdateRequestModel, Body(description="Update user request body")],
-    firestore: Annotated[FirestoreClient, Depends(get_firestore)],
-    config: Annotated[AppConfig, Depends(get_config)],
+    users_db: Annotated[UsersFirestoreClient, Depends(get_users_db)],
     user: Annotated[User, Depends(authorize_user)],
 ) -> UserGetResponseModel:
     """Update the authenticated user's details.
 
     Args:
         body (UserUpdateRequestModel): The request body with fields to update.
-        firestore (FirestoreClient): The Firestore client used to persist
-            the update.
-        config (AppConfig): The application config providing the users
-            collection name.
+        users_db (UsersFirestoreClient): The users database client used to
+            persist the update.
         user (User): The authenticated user resolved from the request token.
 
     Returns:
@@ -66,7 +63,7 @@ async def update_user(
             unexpected Firestore error.
 
     """
-    user_dao = UserDAO(firestore, collection_name=config.db.users.collection_name)
+    user_dao = UserDAO(users_db)
 
     try:
         updated_user = await user_dao.update(user.id, **body.model_dump())
@@ -85,7 +82,7 @@ async def update_user(
 @router.put("/password", response_model=AccessTokenResponseModel, description="Change the current user's password")
 async def change_password(
     body: Annotated[UserPasswordChangeRequestModel, Body(description="Change password request body")],
-    firestore: Annotated[FirestoreClient, Depends(get_firestore)],
+    users_db: Annotated[UsersFirestoreClient, Depends(get_users_db)],
     config: Annotated[AppConfig, Depends(get_config)],
     user: Annotated[User, Depends(authorize_user)],
 ) -> AccessTokenResponseModel:
@@ -96,10 +93,10 @@ async def change_password(
 
     Args:
         body (UserPasswordChangeRequestModel): The current and new passwords.
-        firestore (FirestoreClient): The Firestore client used to persist the
-            change.
-        config (AppConfig): The application config providing the users
-            collection name and used to build the auth client.
+        users_db (UsersFirestoreClient): The users database client used to
+            persist the change.
+        config (AppConfig): The application config used to build the auth
+            client.
         user (User): The authenticated user resolved from the request token.
 
     Returns:
@@ -111,7 +108,7 @@ async def change_password(
             encoding error.
 
     """
-    user_dao = UserDAO(firestore, collection_name=config.db.users.collection_name)
+    user_dao = UserDAO(users_db)
 
     try:
         updated_user = await user_dao.reset_password(user.id, body.old_password, body.new_password)

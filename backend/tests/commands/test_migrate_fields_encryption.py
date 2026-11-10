@@ -3,9 +3,13 @@
 import pytest
 
 from keychain.commands import MigrateFieldsEncryptionCommand
+from keychain.config.models.db.firestore import FirestoreConfig
+from keychain.config.models.google import GoogleConfig
 from keychain.services.cryptography import CryptographyClient
 from keychain.services.daos import InvalidPasswordError, PasswordDAO, UserDAO
 from keychain.services.daos.firestore.models import Field, FieldValue, User
+from keychain.services.db_client.firestore import PasswordsFirestoreClient
+from keychain.utils.singleton import Singleton
 
 pytestmark = pytest.mark.integration
 
@@ -82,3 +86,17 @@ async def test_rejects_password_dao_with_dek(user_dao: UserDAO, encrypting_passw
     """The command needs raw access to the stored ciphertext."""
     with pytest.raises(ValueError, match="must not hold a data encryption key"):
         MigrateFieldsEncryptionCommand(user_dao, encrypting_password_dao, "user", "pw")
+
+
+def test_rejects_users_and_passwords_in_different_databases(user_dao: UserDAO) -> None:
+    """The migration writes users and passwords in one batch, so both must share a database."""
+    Singleton._instances.pop(PasswordsFirestoreClient, None)  # noqa: SLF001
+    try:
+        other_db = PasswordsFirestoreClient(
+            FirestoreConfig(db_name="other-db", collection_name="password"),
+            GoogleConfig(project_id="keychain-test"),
+        )
+        with pytest.raises(ValueError, match="same database"):
+            MigrateFieldsEncryptionCommand(user_dao, PasswordDAO(other_db), "user", "pw")
+    finally:
+        Singleton._instances.pop(PasswordsFirestoreClient, None)  # noqa: SLF001

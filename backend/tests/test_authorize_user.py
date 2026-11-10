@@ -8,8 +8,7 @@ import pytest
 import structlog
 from fastapi.security import HTTPAuthorizationCredentials
 
-from keychain.config import AppConfig
-from keychain.services.db_client.firestore import FirestoreClient
+from keychain.services.db_client.firestore import UsersFirestoreClient
 
 authorize_user_module = importlib.import_module("keychain.modules.middlewares.dependencies.authorize_user")
 decode_token_module = importlib.import_module("keychain.utils.decode_token")
@@ -50,8 +49,7 @@ async def test_binds_user_id_to_contextvars(monkeypatch: pytest.MonkeyPatch) -> 
     try:
         user = await authorize_user_module.authorize_user(
             HTTPAuthorizationCredentials(scheme="Bearer", credentials="token"),
-            cast(FirestoreClient, None),
-            cast(AppConfig, SimpleNamespace(db=SimpleNamespace(users=SimpleNamespace(collection_name="users")))),
+            cast(UsersFirestoreClient, None),
         )
         assert structlog.contextvars.get_contextvars() == {"user_id": user.id}
         assert user.id == USER_ID

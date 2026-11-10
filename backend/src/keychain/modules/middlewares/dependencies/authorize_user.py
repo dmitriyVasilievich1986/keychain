@@ -11,15 +11,13 @@ from fastapi import Depends, HTTPException, status
 from fastapi.security import HTTPAuthorizationCredentials, HTTPBearer
 from google.api_core.exceptions import GoogleAPICallError, NotFound
 
-from keychain.config import AppConfig
 from keychain.services.cryptography.client import CryptographyClient
 from keychain.services.daos.firestore import UserDAO
 from keychain.services.daos.firestore.models import User
-from keychain.services.db_client.firestore import FirestoreClient
+from keychain.services.db_client.firestore import UsersFirestoreClient
 from keychain.utils.decode_token import decode_jwt_token
 
-from .get_config import get_config
-from .get_firestore import get_firestore
+from .get_users_db import get_users_db
 
 logger = structlog.stdlib.get_logger(__name__)
 
@@ -28,8 +26,7 @@ user_token = HTTPBearer(scheme_name="User Token")
 
 async def authorize_user(
     token_header: Annotated[HTTPAuthorizationCredentials, Depends(user_token)],
-    firestore: Annotated[FirestoreClient, Depends(get_firestore)],
-    config: Annotated[AppConfig, Depends(get_config)],
+    users_db: Annotated[UsersFirestoreClient, Depends(get_users_db)],
 ) -> User:
     """Resolve the authenticated user from the request's bearer token.
 
@@ -39,10 +36,8 @@ async def authorize_user(
     Args:
         token_header (HTTPAuthorizationCredentials): The bearer credentials
             extracted from the request.
-        firestore (FirestoreClient): The Firestore client used to look up
-            the user.
-        config (AppConfig): The application config providing the users
-            collection name.
+        users_db (UsersFirestoreClient): The Firestore client for the users
+            database, used to look up the user.
 
     Returns:
         User: The authenticated user matching the token.
@@ -61,7 +56,7 @@ async def authorize_user(
         raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Invalid token") from e
 
     try:
-        user = await UserDAO(firestore, collection_name=config.db.users.collection_name).get_by_id(str(user_id))
+        user = await UserDAO(users_db).get_by_id(str(user_id))
     except NotFound as e:
         logger.warning("User not found", user_id=result.user_id)
         raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="User not found") from e

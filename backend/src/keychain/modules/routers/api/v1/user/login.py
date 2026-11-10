@@ -11,14 +11,14 @@ from google.api_core.exceptions import GoogleAPICallError, NotFound
 from jwt.exceptions import PyJWTError
 
 from keychain.config import AppConfig
-from keychain.modules.middlewares.dependencies import get_config, get_firestore
+from keychain.modules.middlewares.dependencies import get_config, get_users_db
 from keychain.modules.routers.models.request.user import (
     LoginRequestModel,
 )
 from keychain.modules.routers.models.response.user import AccessTokenResponseModel
 from keychain.services.auth.client import AuthClient
 from keychain.services.daos.firestore import UserDAO
-from keychain.services.db_client.firestore import FirestoreClient
+from keychain.services.db_client.firestore import UsersFirestoreClient
 
 logger = structlog.stdlib.get_logger(__name__)
 
@@ -28,7 +28,7 @@ router = APIRouter(prefix="/user")
 @router.post("/login", response_model=AccessTokenResponseModel, description="Login a user")
 async def login_user(
     body: Annotated[LoginRequestModel, Body(description="Login request body")],
-    firestore: Annotated[FirestoreClient, Depends(get_firestore)],
+    users_db: Annotated[UsersFirestoreClient, Depends(get_users_db)],
     config: Annotated[AppConfig, Depends(get_config)],
 ) -> AccessTokenResponseModel:
     """Authenticate a user and issue an access token.
@@ -36,8 +36,8 @@ async def login_user(
     Args:
         body (LoginRequestModel): The login request containing username and
             password.
-        firestore (FirestoreClient): The Firestore client used to look up
-            the user.
+        users_db (UsersFirestoreClient): The users database client used to
+            look up the user.
         config (AppConfig): The application config used to build the auth
             client.
 
@@ -53,7 +53,7 @@ async def login_user(
     in until they are migrated with ``keychain db migrate-fields-encryption``.
 
     """
-    user_dao = UserDAO(firestore, collection_name=config.db.users.collection_name)
+    user_dao = UserDAO(users_db)
     try:
         user = await user_dao.get_by_username(body.username)
     except NotFound as e:
