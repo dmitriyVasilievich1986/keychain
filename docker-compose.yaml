@@ -38,8 +38,6 @@ services:
         required: true
     environment:
       - ENVIRONMENT=production
-    volumes:
-      - ./backup:/opt/backend/backup
     networks:
       - keychain-network
     healthcheck:
