@@ -23,16 +23,17 @@ info:
     logs_folder_path: null
 
 db:
-  alembic_ini_path: "backend/src/keychain/services/alembic/alembic.ini"
-  backup_folder_path: "backup"
-  backup_count: 5
-  postgresql:
-    provider: postgresql+asyncpg
-    host: db
-    port: 5432
-    name: "test_db"
-    user: "Put your database user here"
-    password: "Put your database password here"
+  firestore:
+    db_name: "(default)"
+    collection_name: "password"
+  users:
+    db_name: "(default)"
+    collection_name: "users"
+
+google:
+  # Tests run against the Firestore emulator (FIRESTORE_EMULATOR_HOST), so no
+  # credentials file is needed.
+  project_id: "keychain-test"
 
 cryptography:
   secret_key: "Put your secret key here"
