@@ -15,12 +15,11 @@ class Filter[ColumnType: str](BaseModel):
     field names.
 
     Supported operators: null checks (``isnull``, ``notnull``); comparisons
-    (``eq``, ``ge``, ``gt``, ``le``, ``lt``); membership (``in``); substring
-    match (``like``, ``ilike``). Firestore DAOs reject ``like`` and ``ilike``.
+    (``eq``, ``ge``, ``gt``, ``le``, ``lt``); membership (``in``).
     """
 
     column: ColumnType = Field(..., description="The column to filter by")
-    operator: Literal["isnull", "notnull", "eq", "ge", "gt", "le", "lt", "in", "like", "ilike"] = Field(
+    operator: Literal["isnull", "notnull", "eq", "ge", "gt", "le", "lt", "in"] = Field(
         ..., description="The operator to use for the filter"
     )
     value: str | int | list[str | int] | float | date | None = Field(..., description="The value to filter by")
@@ -30,10 +29,9 @@ class Filter[ColumnType: str](BaseModel):
         """Coerce ISO date strings to ``date`` for numeric-style operators.
 
         Strings matching ``%Y-%m-%d`` become ``date`` objects for ``eq``,
-        ``ge``, ``gt``, ``le``, ``lt``, and ``in``. Operators ``like``,
-        ``ilike``, ``isnull``, and ``notnull`` leave ``value`` unchanged so
-        patterns and null semantics stay intact. Strings that do not match the
-        ISO date pattern are left unchanged.
+        ``ge``, ``gt``, ``le``, ``lt``, and ``in``. Operators ``isnull`` and
+        ``notnull`` leave ``value`` unchanged so null semantics stay intact.
+        Strings that do not match the ISO date pattern are left unchanged.
 
         Returns:
             Self: A copy of the model with a coerced ``value``, or ``self`` if
@@ -55,7 +53,7 @@ class Filter[ColumnType: str](BaseModel):
         if self.operator in ("isnull", "notnull") and self.value is not None:
             raise ValueError(f"Value for '{self.operator}' should be None")
 
-        if self.operator in ("like", "ilike", "isnull", "notnull"):
+        if self.operator in ("isnull", "notnull"):
             return self
 
         if isinstance(self.value, str):
