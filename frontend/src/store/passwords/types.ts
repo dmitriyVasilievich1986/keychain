@@ -66,13 +66,15 @@ export type PasswordStore = {
   /** Sets the currently selected password, or clears it when passed `null`. */
   setCurrentPassword: (password: Password | null) => void;
   /** Removes the password with the given id from the list. */
-  removePassword: (id: number) => void;
+  removePassword: (id: string) => void;
   /** Appends a new password to the list. */
   addPassword: (password: PasswordSimple) => void;
-  /** Adds a field to the current password. */
-  addField: (field: PasswordField) => void;
-  /** Updates the field identified by `id` on the current password. */
-  updateField: (id: number, field: PasswordField) => void;
+  /**
+   * Stores a password returned by a create/update/patch call as the current password and syncs
+   * its `name` and `imageUrl` into the matching list entry, if any. Field changes go through this
+   * action, since the API returns the whole password with its updated fields.
+   */
+  updatePassword: (password: Password) => void;
   /** Resets the store to its empty state. */
   clearStore: () => void;
 };
