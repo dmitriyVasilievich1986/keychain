@@ -1,0 +1,25 @@
+# Build context for ./frontend/Dockerfile.
+
+# Dependencies are installed inside the image
+node_modules
+
+# Build, test and coverage output
+dist
+dist-ssr
+build
+coverage
+
+# Local env files (build-time values come from Dockerfile ARGs)
+.env
+.env.*
+*.local
+
+# Docker files themselves
+Dockerfile
+.dockerignore
+
+# Logs, editor and OS files
+*.log
+.vscode
+.idea
+.DS_Store
