@@ -41,6 +41,11 @@ services:
     environment:
       ENVIRONMENT: local
       FIRESTORE_EMULATOR_HOST: firestore:8081
+      GOOGLE__CREDENTIALS_PATH: /run/secrets/gcp-key.json
+    volumes:
+      - ./gcp-key.json:/run/secrets/gcp-key.json:ro
+      # local.yaml is excluded from the image (.dockerignore); mount it at runtime
+      - ./backend/configurations/local.yaml:/opt/backend/configurations/local.yaml:ro
     ports:
       - 8080:8080
     depends_on:

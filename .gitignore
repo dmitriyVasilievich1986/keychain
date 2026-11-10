@@ -5,3 +5,4 @@ nginx/ssl/
 /backup/
 **/scripts/sensitive/
 /frontend/coverage/
+gcp-key.json
