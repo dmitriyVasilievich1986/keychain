@@ -9,7 +9,7 @@ import structlog
 from fastapi import FastAPI
 
 from keychain.config import AppConfig
-from keychain.services.db_client.client import DBClient
+from keychain.services.db_client.firestore import FirestoreClient
 
 logger = structlog.stdlib.get_logger(__name__)
 
@@ -18,7 +18,7 @@ logger = structlog.stdlib.get_logger(__name__)
 async def lifespan(app: FastAPI) -> AsyncGenerator[None, None]:
     """Manage startup and shutdown of application services.
 
-    Initializes the Firestore and cryptography clients on startup, yields
+    Initializes the Firestore client on startup, yields
     control while the application runs, and closes the Firestore client on
     shutdown.
 
@@ -35,8 +35,8 @@ async def lifespan(app: FastAPI) -> AsyncGenerator[None, None]:
     # Initialize services
     logger.info("Initializing Application services...")
     app_config = AppConfig()
-    db_client = DBClient(app_config.db.postgresql, app_config.info.debug)
-    logger.info("Database client initialized successfully.")
+    firestore_client = FirestoreClient(app_config.db.firestore, app_config.google)
+    logger.info("Firestore client initialized successfully.")
 
     yield
 
