@@ -15,12 +15,11 @@ The foundation everything else builds on.
 
 Each child folder exposes a hook returning typed methods for one API resource. They call `apiClientInstance` and, where relevant, sync results into the corresponding store.
 
-| Hook                   | Folder      | Methods                                       | Notes                                                                                                                            |
-| ---------------------- | ----------- | --------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------- |
-| `useAuthAPIClient`     | `auth/`     | `login`                                       | Uses a raw `axios.post` (not `apiClientInstance`) so the unauthenticated login call isn't redirected by the request interceptor. |
-| `useUserAPIClient`     | `user/`     | `getUser`, `putUser`                          | `putUser` writes the updated user into the user store.                                                                           |
-| `usePasswordAPIClient` | `password/` | `getPassword`, `getPasswords`, `postPassword` | `getPasswords` supports pagination, sorting, and filters; `postPassword` appends to the password store.                          |
-| `useFieldAPIClient`    | `field/`    | `postField`, `putField`                       | Create/update fields belonging to a password.                                                                                    |
+| Hook                   | Folder      | Methods                                                                                         | Notes                                                                                                                                                                                   |
+| ---------------------- | ----------- | ----------------------------------------------------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `useAuthAPIClient`     | `auth/`     | `login`                                                                                         | Uses a raw `axios.post` (not `apiClientInstance`) so the unauthenticated login call isn't redirected by the request interceptor.                                                        |
+| `useUserAPIClient`     | `user/`     | `getUser`, `putUser`                                                                            | `putUser` writes the updated user into the user store.                                                                                                                                  |
+| `usePasswordAPIClient` | `password/` | `getPassword`, `getPasswords`, `postPassword`, `putPassword`, `patchPassword`, `deletePassword` | `getPasswords` supports pagination, sorting, filters and `showDeleted`. Fields are embedded in the password and are changed by sending the full `fields` list via `post`/`put`/`patch`. |
 
 Shared types live in `types.ts` (`PaginationMetadata`, `FilterType`), and each service folder has its own `types.ts` for request/response shapes.
 
@@ -58,5 +57,9 @@ const { getPasswords, postPassword } = usePasswordAPIClient();
 
 const { data, metadata } = await getPasswords(20, 0, 'name', 'asc');
 
-await postPassword({ name: 'GitHub', imageUrl: 'https://github.com/icon.png' });
+await postPassword({
+  name: 'GitHub',
+  imageUrl: 'https://github.com/icon.png',
+  fields: [{ name: 'username', values: [{ value: 'john' }] }],
+});
 ```
