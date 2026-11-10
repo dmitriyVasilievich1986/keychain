@@ -3,6 +3,8 @@
 __all__ = ("main",)
 
 
+import os
+
 import asyncclick as click
 import uvicorn
 
@@ -95,6 +97,9 @@ async def run(host: str, port: int) -> None:
 
     """
     click.echo(f"Starting Keychain Application on {host}:{port}")
+    # The reloader starts the app in a worker process that builds its own config, so pass
+    # the port through the environment for the app to know where it is served.
+    os.environ["INFO__PORT"] = str(port)
     app = "keychain.modules.app:get_app"
 
     uvicorn.run(app, host=host, port=port, reload=True, factory=True, log_config=None)
