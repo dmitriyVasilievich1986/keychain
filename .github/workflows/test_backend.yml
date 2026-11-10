@@ -28,7 +28,6 @@ jobs:
         run: uv sync --all-groups
 
       - name: Start Firestore emulator
-        if: steps.changes.outputs.backend == 'true'
         run: |
           docker run -d --name firestore-emulator -p 8080:8080 \
             gcr.io/google.com/cloudsdktool/google-cloud-cli:emulators \
