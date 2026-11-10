@@ -6,7 +6,7 @@ import { cleanup, render, screen, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vite-plus/test';
 
-import { usePasswordsStore } from '@store/passwords';
+import { usePasswordsStore, type PasswordSimple } from '@store/passwords';
 import { useUserStore } from '@store/user';
 
 import PasswordsList from './PasswordsList';
@@ -25,9 +25,9 @@ vi.mock('react-router', async () => {
   return { ...actual, useNavigate: () => navigate };
 });
 
-const passwords = [
-  { id: 1, name: 'GitHub', imageUrl: 'github.png' },
-  { id: 2, name: 'GitLab', imageUrl: 'gitlab.png' },
+const passwords: PasswordSimple[] = [
+  { id: 'p-1', name: 'GitHub', imageUrl: 'github.png' },
+  { id: 'p-2', name: 'GitLab', imageUrl: 'gitlab.png' },
 ];
 
 // jsdom's getComputedStyle crashes on MUI's open listbox popper whenever an accessible name or
@@ -93,13 +93,19 @@ describe('PasswordsList', () => {
     await user.click(getInput());
     await user.click(screen.getByText('GitLab'));
 
-    expect(navigate).toHaveBeenCalledWith('/password/2');
+    expect(navigate).toHaveBeenCalledWith('/password/p-2');
   });
 
   it('navigates back to the list when the selection is cleared', async () => {
     usePasswordsStore.setState({
       passwords,
-      currentPassword: { ...passwords[0], createdAt: '2026-01-01T00:00:00Z', fields: [] },
+      currentPassword: {
+        ...passwords[0],
+        createdAt: '2026-01-01T00:00:00Z',
+        updatedAt: '2026-01-01T00:00:00Z',
+        userId: 'u-1',
+        fields: [],
+      },
     });
     const user = userEvent.setup();
     render(<PasswordsList />);

@@ -79,7 +79,7 @@ describe('App', () => {
         user: { id: 'u-1', name: 'Alice', createdAt: '2026-01-01T00:00:00Z' },
       });
       usePasswordsStore.setState({
-        passwords: [{ id: 1, name: 'GitHub', imageUrl: 'github.png' }],
+        passwords: [{ id: 'p-1', name: 'GitHub', imageUrl: 'github.png' }],
       });
 
       try {
