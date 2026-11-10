@@ -14,7 +14,6 @@ from keychain.modules.routers.models.base.metadata import PaginationMetadata
 from keychain.modules.routers.models.request.password import (
     GetAllPasswordsQuery,
     PasswordCreateRequestModel,
-    PasswordFieldCreate,
     PasswordPatchRequestModel,
     PasswordUpdateRequestModel,
 )
@@ -24,55 +23,15 @@ from keychain.modules.routers.models.response.password import (
     SimplePasswordGet,
 )
 from keychain.services.daos.firestore import PasswordDAO
-from keychain.services.daos.firestore.models import Field, FieldValue, Password, User
+from keychain.services.daos.firestore.models import User
 from keychain.services.db_client.firestore import PasswordsFirestoreClient
 from keychain.utils.filter import Filter
+
+from .utils import build_fields, get_owned_password
 
 logger = structlog.stdlib.get_logger(__name__)
 
 router = APIRouter(prefix="/password", tags=["Passwords Management"])
-
-
-async def get_owned_password(password_dao: PasswordDAO, password_id: UUID, user: User) -> Password:
-    """Load a password and ensure it belongs to the given user.
-
-    Args:
-        password_dao (PasswordDAO): DAO used to load the password.
-        password_id (UUID): The unique identifier of the password.
-        user (User): The user who must own the password.
-
-    Returns:
-        Password: The requested password.
-
-    Raises:
-        NotFound: If the password does not exist or belongs to another user.
-
-    """
-    password = await password_dao.get_by_id(str(password_id))
-    if password.user_id != str(user.id):
-        raise NotFound(f"Password {password_id} not found")
-    return password
-
-
-def build_fields(fields: list[PasswordFieldCreate]) -> list[Field]:
-    """Convert request fields into Firestore field models.
-
-    Args:
-        fields (list[PasswordFieldCreate]): The requested fields; their order
-            in the list defines their position.
-
-    Returns:
-        list[Field]: The Firestore field models.
-
-    """
-    return [
-        Field(
-            name=field.name,
-            position=position,
-            values=[FieldValue(value=field_value.value) for field_value in field.values],
-        )
-        for position, field in enumerate(fields)
-    ]
 
 
 @router.get("", response_model=GetAllPasswordsResponse, description="Get all passwords")
