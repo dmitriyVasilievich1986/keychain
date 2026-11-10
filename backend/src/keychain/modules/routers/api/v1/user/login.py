@@ -9,7 +9,6 @@ from cryptography.fernet import InvalidToken
 from fastapi import APIRouter, Body, Depends, HTTPException, status
 from google.api_core.exceptions import GoogleAPICallError, NotFound
 from jwt.exceptions import PyJWTError
-from sqlalchemy.exc import NoResultFound, SQLAlchemyError
 
 from keychain.config import AppConfig
 from keychain.modules.middlewares.dependencies import get_config, get_firestore
@@ -50,17 +49,17 @@ async def login_user(
             is incorrect, or 500 on a database, encryption or token encoding
             error.
 
-    Users created before per-user encryption keys were introduced are migrated
-    on their first successful login.
+    Users created before per-user encryption keys were introduced cannot log
+    in until they are migrated with ``keychain db migrate-fields-encryption``.
 
     """
     user_dao = UserDAO(firestore, collection_name=config.db.users.collection_name)
     try:
         user = await user_dao.get_by_username(body.username)
-    except NoResultFound as e:
+    except NotFound as e:
         logger.warning("User not found", username=body.username)
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Username or password is incorrect") from e
-    except SQLAlchemyError as e:
+    except GoogleAPICallError as e:
         logger.exception("Error logging in user")
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail="An unexpected error occurred"
@@ -70,7 +69,7 @@ async def login_user(
         logger.warning("Invalid password", username=body.username)
         raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Username or password is incorrect")
 
-    if user.wrapped_dek is None:
+    if not user.has_encryption_keys:
         logger.warning("User has no encryption keys", user_id=user.id)
         raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail="An unexpected error occurred")
 

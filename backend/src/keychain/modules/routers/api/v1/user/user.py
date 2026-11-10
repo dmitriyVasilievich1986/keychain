@@ -2,26 +2,25 @@
 
 __all__ = ("router",)
 
-from datetime import datetime, timezone
 from typing import Annotated
 
 import structlog
 from cryptography.fernet import InvalidToken
 from fastapi import APIRouter, Body, Depends, HTTPException, status
+from google.api_core.exceptions import GoogleAPICallError, NotFound
 from jwt.exceptions import PyJWTError
-from sqlalchemy.exc import NoResultFound, SQLAlchemyError
 
 from keychain.config import AppConfig
-from keychain.modules.middlewares.dependencies import authorize_user, get_config, get_db
+from keychain.modules.middlewares.dependencies import authorize_user, get_config, get_firestore
 from keychain.modules.routers.models.request.user import (
     UserPasswordChangeRequestModel,
     UserUpdateRequestModel,
 )
 from keychain.modules.routers.models.response.user import AccessTokenResponseModel, UserGetResponseModel
 from keychain.services.auth.client import AuthClient
-from keychain.services.daos.user import InvalidPasswordError, UserDAO
-from keychain.services.db_client.client import DBClient
-from keychain.services.db_client.models.user import User
+from keychain.services.daos import EncryptionKeysMissingError, InvalidPasswordError, UserDAO
+from keychain.services.daos.firestore.models import User
+from keychain.services.db_client.firestore import FirestoreClient
 
 logger = structlog.stdlib.get_logger(__name__)
 
@@ -45,7 +44,8 @@ async def get_user(user: Annotated[User, Depends(authorize_user)]) -> UserGetRes
 @router.put("", response_model=UserGetResponseModel, description="Update a user by ID")
 async def update_user(
     body: Annotated[UserUpdateRequestModel, Body(description="Update user request body")],
-    db: Annotated[DBClient, Depends(get_db)],
+    firestore: Annotated[FirestoreClient, Depends(get_firestore)],
+    config: Annotated[AppConfig, Depends(get_config)],
     user: Annotated[User, Depends(authorize_user)],
 ) -> UserGetResponseModel:
     """Update the authenticated user's details.
@@ -70,10 +70,10 @@ async def update_user(
 
     try:
         updated_user = await user_dao.update(user.id, **body.model_dump())
-    except NoResultFound as e:
+    except NotFound as e:
         logger.warning("User not found")
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="User not found") from e
-    except SQLAlchemyError as e:
+    except GoogleAPICallError as e:
         logger.exception("Error updating user")
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail="An unexpected error occurred"
@@ -85,7 +85,7 @@ async def update_user(
 @router.put("/password", response_model=AccessTokenResponseModel, description="Change the current user's password")
 async def change_password(
     body: Annotated[UserPasswordChangeRequestModel, Body(description="Change password request body")],
-    db: Annotated[DBClient, Depends(get_db)],
+    firestore: Annotated[FirestoreClient, Depends(get_firestore)],
     config: Annotated[AppConfig, Depends(get_config)],
     user: Annotated[User, Depends(authorize_user)],
 ) -> AccessTokenResponseModel:
@@ -96,9 +96,10 @@ async def change_password(
 
     Args:
         body (UserPasswordChangeRequestModel): The current and new passwords.
-        db (DBClient): The database client used to persist the change.
-        config (AppConfig): The application config used to build the auth
-            client.
+        firestore (FirestoreClient): The Firestore client used to persist the
+            change.
+        config (AppConfig): The application config providing the users
+            collection name and used to build the auth client.
         user (User): The authenticated user resolved from the request token.
 
     Returns:
@@ -106,11 +107,11 @@ async def change_password(
 
     Raises:
         HTTPException: 400 if the current password is incorrect, 404 if the
-            user no longer exists, or 500 on a database, encryption or token
+            user no longer exists, or 500 on a Firestore, encryption or token
             encoding error.
 
     """
-    user_dao = UserDAO(db)
+    user_dao = UserDAO(firestore, collection_name=config.db.users.collection_name)
 
     try:
         updated_user = await user_dao.reset_password(user.id, body.old_password, body.new_password)
@@ -118,10 +119,10 @@ async def change_password(
     except InvalidPasswordError as e:
         logger.warning("Invalid current password")
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Current password is incorrect") from e
-    except NoResultFound as e:
+    except NotFound as e:
         logger.warning("User not found")
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="User not found") from e
-    except (SQLAlchemyError, InvalidToken) as e:
+    except (GoogleAPICallError, InvalidToken, EncryptionKeysMissingError) as e:
         logger.exception("Error changing user password")
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail="An unexpected error occurred"
