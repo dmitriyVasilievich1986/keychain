@@ -19,10 +19,11 @@ class FieldValue(BaseFirestoreSchema):
         description="The timestamp when the field value was created.",
     )
 
-    def encrypt(self, cryptography_client: CryptographyClient | None = None) -> Self:
-        """Encrypt the field value.
+    def encrypt(self, dek: bytes, cryptography_client: CryptographyClient | None = None) -> Self:
+        """Encrypt the field value with the owner's data encryption key.
 
         Args:
+            dek (bytes): The owner's data encryption key.
             cryptography_client (CryptographyClient | None): Client used for
                 encryption; a new :class:`CryptographyClient` is created if None.
 
@@ -31,12 +32,13 @@ class FieldValue(BaseFirestoreSchema):
 
         """
         client = cryptography_client or CryptographyClient()
-        return self.model_copy(update={"value": client.encrypt(self.value)})
+        return self.model_copy(update={"value": client.encrypt(self.value, dek)})
 
-    def decrypt(self, cryptography_client: CryptographyClient | None = None) -> Self:
-        """Decrypt the field value.
+    def decrypt(self, dek: bytes, cryptography_client: CryptographyClient | None = None) -> Self:
+        """Decrypt the field value with the owner's data encryption key.
 
         Args:
+            dek (bytes): The owner's data encryption key.
             cryptography_client (CryptographyClient | None): Client used for
                 decryption; a new :class:`CryptographyClient` is created if None.
 
@@ -49,4 +51,4 @@ class FieldValue(BaseFirestoreSchema):
 
         """
         client = cryptography_client or CryptographyClient()
-        return self.model_copy(update={"value": client.decrypt(self.value)})
+        return self.model_copy(update={"value": client.decrypt(self.value, dek)})
