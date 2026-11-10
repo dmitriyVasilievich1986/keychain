@@ -38,7 +38,7 @@ dev = [
     "dotenv>=0.9.9",
     "ipykernel>=7.4.0",
     "pre-commit>=4.7.0",
-    "ruff>=0.15.22,<0.16",
+    "ruff>=0.17.4",
     "ty>=0.0.100",
 ]
 test = [

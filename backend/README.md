@@ -334,10 +334,7 @@ DELETE /api/v1/password/{password_id}  # Delete password (requires auth)
 import requests
 
 # Login and get access token
-response = requests.post(
-    "http://localhost:8080/api/v1/user/login",
-    json={"username": "admin", "password": "secret"}
-)
+response = requests.post("http://localhost:8080/api/v1/user/login", json={"username": "admin", "password": "secret"})
 token = response.json()["access_token"]
 
 # Use token for authenticated requests
@@ -368,17 +365,11 @@ password = response.json()
 
 ```python
 # Get all passwords for authenticated user
-response = requests.get(
-    "http://localhost:8080/api/v1/password",
-    headers=headers
-)
+response = requests.get("http://localhost:8080/api/v1/password", headers=headers)
 passwords = response.json()
 
 # Get specific password with fields
-response = requests.get(
-    f"http://localhost:8080/api/v1/password/{password_id}",
-    headers=headers
-)
+response = requests.get(f"http://localhost:8080/api/v1/password/{password_id}", headers=headers)
 password_details = response.json()  # Field values are returned decrypted
 ```
 

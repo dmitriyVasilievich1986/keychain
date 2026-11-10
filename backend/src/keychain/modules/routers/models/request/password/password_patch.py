@@ -18,7 +18,7 @@ class PasswordPatchRequestModel(BaseRequestModel):
     """
 
     name: str | MISSING = Field(default=MISSING, description="The name of the password", min_length=1)
-    image_url: str | None | MISSING = Field(
+    image_url: str | MISSING | None = Field(
         default=MISSING, description="The URL of the image associated with the password; null removes it"
     )
     fields: list[PasswordFieldCreate] | MISSING = Field(
