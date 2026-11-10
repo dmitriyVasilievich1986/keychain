@@ -24,23 +24,18 @@ from uuid import uuid4
 BACKEND_DIR = Path(__file__).resolve().parent.parent
 TEST_PROJECT_ID = "keychain-test"
 
-# Point the settings loader at the test configuration and force the test
-# database name and an absolute Alembic config path (``.env`` may hold a path
-# relative to the repository root). These must be set before importing any
-# ``keychain`` module, because configuration singletons read them on first
-# access.
+# These must be set before importing any ``keychain`` module, because
+# configuration singletons read them on first access. The emulator host is
+# always set so the Firestore client can never reach a real project.
 os.environ["CONFIG_FILE_PATH"] = str(BACKEND_DIR / "configurations" / "test.yaml")
-os.environ["DB__POSTGRESQL__NAME"] = TEST_DB_NAME
-os.environ["DB__ALEMBIC_INI_PATH"] = str(BACKEND_DIR / "src/keychain/services/alembic/alembic.ini")
-os.environ.setdefault("DB__POSTGRESQL__HOST", "localhost")
-os.environ.setdefault("DB__POSTGRESQL__PORT", "5432")
-os.environ.setdefault("DB__POSTGRESQL__USER", "root")
-os.environ.setdefault("DB__POSTGRESQL__PASSWORD", "root")
+os.environ["ENVIRONMENT"] = "test"
+os.environ.setdefault("FIRESTORE_EMULATOR_HOST", "localhost:8080")
 os.environ.setdefault("CRYPTOGRAPHY__SECRET_KEY", "WcrmZ43_lZNqollPA7g_Bt8pKZq2YBr69OFSjQ0V710=")
 os.environ.setdefault("AUTH__JWT_SECRET_KEY", "test-secret")
 
 import pytest  # noqa: E402
 import pytest_asyncio  # noqa: E402
+from cryptography.fernet import Fernet  # noqa: E402
 
 from keychain.config import AppConfig  # noqa: E402
 from keychain.config.models.db.firestore import FirestoreConfig  # noqa: E402
@@ -64,22 +59,7 @@ def app_config() -> Generator[AppConfig, None, None]:
 
     """
     _reset_singletons()
-    config = AppConfig()
-
-    asyncio.run(_create_test_database(config))
-
-    # Store the test config so Alembic's env.py picks it up, then run migrations.
-    _reset_singletons()
-    AppConfig()
-    alembic_cfg = Config(str(config.db.alembic_ini_path))
-    command.upgrade(alembic_cfg, "head")
-
-    # env.py builds and disposes its own DBClient; start clean for the tests.
-    _reset_singletons()
-
-    yield config
-
-    asyncio.run(_drop_test_database(config))
+    yield AppConfig()
     _reset_singletons()
 
 
@@ -165,3 +145,28 @@ async def password_dao(firestore_client: FirestoreClient) -> AsyncGenerator[Pass
     dao = PasswordDAO(firestore_client)
     yield dao
     await _clear_collection(dao)
+
+
+@pytest.fixture
+def dek() -> bytes:
+    """Provide a random data encryption key.
+
+    Returns:
+        bytes: A fresh Fernet key.
+
+    """
+    return Fernet.generate_key()
+
+
+@pytest.fixture
+def encrypting_password_dao(password_dao: PasswordDAO, dek: bytes) -> PasswordDAO:
+    """Provide a :class:`PasswordDAO` that encrypts field values with ``dek``.
+
+    It shares the collection of ``password_dao``, which reads the stored
+    ciphertext as is.
+
+    Returns:
+        PasswordDAO: DAO holding the data encryption key.
+
+    """
+    return PasswordDAO(password_dao.firestore_client, password_dao.collection_name, dek=dek)
