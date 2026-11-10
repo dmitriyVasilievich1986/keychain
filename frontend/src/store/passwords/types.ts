@@ -1,37 +1,56 @@
 /** Lightweight password entry used in list views. */
 export type PasswordSimple = {
-  /** Unique identifier of the password entry. */
-  id: number;
+  /** Unique identifier (UUID) of the password entry. */
+  id: string;
   /** Display name of the password entry. */
   name: string;
-  /** URL of the icon/logo associated with the entry. */
-  imageUrl: string;
+  /** URL of the icon/logo associated with the entry, or `null` when none is set. */
+  imageUrl: string | null;
 };
 
-/** A single field belonging to a password entry (e.g. username, secret). */
+/** One historical value of a password field; the latest value is the last item. */
+export type PasswordFieldValue = {
+  /** Decrypted plaintext value. */
+  value: string;
+  /** ISO timestamp of when this value was set. */
+  createdAt: string;
+};
+
+/**
+ * A single field embedded in a password entry (e.g. username, secret).
+ *
+ * Fields have no id of their own: they are identified by their `position` within the password
+ * and are replaced as a whole list through the password endpoints.
+ */
 export type PasswordField = {
-  /** Unique identifier of the field. */
-  id: number;
   /** Label of the field. */
   name: string;
-  /** Whether the field has been marked as deleted. */
-  isDeleted: boolean;
-  /** Decrypted plaintext value of the field. */
-  valueDecrypted: string;
+  /** Zero-based position of the field within the password. */
+  position: number;
+  /** Value history of the field, oldest first. */
+  values: PasswordFieldValue[];
   /** ISO timestamp of when the field was created. */
   createdAt: string;
+  /** ISO timestamp of when the field was last updated. */
+  updatedAt: string;
+  /** ISO timestamp of when the field was deleted, or `null` when it is active. */
+  deletedAt: string | null;
 };
 
 /** A full password entry including all of its fields. */
 export type Password = {
-  /** Unique identifier of the password entry. */
-  id: number;
+  /** Unique identifier (UUID) of the password entry. */
+  id: string;
   /** Display name of the password entry. */
   name: string;
   /** ISO timestamp of when the entry was created. */
   createdAt: string;
-  /** URL of the icon/logo associated with the entry. */
-  imageUrl: string;
+  /** ISO timestamp of when the entry was last updated. */
+  updatedAt: string;
+  /** URL of the icon/logo associated with the entry, or `null` when none is set. */
+  imageUrl: string | null;
+  /** Unique identifier (UUID) of the user who owns the entry. */
+  userId: string;
   /** The fields (credentials/secrets) contained in this entry. */
   fields: PasswordField[];
 };
@@ -47,13 +66,15 @@ export type PasswordStore = {
   /** Sets the currently selected password, or clears it when passed `null`. */
   setCurrentPassword: (password: Password | null) => void;
   /** Removes the password with the given id from the list. */
-  removePassword: (id: number) => void;
+  removePassword: (id: string) => void;
   /** Appends a new password to the list. */
   addPassword: (password: PasswordSimple) => void;
-  /** Adds a field to the current password. */
-  addField: (field: PasswordField) => void;
-  /** Updates the field identified by `id` on the current password. */
-  updateField: (id: number, field: PasswordField) => void;
+  /**
+   * Stores a password returned by a create/update/patch call as the current password and syncs
+   * its `name` and `imageUrl` into the matching list entry, if any. Field changes go through this
+   * action, since the API returns the whole password with its updated fields.
+   */
+  updatePassword: (password: Password) => void;
   /** Resets the store to its empty state. */
   clearStore: () => void;
 };

@@ -5,4 +5,4 @@
 
 export { usePasswordsStore } from './passwordsStore';
 
-export type { Password, PasswordSimple, PasswordField } from './types';
+export type { Password, PasswordSimple, PasswordField, PasswordFieldValue } from './types';

@@ -6,7 +6,7 @@
 import { create } from 'zustand';
 import { devtools } from 'zustand/middleware';
 
-import type { Password, PasswordStore, PasswordSimple, PasswordField } from './types';
+import type { Password, PasswordStore, PasswordSimple } from './types';
 
 /**
  * Zustand store managing the list of passwords and the currently selected one.
@@ -25,7 +25,7 @@ export const usePasswordsStore = create<PasswordStore>()(
     setCurrentPassword: (password: Password | null) =>
       set({ currentPassword: password }, undefined, 'setCurrentPassword'),
     /** Removes the password with the given id from the list. */
-    removePassword: (id: number) =>
+    removePassword: (id: string) =>
       set(
         (state) => ({ passwords: state.passwords.filter((password) => password.id !== id) }),
         undefined,
@@ -34,32 +34,22 @@ export const usePasswordsStore = create<PasswordStore>()(
     /** Appends a new password to the list. */
     addPassword: (password: PasswordSimple) =>
       set((state) => ({ passwords: [...state.passwords, password] }), undefined, 'addPassword'),
-    /** Adds a field to the current password's list of fields. */
-    addField: (field: PasswordField) =>
+    /**
+     * Stores the API's updated password as the current one and syncs its `name`/`imageUrl` into
+     * the matching list entry. Fields are taken as-is from the API response.
+     */
+    updatePassword: (password: Password) =>
       set(
         (state) => ({
-          currentPassword: {
-            ...state.currentPassword,
-            fields: [...(state.currentPassword?.fields || []), field],
-          } as Password,
+          currentPassword: password,
+          passwords: state.passwords.map((item) =>
+            item.id === password.id
+              ? { ...item, name: password.name, imageUrl: password.imageUrl }
+              : item
+          ),
         }),
         undefined,
-        'addField'
-      ),
-    /** Appends `field` and marks the field matching `id` as deleted. */
-    updateField: (id: number, field: PasswordField) =>
-      set(
-        (state) => ({
-          currentPassword: {
-            ...state.currentPassword,
-            fields:
-              [...state.currentPassword!.fields, field].map((f) =>
-                f.id === id ? { ...f, isDeleted: true } : f
-              ) || [],
-          } as Password,
-        }),
-        undefined,
-        'updateField'
+        'updatePassword'
       ),
     /** Resets the store, clearing the list and the selected password. */
     clearStore: () => set({ passwords: [], currentPassword: null }, undefined, 'clearStore'),
