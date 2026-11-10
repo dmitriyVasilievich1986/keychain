@@ -117,7 +117,7 @@ describe('PasswordCard', () => {
     expect(screen.getByLabelText('New field name')).toBeInTheDocument();
   });
 
-  it('renders one accordion per active field in position order, without deleted fields', () => {
+  it('renders active fields in position order, then deleted fields in their own section', () => {
     usePasswordsStore.getState().setCurrentPassword(password);
 
     renderAt(`/password/${PASSWORD_ID}`);
@@ -126,9 +126,83 @@ describe('PasswordCard', () => {
       screen
         .getAllByRole('button', { name: / history$/ })
         .map((el) => el.getAttribute('aria-label'))
-    ).toEqual(['username history', 'password history']);
-    expect(screen.queryByDisplayValue('pin')).not.toBeInTheDocument();
-    expect(screen.queryByText('Deleted Fields')).not.toBeInTheDocument();
+    ).toEqual(['username history', 'password history', 'pin history']);
+    expect(screen.getByText('Deleted fields')).toBeInTheDocument();
+    expect(getFieldRow('pin').getByLabelText('Field name')).toHaveAttribute('readonly');
+    expect(getFieldRow('pin').getByRole('button', { name: 'Restore pin' })).toBeInTheDocument();
+  });
+
+  it('hides the deleted section when no field is deleted', () => {
+    usePasswordsStore
+      .getState()
+      .setCurrentPassword({ ...password, fields: password.fields.slice(0, 2) });
+
+    renderAt(`/password/${PASSWORD_ID}`);
+
+    expect(screen.queryByText('Deleted fields')).not.toBeInTheDocument();
+  });
+
+  it('marks a deleted field with deletedAt instead of removing it', async () => {
+    vi.useFakeTimers({ toFake: ['Date'], now: new Date('2026-05-01T00:00:00Z') });
+    patchPassword.mockResolvedValue({ ...password, updatedAt: '2026-05-01T00:00:00Z' });
+    usePasswordsStore.getState().setCurrentPassword(password);
+    const user = userEvent.setup();
+    renderAt(`/password/${PASSWORD_ID}`);
+
+    await user.click(screen.getByRole('button', { name: 'Delete password' }));
+
+    // Moved to the deleted section, but nothing is sent until Update.
+    expect(patchPassword).not.toHaveBeenCalled();
+    expect(getFieldRow('password').getByText('Will be deleted on update')).toBeInTheDocument();
+    expect(getUpdateButton()).toBeEnabled();
+
+    await user.click(getUpdateButton());
+
+    expect(patchPassword).toHaveBeenCalledWith(PASSWORD_ID, {
+      fields: [
+        { name: 'username', values: [{ value: 'alice-old' }, { value: 'alice' }], deletedAt: null },
+        {
+          name: 'password',
+          values: [{ value: 'hunter2' }],
+          deletedAt: '2026-05-01T00:00:00.000Z',
+        },
+        { name: 'pin', values: [{ value: '1234' }], deletedAt: '2026-01-03T00:00:00Z' },
+      ],
+    });
+    vi.useRealTimers();
+  });
+
+  it('restores a deleted field', async () => {
+    patchPassword.mockResolvedValue({ ...password, updatedAt: '2026-05-01T00:00:00Z' });
+    usePasswordsStore.getState().setCurrentPassword(password);
+    const user = userEvent.setup();
+    renderAt(`/password/${PASSWORD_ID}`);
+
+    await user.click(screen.getByRole('button', { name: 'Restore pin' }));
+    expect(screen.queryByText('Deleted fields')).not.toBeInTheDocument();
+    expect(getFieldRow('pin').getByLabelText('Field name')).not.toHaveAttribute('readonly');
+
+    await user.click(getUpdateButton());
+
+    expect(patchPassword).toHaveBeenCalledWith(PASSWORD_ID, {
+      fields: expect.arrayContaining([
+        { name: 'pin', values: [{ value: '1234' }], deletedAt: null },
+      ]),
+    });
+  });
+
+  it('drops a new, unsaved field when it is deleted', async () => {
+    usePasswordsStore.getState().setCurrentPassword(password);
+    const user = userEvent.setup();
+    renderAt(`/password/${PASSWORD_ID}`);
+
+    await user.type(screen.getByLabelText('New field name'), 'email');
+    await user.type(screen.getByLabelText('New field value'), 'a@example.com');
+    await user.click(screen.getByRole('button', { name: 'edit' }));
+    await user.click(screen.getByRole('button', { name: 'Delete email' }));
+
+    expect(screen.queryByRole('button', { name: 'email history' })).not.toBeInTheDocument();
+    expect(getUpdateButton()).toBeDisabled();
   });
 
   it('has a single update button, disabled until something changes', async () => {
@@ -169,9 +243,14 @@ describe('PasswordCard', () => {
     expect(patchPassword).toHaveBeenCalledTimes(1);
     expect(patchPassword).toHaveBeenCalledWith(PASSWORD_ID, {
       fields: [
-        { name: 'login', values: [{ value: 'alice-old' }, { value: 'alice' }] },
-        { name: 'password', values: [{ value: 'hunter2' }, { value: 'correct-horse' }] },
-        { name: 'email', values: [{ value: 'a@example.com' }] },
+        { name: 'login', values: [{ value: 'alice-old' }, { value: 'alice' }], deletedAt: null },
+        {
+          name: 'password',
+          values: [{ value: 'hunter2' }, { value: 'correct-horse' }],
+          deletedAt: null,
+        },
+        { name: 'pin', values: [{ value: '1234' }], deletedAt: '2026-01-03T00:00:00Z' },
+        { name: 'email', values: [{ value: 'a@example.com' }], deletedAt: null },
       ],
     });
     await waitFor(() => {

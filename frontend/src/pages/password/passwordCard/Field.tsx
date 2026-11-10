@@ -4,7 +4,9 @@
  */
 
 import ContentCopyIcon from '@mui/icons-material/ContentCopy';
+import DeleteOutlineIcon from '@mui/icons-material/DeleteOutlined';
 import ExpandMoreIcon from '@mui/icons-material/ExpandMore';
+import RestoreFromTrashIcon from '@mui/icons-material/RestoreFromTrash';
 import VisibilityIcon from '@mui/icons-material/Visibility';
 import VisibilityOffIcon from '@mui/icons-material/VisibilityOff';
 import Accordion from '@mui/material/Accordion';
@@ -14,6 +16,7 @@ import Divider from '@mui/material/Divider';
 import IconButton from '@mui/material/IconButton';
 import Stack from '@mui/material/Stack';
 import TextField from '@mui/material/TextField';
+import Tooltip from '@mui/material/Tooltip';
 import Typography from '@mui/material/Typography';
 import dayjs from 'dayjs';
 import { useState } from 'react';
@@ -111,22 +114,38 @@ function HistoryValue(props: { value: PasswordFieldValue }) {
 }
 
 /**
+ * Look of a deleted field: faded, struck-through text and a dashed outline, so it reads as
+ * inactive next to the editable fields.
+ */
+const DELETED_INPUT_SX = {
+  '& .MuiInputBase-input': { color: 'text.disabled', textDecoration: 'line-through' },
+  '& .MuiInputLabel-root': { color: 'text.disabled' },
+  '& .MuiOutlinedInput-notchedOutline': { borderStyle: 'dashed', borderColor: 'divider' },
+  '& .MuiIconButton-root': { color: 'text.disabled' },
+} as const;
+
+/**
  * Accordion for a single password field, controlled by the password card.
  *
  * The header holds the field's name and current value as editable inputs, laid out like the
- * add-field form. Edits are reported through `onChange` and saved by the card's single update
- * button; changed inputs use the secondary color. The accordion body lists the previous values,
- * newest first.
+ * add-field form, plus a button to delete the field. Edits are reported through `onChange` and
+ * saved by the card's single update button; changed inputs use the secondary color. A deleted
+ * field is read-only, faded and struck through, says when it was (or will be) deleted, and has a
+ * restore button instead. The accordion body lists the previous values, newest first.
  *
  * @param props - Component props.
  * @param props.draft - The field's editable state.
  * @param props.onChange - Called with the updated draft on every edit.
+ * @param props.onDelete - Called when the delete button is pressed.
+ * @param props.onRestore - Called when the restore button of a deleted field is pressed.
  * @param props.showErrors - Whether to highlight empty inputs (after a failed save attempt).
  * @returns The field accordion.
  */
 export function Field(props: {
   draft: FieldDraft;
   onChange: (draft: FieldDraft) => void;
+  onDelete: () => void;
+  onRestore: () => void;
   showErrors?: boolean;
 }) {
   const { draft } = props;
@@ -134,40 +153,89 @@ export function Field(props: {
   const savedValue = draft.field ? getCurrentValue(draft.field) : undefined;
   const history = draft.field ? getHistoryValues(draft.field) : [];
   const isNew = !draft.field;
+  const deletedAt = draft.field?.deletedAt;
+  const label = draft.name || 'New field';
 
   return (
-    <Accordion disableGutters sx={{ '&::before': { display: 'none' } }}>
+    <Accordion
+      disableGutters
+      sx={{
+        '&::before': { display: 'none' },
+        ...(draft.deleted && { opacity: 0.75, backgroundColor: 'action.hover' }),
+      }}
+    >
       <AccordionSummary
         expandIcon={<ExpandMoreIcon />}
-        aria-label={`${draft.name || 'New field'} history`}
+        aria-label={`${label} history`}
         sx={{ '& .MuiAccordionSummary-content': { margin: '0.75rem 0' } }}
       >
         {/* Keep clicks on the inputs and buttons from toggling the accordion. */}
         <Stack
-          spacing={2}
-          direction="row"
-          sx={{ alignItems: 'center', width: '100%', marginRight: '1rem' }}
+          spacing={1}
+          sx={{ width: '100%', marginRight: '1rem' }}
           onClick={(e) => e.stopPropagation()}
           onFocus={(e) => e.stopPropagation()}
         >
-          <TextField
-            label="Field name"
-            variant="outlined"
-            value={draft.name}
-            sx={NAME_INPUT_SX}
-            onChange={(e) => props.onChange({ ...draft, name: e.target.value })}
-            color={isNew || draft.name !== savedName ? 'secondary' : 'primary'}
-            error={props.showErrors && !draft.name}
-          />
-          <SecretInput
-            label="Field value"
-            value={draft.value}
-            copyValue={draft.value}
-            onChange={(value) => props.onChange({ ...draft, value })}
-            color={isNew || draft.value !== savedValue ? 'secondary' : 'primary'}
-            error={props.showErrors && !draft.value}
-            sx={VALUE_INPUT_SX}
-          />
+          <Stack spacing={2} direction="row" sx={{ alignItems: 'center' }}>
+            {draft.deleted ? (
+              <>
+                <TextField
+                  label="Field name"
+                  variant="outlined"
+                  value={draft.name}
+                  sx={{ ...NAME_INPUT_SX, ...DELETED_INPUT_SX }}
+                  slotProps={{ input: { readOnly: true } }}
+                />
+                <SecretInput
+                  label="Field value"
+                  value={draft.value}
+                  copyValue={draft.value}
+                  sx={{ ...VALUE_INPUT_SX, ...DELETED_INPUT_SX }}
+                />
+              </>
+            ) : (
+              <>
+                <TextField
+                  label="Field name"
+                  variant="outlined"
+                  value={draft.name}
+                  sx={NAME_INPUT_SX}
+                  onChange={(e) => props.onChange({ ...draft, name: e.target.value })}
+                  color={isNew || draft.name !== savedName ? 'secondary' : 'primary'}
+                  error={props.showErrors && !draft.name}
+                />
+                <SecretInput
+                  label="Field value"
+                  value={draft.value}
+                  copyValue={draft.value}
+                  onChange={(value) => props.onChange({ ...draft, value })}
+                  color={isNew || draft.value !== savedValue ? 'secondary' : 'primary'}
+                  error={props.showErrors && !draft.value}
+                  sx={VALUE_INPUT_SX}
+                />
+              </>
+            )}
+            {draft.deleted ? (
+              <Tooltip title="Restore field">
+                <IconButton aria-label={`Restore ${label}`} onClick={props.onRestore}>
+                  <RestoreFromTrashIcon />
+                </IconButton>
+              </Tooltip>
+            ) : (
+              <Tooltip title="Delete field">
+                <IconButton aria-label={`Delete ${label}`} color="error" onClick={props.onDelete}>
+                  <DeleteOutlineIcon />
+                </IconButton>
+              </Tooltip>
+            )}
+          </Stack>
+          {draft.deleted && (
+            <Typography variant="caption" color={deletedAt ? 'text.secondary' : 'error'}>
+              {deletedAt
+                ? `Deleted ${dayjs(deletedAt).format('YYYY-MM-DD HH:mm')}`
+                : 'Will be deleted on update'}
+            </Typography>
+          )}
         </Stack>
       </AccordionSummary>
       <AccordionDetails>

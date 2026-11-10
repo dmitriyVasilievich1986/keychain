@@ -19,10 +19,13 @@ export type PasswordFieldValueRequest = {
  *
  * @property {string} name - Label of the field (at least 1 character).
  * @property {PasswordFieldValueRequest[]} values - Values of the field, at least one; order is preserved.
+ * @property {string | null} [deletedAt] - ISO timestamp of when the field was deleted; send the
+ * existing timestamp to keep a field deleted, or omit/`null` for an active field.
  */
 export type PasswordFieldRequest = {
   name: string;
   values: PasswordFieldValueRequest[];
+  deletedAt?: string | null;
 };
 
 /**

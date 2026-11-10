@@ -5,6 +5,7 @@
 
 import Box from '@mui/material/Box';
 import Button from '@mui/material/Button';
+import Divider from '@mui/material/Divider';
 import Paper from '@mui/material/Paper';
 import Stack from '@mui/material/Stack';
 import Typography from '@mui/material/Typography';
@@ -21,8 +22,10 @@ import { AddField } from './AddField';
 import { Field } from './Field';
 import {
   createDrafts,
+  deleteDraft,
   isDraftChanged,
   isDraftValid,
+  restoreDraft,
   toFieldRequests,
   type FieldDraft,
 } from './fields';
@@ -33,9 +36,11 @@ const cx = classnames.bind(defaultStyle);
 /**
  * Body of the password card: header, editable fields, add-field form and the update button.
  *
- * Holds one draft per field so every edit (renames, new values, new fields) stays local until the
- * single update button sends them all in one `PATCH /api/v1/password/{id}`. A changed value is
- * appended to the field's history rather than replacing the current value. The parent remounts
+ * Holds one draft per field so every edit (renames, new values, new fields, deletions) stays local
+ * until the single update button sends them all in one `PATCH /api/v1/password/{id}`. A changed
+ * value is appended to the field's history rather than replacing the current value. Deleting a
+ * field only marks it as deleted (`deletedAt`), so it keeps its history and can be restored;
+ * deleted fields are listed in their own section below the active ones. The parent remounts
  * this component (via `key`) when the saved password changes, which resets the drafts.
  *
  * @param props - Component props.
@@ -53,17 +58,44 @@ function PasswordCardContent(props: { password: Password }) {
   const { updatePassword } = usePasswordsStore();
   const { patchPassword } = usePasswordAPIClient();
 
-  // New fields always count as changed, and fields cannot be removed, so this covers every edit.
+  // New fields always count as changed, and only new fields are ever removed from the drafts (a
+  // removed new field leaves nothing to save), so this covers every edit.
   const hasChanges = drafts.some(isDraftChanged);
+  const activeDrafts = drafts.filter((draft) => !draft.deleted);
+  const deletedDrafts = drafts.filter((draft) => draft.deleted);
 
   /** Replaces the draft with the same key. */
   const handleFieldChange = (next: FieldDraft) => {
     setDrafts((current) => current.map((draft) => (draft.key === next.key ? next : draft)));
   };
 
+  /**
+   * Marks the field as deleted, dropping its unsaved edits; an unsaved new field is removed.
+   * Nothing is sent until the update button is pressed.
+   */
+  const handleDeleteField = (key: string) => {
+    setDrafts((current) =>
+      current.flatMap((draft) => {
+        if (draft.key !== key) return [draft];
+        const deleted = deleteDraft(draft);
+        return deleted ? [deleted] : [];
+      })
+    );
+  };
+
+  /** Makes a deleted field active again. */
+  const handleRestoreField = (key: string) => {
+    setDrafts((current) =>
+      current.map((draft) => (draft.key === key ? restoreDraft(draft) : draft))
+    );
+  };
+
   /** Appends an unsaved field after the existing ones. */
   const handleAddField = (name: string, value: string) => {
-    setDrafts((current) => [...current, { key: `new-${newFieldCount}`, name, value, field: null }]);
+    setDrafts((current) => [
+      ...current,
+      { key: `new-${newFieldCount}`, name, value, deleted: false, field: null },
+    ]);
     setNewFieldCount((count) => count + 1);
   };
 
@@ -105,16 +137,36 @@ function PasswordCardContent(props: { password: Password }) {
         <Typography variant="h6">{password.name}</Typography>
       </Box>
       <Stack spacing={2} sx={{ marginTop: '2rem' }}>
-        {drafts.map((draft) => (
+        {activeDrafts.map((draft) => (
           <Field
             key={draft.key}
             draft={draft}
             onChange={handleFieldChange}
+            onDelete={() => handleDeleteField(draft.key)}
+            onRestore={() => handleRestoreField(draft.key)}
             showErrors={showErrors}
           />
         ))}
       </Stack>
       <AddField onAdd={handleAddField} />
+      {deletedDrafts.length > 0 && (
+        <Box sx={{ marginTop: '2rem' }}>
+          <Divider textAlign="left" sx={{ marginBottom: 2, color: 'text.disabled' }}>
+            <Typography variant="caption">Deleted fields</Typography>
+          </Divider>
+          <Stack spacing={2}>
+            {deletedDrafts.map((draft) => (
+              <Field
+                key={draft.key}
+                draft={draft}
+                onChange={handleFieldChange}
+                onDelete={() => handleDeleteField(draft.key)}
+                onRestore={() => handleRestoreField(draft.key)}
+              />
+            ))}
+          </Stack>
+        </Box>
+      )}
       <Stack direction="row" spacing={2} sx={{ marginTop: '2rem', alignItems: 'center' }}>
         <Button
           variant="contained"

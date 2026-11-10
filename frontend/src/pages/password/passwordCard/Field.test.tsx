@@ -31,6 +31,8 @@ const [draft] = createDrafts([field]);
 function ControlledField(props: {
   initial: FieldDraft;
   onChange?: (draft: FieldDraft) => void;
+  onDelete?: () => void;
+  onRestore?: () => void;
   showErrors?: boolean;
 }) {
   const [current, setCurrent] = useState(props.initial);
@@ -42,6 +44,8 @@ function ControlledField(props: {
         setCurrent(next);
         props.onChange?.(next);
       }}
+      onDelete={props.onDelete ?? (() => {})}
+      onRestore={props.onRestore ?? (() => {})}
     />
   );
 }
@@ -123,7 +127,9 @@ describe('Field', () => {
     unmount();
 
     render(
-      <ControlledField initial={{ key: 'new-0', name: 'email', value: 'a@b.c', field: null }} />
+      <ControlledField
+        initial={{ key: 'new-0', name: 'email', value: 'a@b.c', deleted: false, field: null }}
+      />
     );
     expect(screen.getByText('New field, not saved yet')).toBeInTheDocument();
   });
@@ -133,5 +139,42 @@ describe('Field', () => {
 
     expect(getNameInput()).toHaveAttribute('aria-invalid', 'true');
     expect(getValueInput()).toHaveAttribute('aria-invalid', 'true');
+  });
+
+  it('has a delete button for active fields', async () => {
+    const onDelete = vi.fn();
+    const user = userEvent.setup();
+    render(<ControlledField initial={draft} onDelete={onDelete} />);
+
+    expect(screen.queryByRole('button', { name: 'Restore username' })).not.toBeInTheDocument();
+    await user.click(screen.getByRole('button', { name: 'Delete username' }));
+
+    expect(onDelete).toHaveBeenCalledTimes(1);
+    expect(screen.getByRole('button', { name: 'username history' })).toHaveAttribute(
+      'aria-expanded',
+      'false'
+    );
+  });
+
+  it('shows a deleted field read-only and struck through, with a restore button', async () => {
+    const onRestore = vi.fn();
+    const user = userEvent.setup();
+    const [deleted] = createDrafts([{ ...field, deletedAt: '2026-03-01T10:00:00Z' }]);
+    render(<ControlledField initial={deleted} onRestore={onRestore} />);
+
+    expect(getNameInput()).toHaveAttribute('readonly');
+    expect(getValueInput()).toHaveAttribute('readonly');
+    expect(getNameInput()).toHaveStyle({ textDecoration: 'line-through' });
+    expect(screen.getByText(/^Deleted 2026-03-01/)).toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: 'Delete username' })).not.toBeInTheDocument();
+
+    await user.click(screen.getByRole('button', { name: 'Restore username' }));
+    expect(onRestore).toHaveBeenCalledTimes(1);
+  });
+
+  it('says a field deleted in the drafts is only removed on update', () => {
+    render(<ControlledField initial={{ ...draft, deleted: true }} />);
+
+    expect(screen.getByText('Will be deleted on update')).toBeInTheDocument();
   });
 });
