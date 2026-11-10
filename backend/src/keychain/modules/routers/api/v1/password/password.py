@@ -8,6 +8,7 @@ from uuid import UUID
 import structlog
 from fastapi import APIRouter, Body, Depends, HTTPException, Path, Query, status
 from google.api_core.exceptions import GoogleAPICallError, NotFound
+from pydantic import MISSING
 
 from keychain.modules.middlewares.dependencies import authorize_user, get_password_db, get_user_dek
 from keychain.modules.routers.models.base.metadata import PaginationMetadata
@@ -239,8 +240,8 @@ async def patch_password(
         current = await get_owned_password(password_dao, password_id, user)
         if current.deleted_at is not None:
             raise NotFound(f"Password {password_id} not found")
-        changes = body.model_dump(exclude_unset=True, exclude={"fields"})
-        if body.fields is not None:
+        changes = body.model_dump(exclude={"fields"})
+        if body.fields is not MISSING:
             changes["fields"] = build_fields(body.fields)
         password = await password_dao.update(str(password_id), **changes)
     except NotFound as e:
