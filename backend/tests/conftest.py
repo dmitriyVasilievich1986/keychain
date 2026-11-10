@@ -31,7 +31,7 @@ os.environ["CONFIG_FILE_PATH"] = str(BACKEND_DIR / "configurations" / "test.yaml
 os.environ["ENVIRONMENT"] = "test"
 os.environ.setdefault("FIRESTORE_EMULATOR_HOST", "localhost:8081")
 os.environ.setdefault("CRYPTOGRAPHY__SECRET_KEY", "WcrmZ43_lZNqollPA7g_Bt8pKZq2YBr69OFSjQ0V710=")
-os.environ.setdefault("AUTH__JWT_SECRET_KEY", "test-secret")
+os.environ.setdefault("AUTH__JWT_SECRET_KEY", "3wmy==J2Dy#hv!762xaN*_afh6SBpJDy")
 
 import pytest  # noqa: E402
 import pytest_asyncio  # noqa: E402
