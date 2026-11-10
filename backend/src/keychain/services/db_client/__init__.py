@@ -1,5 +1,5 @@
 """Database clients for async database operations."""
 
-__all__ = ("DBClient",)
+__all__ = ("FirestoreClient",)
 
-from .client import DBClient
+from .firestore import FirestoreClient

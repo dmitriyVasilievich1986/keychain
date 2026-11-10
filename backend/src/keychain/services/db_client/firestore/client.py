@@ -4,12 +4,14 @@ __all__ = ("FirestoreClient",)
 
 import asyncio
 
+import structlog
 from google.cloud.firestore import AsyncClient, AsyncCollectionReference
-from loguru import logger
 
 from keychain.config.models.db.firestore import FirestoreConfig
 from keychain.config.models.google import GoogleConfig
 from keychain.utils.singleton import Singleton
+
+logger = structlog.stdlib.get_logger(__name__)
 
 
 class FirestoreClient(metaclass=Singleton):
@@ -47,8 +49,9 @@ class FirestoreClient(metaclass=Singleton):
             raise RuntimeError("Firestore and Google configs are required")
 
         logger.info(
-            f"Initializing Firestore client for project {google_config.project_id!r}, "
-            f"database {firestore_config.db_name!r}",
+            "Initializing Firestore client",
+            project_id=google_config.project_id,
+            database=firestore_config.db_name,
         )
 
         self._client = AsyncClient(
@@ -107,10 +110,10 @@ class FirestoreClient(metaclass=Singleton):
             async with asyncio.timeout(self._healthcheck_timeout_seconds):
                 await self.collection.limit(1).get()
         except TimeoutError:
-            logger.error(f"Firestore health check timed out after {self._healthcheck_timeout_seconds}s")
+            logger.error("Firestore health check timed out", timeout_seconds=self._healthcheck_timeout_seconds)
             return False
         except Exception as e:
-            logger.error(f"Firestore health check failed: {e}")
+            logger.error("Firestore health check failed", error=str(e))
             return False
 
         return True
