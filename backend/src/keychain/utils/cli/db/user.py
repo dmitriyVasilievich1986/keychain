@@ -217,7 +217,8 @@ async def reset_password(ctx: click.Context, user_id: UUID, old_password: str, p
     This command changes the password for an existing user identified by their
     ID and outputs the updated user information as JSON. The user's data stays
     readable because their data encryption key is re-wrapped with the new
-    password.
+    password. A warning reminding the user to log out and log in again to get
+    a new access token is printed to stderr.
 
     Args:
         ctx (click.Context): Click context object containing the user DAO.
@@ -245,6 +246,11 @@ async def reset_password(ctx: click.Context, user_id: UUID, old_password: str, p
 
     user_response = UserGetResponseModel.model_validate(user)
     click.echo(user_response.model_dump_json(indent=2))
+    click.echo(
+        f"{Fore.YELLOW}Password changed. Log out and log in to the application again "
+        f"to get a new access token.{Style.RESET_ALL}",
+        err=True,
+    )
 
 
 @user.command(help="Reset a user's password without the current one. DELETES all of the user's fields")
@@ -266,7 +272,9 @@ async def force_reset_password(ctx: click.Context, user_id: UUID, password: str)
 
     The user's data encryption key cannot be recovered without the current
     password, so all of the user's fields are permanently deleted and a new
-    key is generated. Outputs the updated user information as JSON.
+    key is generated. Outputs the updated user information as JSON and prints
+    a warning to stderr to log out and log in again, since access tokens
+    issued earlier still hold the old key.
 
     Args:
         ctx (click.Context): Click context object containing the user DAO.
@@ -283,3 +291,9 @@ async def force_reset_password(ctx: click.Context, user_id: UUID, password: str)
     user = await user_dao.force_reset_password(str(user_id), password, build_password_dao(config))
     user_response = UserGetResponseModel.model_validate(user)
     click.echo(user_response.model_dump_json(indent=2))
+    click.echo(
+        f"{Fore.YELLOW}Password reset and a new encryption key generated. Log out of the application on every "
+        f"device and log in again: values saved with an older access token use the discarded key and can "
+        f"never be decrypted.{Style.RESET_ALL}",
+        err=True,
+    )
