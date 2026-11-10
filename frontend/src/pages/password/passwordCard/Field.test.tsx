@@ -1,131 +1,137 @@
 /**
- * Tests for Field: visibility toggle, copy to clipboard, and saving edits.
+ * Tests for Field: editing the name and current value, visibility/copy actions, and the history
+ * list.
  */
 
 import { cleanup, render, screen, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
-import { afterEach, beforeEach, describe, expect, it, vi } from 'vite-plus/test';
+import { useState } from 'react';
+import { afterEach, describe, expect, it, vi } from 'vite-plus/test';
 
-import { usePasswordsStore, type PasswordField } from '@store/passwords';
-import { useUserStore } from '@store/user';
+import { type PasswordField } from '@store/passwords';
 
 import { Field } from './Field';
-
-const { putField } = vi.hoisted(() => ({ putField: vi.fn() }));
-
-vi.mock('@utils/apiClient/field', () => ({
-  useFieldAPIClient: () => ({ putField }),
-}));
+import { createDrafts, type FieldDraft } from './fields';
 
 const field: PasswordField = {
-  id: 1,
   name: 'username',
-  isDeleted: false,
-  valueDecrypted: 'alice',
-  createdAt: '2026-01-01T00:00:00Z',
+  position: 0,
+  values: [
+    { value: 'alice-old', createdAt: '2026-01-01T10:00:00Z' },
+    { value: 'alice', createdAt: '2026-02-01T10:00:00Z' },
+  ],
+  createdAt: '2026-01-01T10:00:00Z',
+  updatedAt: '2026-02-01T10:00:00Z',
+  deletedAt: null,
 };
 
-function getInput() {
-  return screen.getByLabelText('username');
+const [draft] = createDrafts([field]);
+
+/** Renders Field with local draft state, reporting every change to `onChange`. */
+function ControlledField(props: {
+  initial: FieldDraft;
+  onChange?: (draft: FieldDraft) => void;
+  showErrors?: boolean;
+}) {
+  const [current, setCurrent] = useState(props.initial);
+  return (
+    <Field
+      draft={current}
+      showErrors={props.showErrors}
+      onChange={(next) => {
+        setCurrent(next);
+        props.onChange?.(next);
+      }}
+    />
+  );
 }
 
-function getSaveButton() {
-  return screen.getByRole('button', { name: 'edit' });
+function getNameInput() {
+  return screen.getByLabelText('Field name');
+}
+
+function getValueInput() {
+  return screen.getByLabelText('Field value');
 }
 
 describe('Field', () => {
-  beforeEach(() => {
-    putField.mockReset();
-    useUserStore.setState({ isLoading: false });
-    usePasswordsStore.getState().setCurrentPassword({
-      id: 7,
-      name: 'GitHub',
-      createdAt: '2026-01-01T00:00:00Z',
-      imageUrl: 'github.png',
-      fields: [field],
-    });
-  });
-
   afterEach(() => {
     cleanup();
   });
 
-  it('shows the value masked with saving disabled until it changes', () => {
-    render(<Field field={field} />);
+  it('shows the name and the masked current value', () => {
+    render(<ControlledField initial={draft} />);
 
-    expect(getInput()).toHaveValue('alice');
-    expect(getInput()).toHaveAttribute('type', 'password');
-    expect(getSaveButton()).toBeDisabled();
+    expect(getNameInput()).toHaveValue('username');
+    expect(getValueInput()).toHaveValue('alice');
+    expect(getValueInput()).toHaveAttribute('type', 'password');
   });
 
-  it('toggles the value visibility', async () => {
+  it('reports name and value edits', async () => {
+    const onChange = vi.fn();
     const user = userEvent.setup();
-    render(<Field field={field} />);
+    render(<ControlledField initial={draft} onChange={onChange} />);
 
-    await user.click(screen.getByTestId('VisibilityOffIcon'));
-    expect(getInput()).toHaveAttribute('type', 'text');
+    await user.clear(getNameInput());
+    await user.type(getNameInput(), 'login');
+    await user.clear(getValueInput());
+    await user.type(getValueInput(), 'bob');
+
+    expect(onChange).toHaveBeenLastCalledWith({ ...draft, name: 'login', value: 'bob' });
+  });
+
+  it('toggles the value visibility without expanding the accordion', async () => {
+    const user = userEvent.setup();
+    render(<ControlledField initial={draft} />);
+    const toggle = screen.getByRole('button', { name: 'username history' });
+
+    await user.click(screen.getAllByTestId('VisibilityOffIcon')[0]);
+    expect(getValueInput()).toHaveAttribute('type', 'text');
+    expect(toggle).toHaveAttribute('aria-expanded', 'false');
 
     await user.click(screen.getByTestId('VisibilityIcon'));
-    expect(getInput()).toHaveAttribute('type', 'password');
+    expect(getValueInput()).toHaveAttribute('type', 'password');
   });
 
-  it('copies the decrypted value to the clipboard', async () => {
+  it('copies the current value to the clipboard', async () => {
     const user = userEvent.setup();
-    render(<Field field={field} />);
+    render(<ControlledField initial={draft} />);
 
-    await user.click(screen.getByTestId('ContentCopyIcon'));
+    await user.click(screen.getAllByTestId('ContentCopyIcon')[0]);
 
     await expect(navigator.clipboard.readText()).resolves.toBe('alice');
   });
 
-  it('saves an edited value and syncs the store', async () => {
-    const updated = { ...field, id: 3, valueDecrypted: 'bob' };
-    putField.mockResolvedValue(updated);
+  it('lists previous values read-only inside the accordion', async () => {
     const user = userEvent.setup();
-    render(<Field field={field} />);
+    render(<ControlledField initial={draft} />);
+    const history = screen.getByDisplayValue('alice-old');
+    expect(history).not.toBeVisible();
 
-    await user.clear(getInput());
-    await user.type(getInput(), 'bob');
-    await user.click(getSaveButton());
+    await user.click(screen.getByRole('button', { name: 'username history' }));
 
-    expect(putField).toHaveBeenCalledWith(1, { value: 'bob' });
     await waitFor(() => {
-      expect(usePasswordsStore.getState().currentPassword?.fields).toEqual([
-        { ...field, isDeleted: true },
-        updated,
-      ]);
+      expect(history).toBeVisible();
     });
-    expect(getInput()).toHaveValue('bob');
+    expect(history).toHaveAttribute('readonly');
   });
 
-  it('requires a value before saving', async () => {
-    const user = userEvent.setup();
-    render(<Field field={field} />);
+  it('shows placeholders for fields without history and for new fields', () => {
+    const [single] = createDrafts([{ ...field, values: [field.values[1]] }]);
+    const { unmount } = render(<ControlledField initial={single} />);
+    expect(screen.getByText('No previous values')).toBeInTheDocument();
+    unmount();
 
-    await user.clear(getInput());
-    await user.click(getSaveButton());
-
-    expect(screen.getByText('Please fill in all fields')).toBeInTheDocument();
-    expect(putField).not.toHaveBeenCalled();
+    render(
+      <ControlledField initial={{ key: 'new-0', name: 'email', value: 'a@b.c', field: null }} />
+    );
+    expect(screen.getByText('New field, not saved yet')).toBeInTheDocument();
   });
 
-  it('shows an error when saving fails', async () => {
-    const consoleError = vi.spyOn(console, 'error').mockImplementation(() => {});
-    putField.mockRejectedValue(new Error('server error'));
-    const user = userEvent.setup();
-    render(<Field field={field} />);
+  it('marks empty inputs as errors when requested', () => {
+    render(<ControlledField initial={{ ...draft, name: '', value: '' }} showErrors />);
 
-    await user.type(getInput(), '2');
-    await user.click(getSaveButton());
-
-    expect(await screen.findByText('Failed to update field')).toBeInTheDocument();
-    consoleError.mockRestore();
-  });
-
-  it('renders deleted fields read-only without a save button', () => {
-    render(<Field field={{ ...field, isDeleted: true }} />);
-
-    expect(getInput()).toBeDisabled();
-    expect(screen.queryByRole('button', { name: 'edit' })).not.toBeInTheDocument();
+    expect(getNameInput()).toHaveAttribute('aria-invalid', 'true');
+    expect(getValueInput()).toHaveAttribute('aria-invalid', 'true');
   });
 });

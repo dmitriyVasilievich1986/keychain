@@ -3,44 +3,151 @@
  * It is used to render the detail card for the password selected via the `:passwordId` route param.
  */
 
-import ExpandMoreIcon from '@mui/icons-material/ExpandMore';
-import Accordion from '@mui/material/Accordion';
-import AccordionDetails from '@mui/material/AccordionDetails';
-import AccordionSummary from '@mui/material/AccordionSummary';
 import Box from '@mui/material/Box';
+import Button from '@mui/material/Button';
 import Paper from '@mui/material/Paper';
-import Skeleton from '@mui/material/Skeleton';
 import Stack from '@mui/material/Stack';
 import Typography from '@mui/material/Typography';
 import classnames from 'classnames/bind';
-import { useEffect } from 'react';
+import { useEffect, useState } from 'react';
 import { useParams } from 'react-router';
 
 import { Image } from '@components/image';
-import { usePasswordsStore } from '@store/passwords';
+import { usePasswordsStore, type Password } from '@store/passwords';
 import { useUserStore } from '@store/user';
 import { usePasswordAPIClient } from '@utils/apiClient/password';
 
 import { AddField } from './AddField';
 import { Field } from './Field';
+import {
+  createDrafts,
+  isDraftChanged,
+  isDraftValid,
+  toFieldRequests,
+  type FieldDraft,
+} from './fields';
 import * as defaultStyle from './style.scss';
 
 const cx = classnames.bind(defaultStyle);
 
 /**
+ * Body of the password card: header, editable fields, add-field form and the update button.
+ *
+ * Holds one draft per field so every edit (renames, new values, new fields) stays local until the
+ * single update button sends them all in one `PATCH /api/v1/password/{id}`. A changed value is
+ * appended to the field's history rather than replacing the current value. The parent remounts
+ * this component (via `key`) when the saved password changes, which resets the drafts.
+ *
+ * @param props - Component props.
+ * @param props.password - The saved password being edited.
+ * @returns The card body.
+ */
+function PasswordCardContent(props: { password: Password }) {
+  const { password } = props;
+  const [drafts, setDrafts] = useState<FieldDraft[]>(() => createDrafts(password.fields));
+  const [newFieldCount, setNewFieldCount] = useState(0);
+  const [error, setError] = useState<string>('');
+  const [showErrors, setShowErrors] = useState(false);
+
+  const { isLoading } = useUserStore();
+  const { updatePassword } = usePasswordsStore();
+  const { patchPassword } = usePasswordAPIClient();
+
+  // New fields always count as changed, and fields cannot be removed, so this covers every edit.
+  const hasChanges = drafts.some(isDraftChanged);
+
+  /** Replaces the draft with the same key. */
+  const handleFieldChange = (next: FieldDraft) => {
+    setDrafts((current) => current.map((draft) => (draft.key === next.key ? next : draft)));
+  };
+
+  /** Appends an unsaved field after the existing ones. */
+  const handleAddField = (name: string, value: string) => {
+    setDrafts((current) => [...current, { key: `new-${newFieldCount}`, name, value, field: null }]);
+    setNewFieldCount((count) => count + 1);
+  };
+
+  /**
+   * Saves all drafts in one patch request. Requires every field to have a name and a value. On
+   * success the store is synced with the returned password (which resets the drafts); on failure
+   * the drafts are kept and an error message is shown.
+   */
+  const handleUpdate = () => {
+    if (isLoading || !hasChanges) return;
+    if (!drafts.every(isDraftValid)) {
+      setShowErrors(true);
+      setError('Please fill in all fields');
+      return;
+    }
+    setShowErrors(false);
+    setError('');
+    patchPassword(password.id, { fields: toFieldRequests(drafts) })
+      .then((response) => {
+        updatePassword(response);
+      })
+      .catch((err) => {
+        console.error(err);
+        setError('Failed to update password');
+      });
+  };
+
+  return (
+    <Paper elevation={10} sx={{ padding: '1rem' }}>
+      <Box className={cx('password-card-header')}>
+        {password.imageUrl && (
+          <Image
+            src={`${import.meta.env.VITE_IMAGES_HOST}/${password.imageUrl}`}
+            alt={password.name}
+            width={25}
+            height={25}
+          />
+        )}
+        <Typography variant="h6">{password.name}</Typography>
+      </Box>
+      <Stack spacing={2} sx={{ marginTop: '2rem' }}>
+        {drafts.map((draft) => (
+          <Field
+            key={draft.key}
+            draft={draft}
+            onChange={handleFieldChange}
+            showErrors={showErrors}
+          />
+        ))}
+      </Stack>
+      <AddField onAdd={handleAddField} />
+      <Stack direction="row" spacing={2} sx={{ marginTop: '2rem', alignItems: 'center' }}>
+        <Button
+          variant="contained"
+          color="secondary"
+          onClick={handleUpdate}
+          disabled={!hasChanges}
+          loading={isLoading}
+        >
+          Update
+        </Button>
+        {error && (
+          <Typography variant="body2" color="error">
+            {error}
+          </Typography>
+        )}
+      </Stack>
+    </Paper>
+  );
+}
+
+/**
  * Detail card for the password selected via the `:passwordId` route param.
  *
- * Fetches the password when the route changes, shows a skeleton while loading,
- * and renders the password header, its active fields, an add-field form, and a
- * collapsible section listing deleted fields. Renders nothing when no password
- * is selected.
+ * Fetches the password when the route changes and renders the card body for it. Each field is an
+ * accordion with editable name and current value in the header and the value history inside;
+ * all changes are saved together with a single update button. Renders nothing when no password is
+ * selected.
  *
- * @returns The password detail card, a loading skeleton, or `null`.
+ * @returns The password detail card, or `null`.
  */
 export function PasswordCard() {
   const { passwordId } = useParams();
   const { currentPassword, setCurrentPassword } = usePasswordsStore();
-  const { isLoading } = useUserStore();
   const { getPassword } = usePasswordAPIClient();
 
   // Loads the selected password when the route param changes, clearing it when
@@ -50,8 +157,8 @@ export function PasswordCard() {
       setCurrentPassword(null);
       return;
     }
-    if (currentPassword !== null && currentPassword.id === parseInt(passwordId)) return;
-    getPassword(parseInt(passwordId))
+    if (currentPassword !== null && currentPassword.id === passwordId) return;
+    getPassword(passwordId)
       .then((response) => {
         setCurrentPassword(response);
       })
@@ -61,49 +168,14 @@ export function PasswordCard() {
   }, [passwordId, currentPassword]);
 
   if (!currentPassword) return null;
-  if (isLoading) {
-    return (
-      <Box sx={{ padding: '1rem' }}>
-        <Skeleton variant="rectangular" width="100%" height={400} />
-      </Box>
-    );
-  }
 
   return (
     <Box sx={{ padding: '1rem' }}>
-      <Paper elevation={10} sx={{ padding: '1rem' }}>
-        <Box className={cx('password-card-header')}>
-          <Image
-            src={`${import.meta.env.VITE_IMAGES_HOST}/${currentPassword.imageUrl}`}
-            alt={currentPassword.name}
-            width={25}
-            height={25}
-          />
-          <Typography variant="h6">{currentPassword.name}</Typography>
-        </Box>
-        <Stack spacing={2} sx={{ marginTop: '2rem' }}>
-          {currentPassword.fields
-            .filter((f) => !f.isDeleted)
-            .map((f) => (
-              <Field key={f.id} field={f} />
-            ))}
-        </Stack>
-        <AddField />
-        <Accordion sx={{ '&::before': { display: 'none' }, marginTop: '2rem' }}>
-          <AccordionSummary expandIcon={<ExpandMoreIcon />}>
-            <Typography>Deleted Fields</Typography>
-          </AccordionSummary>
-          <AccordionDetails>
-            <Stack spacing={2} sx={{ marginTop: '2rem' }}>
-              {currentPassword.fields
-                .filter((f) => f.isDeleted)
-                .map((f) => (
-                  <Field key={f.id} field={f} />
-                ))}
-            </Stack>
-          </AccordionDetails>
-        </Accordion>
-      </Paper>
+      {/* Remount on every saved change so the drafts start from the saved password. */}
+      <PasswordCardContent
+        key={`${currentPassword.id}-${currentPassword.updatedAt}`}
+        password={currentPassword}
+      />
     </Box>
   );
 }
