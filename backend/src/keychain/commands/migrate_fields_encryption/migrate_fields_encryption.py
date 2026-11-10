@@ -2,15 +2,14 @@
 
 __all__ = ("MigrateFieldsEncryptionCommand",)
 
+from datetime import datetime, timezone
+
 import structlog
-from sqlalchemy import select
+from google.cloud.firestore_v1.base_query import FieldFilter
 
 from keychain.services.cryptography.client import CryptographyClient
-from keychain.services.daos import InvalidPasswordError, UserDAO
-from keychain.services.db_client.client import DBClient
-from keychain.services.db_client.models.field import Field
-from keychain.services.db_client.models.password import Password
-from keychain.services.db_client.models.user import User
+from keychain.services.daos import InvalidPasswordError, PasswordDAO, UserDAO
+from keychain.services.daos.firestore.models import Field, Password, User
 
 from ..base import BaseCommand
 
@@ -21,24 +20,34 @@ class MigrateFieldsEncryptionCommand(BaseCommand[User]):
     """Command that moves a legacy user to per-user field encryption.
 
     Users created before per-user encryption keys were introduced have no
-    ``encryption_salt``/``wrapped_dek`` and their fields are encrypted with the
-    application-wide secret key. This command generates the user's keys from
-    their password and re-encrypts every field they own (including
-    soft-deleted ones) in a single transaction. The user's password is
-    required because the new key is wrapped with it.
+    ``encryption_salt``/``wrapped_dek`` and their field values are encrypted
+    with the application-wide secret key. This command generates the user's
+    keys from their password and re-encrypts every field value of every
+    password they own (including soft-deleted ones and the value history) in
+    a single atomic batch. The user's password is required because the new
+    key is wrapped with it.
     """
 
-    def __init__(self, db_client: DBClient, user_id: int, password: str):
+    def __init__(self, user_dao: UserDAO, password_dao: PasswordDAO, user_id: str, password: str):
         """Initialize the migration command.
 
         Args:
-            db_client (DBClient): The database client used to access the user
-                and their fields.
-            user_id (int): The unique identifier of the user to migrate.
+            user_dao (UserDAO): DAO for the users collection.
+            password_dao (PasswordDAO): DAO for the passwords collection. It
+                must not hold a data encryption key, so it reads the stored
+                ciphertext as is.
+            user_id (str): The unique identifier of the user to migrate.
             password (str): The user's current plaintext password.
 
+        Raises:
+            ValueError: If ``password_dao`` holds a data encryption key.
+
         """
-        self.db_client = db_client
+        if password_dao.dek is not None:
+            raise ValueError("The password DAO must not hold a data encryption key")
+
+        self.user_dao = user_dao
+        self.password_dao = password_dao
         self.user_id = user_id
         self.password = password
 
@@ -63,13 +72,12 @@ class MigrateFieldsEncryptionCommand(BaseCommand[User]):
             None
 
         Raises:
-            sqlalchemy.exc.NoResultFound: If the user does not exist.
+            NotFound: If the user does not exist.
             ValueError: If the user already has per-user encryption keys.
             InvalidPasswordError: If the password is incorrect.
 
         """
-        user = await UserDAO(self.db_client).get_by_pk(self.user_id)
-        self._validate_user(user)
+        self._validate_user(await self.user_dao.get_by_id(self.user_id))
 
     def _validate_user(self, user: User) -> None:
         """Validate that the user can be migrated with the given password.
@@ -88,42 +96,74 @@ class MigrateFieldsEncryptionCommand(BaseCommand[User]):
         if not user.verify_password(self.password):
             raise InvalidPasswordError("Invalid password")
 
-    async def execute(self, *_, **__) -> User:
-        """Re-encrypt the user's fields with a new per-user key.
+    @staticmethod
+    def _reencrypt_field(field: Field, client: CryptographyClient, dek: bytes) -> Field:
+        """Re-encrypt every value of a field from the legacy key to ``dek``.
 
-        The user is re-validated inside the transaction, so a concurrent
-        migration cannot run twice.
+        Args:
+            field (Field): The field with values encrypted by the legacy key.
+            client (CryptographyClient): Client used for the conversion.
+            dek (bytes): The user's new data encryption key.
+
+        Returns:
+            Field: A copy of the field with every value encrypted by ``dek``.
+
+        Raises:
+            cryptography.fernet.InvalidToken: If a value was not encrypted with
+                the application-wide key.
+
+        """
+        values = [
+            value.model_copy(
+                update={"value": client.encrypt(client.legacy_decrypt(value.value), dek)}  # ty: ignore[deprecated]
+            )
+            for value in field.values
+        ]
+        return field.model_copy(update={"values": values})
+
+    async def execute(self, *_, **__) -> User:
+        """Re-encrypt the user's field values with a new per-user key.
+
+        The user is re-validated right before writing. Every value is
+        converted before anything is written, so a value that cannot be
+        decrypted aborts the migration without changes.
 
         Args:
             *args: Unused positional arguments.
             **kwargs: Unused keyword arguments.
 
         Returns:
-            User: The migrated user record.
+            User: The migrated user.
 
         Raises:
+            NotFound: If the user does not exist.
             ValueError: If the user already has per-user encryption keys.
             InvalidPasswordError: If the password is incorrect.
+            cryptography.fernet.InvalidToken: If a stored value was not
+                encrypted with the application-wide key.
 
         """
         client = CryptographyClient()
+        user = await self.user_dao.get_by_id(self.user_id)
+        self._validate_user(user)
 
-        async with self.db_client.session_factory() as session:
-            user_dao = UserDAO(session=session, database_client=None)
-            user = (await session.execute(select(User).where(User.id == self.user_id).with_for_update())).scalar_one()
-            self._validate_user(user)
+        keys = client.create_user_keys(self.password)
+        now = datetime.now(timezone.utc)
+        batch = self.user_dao.firestore_client.client.batch()
 
-            keys = client.create_user_keys(self.password)
+        snapshots = await self.password_dao.collection.where(filter=FieldFilter("user_id", "==", user.id)).get()
+        migrated_count = 0
+        for snapshot in snapshots:
+            password: Password = self.password_dao.to_model(snapshot)
+            fields = [self._reencrypt_field(field, client, keys.dek) for field in password.fields]
+            migrated_count += sum(len(field.values) for field in fields)
+            batch.update(snapshot.reference, {"fields": [field.model_dump() for field in fields], "updated_at": now})
 
-            fields = (await session.execute(select(Field).join(Password).where(Password.user_id == user.id))).scalars()
-            migrated_count = 0
-            for field in fields:
-                field.value = client.encrypt(client.legacy_decrypt(field.value), keys.dek)  # ty: ignore[deprecated]
-                migrated_count += 1
+        batch.update(
+            self.user_dao.collection.document(user.id),
+            {"encryption_salt": keys.salt, "wrapped_dek": keys.wrapped_dek, "updated_at": now},
+        )
+        await batch.commit()
 
-            user.encryption_salt = keys.salt
-            user.wrapped_dek = keys.wrapped_dek
-            await session.commit()
-
-            logger.info("Migrated user fields to per-user encryption", user_id=user.id, fields=migrated_count)
-            return await user_dao.get_by_pk(user.id)
+        logger.info("Migrated user fields to per-user encryption", user_id=user.id, values=migrated_count)
+        return await self.user_dao.get_by_id(user.id)
