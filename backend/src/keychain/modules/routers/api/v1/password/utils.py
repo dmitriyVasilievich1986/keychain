@@ -37,7 +37,8 @@ def build_fields(fields: list[PasswordFieldCreate]) -> list[Field]:
 
     Args:
         fields (list[PasswordFieldCreate]): The requested fields; their order
-            in the list defines their position.
+            in the list defines their position; a field's ``deleted_at`` is kept,
+            so deleted fields stay soft-deleted.
 
     Returns:
         list[Field]: The Firestore field models.
@@ -48,6 +49,7 @@ def build_fields(fields: list[PasswordFieldCreate]) -> list[Field]:
             name=field.name,
             position=position,
             values=[FieldValue(value=field_value.value) for field_value in field.values],
+            deleted_at=field.deleted_at,
         )
         for position, field in enumerate(fields)
     ]

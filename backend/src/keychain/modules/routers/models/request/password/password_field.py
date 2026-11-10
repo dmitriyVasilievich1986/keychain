@@ -2,6 +2,8 @@
 
 __all__ = ("PasswordFieldCreate", "PasswordFieldValueCreate")
 
+from datetime import datetime
+
 from pydantic import Field
 
 from keychain.modules.routers.models.base.request import BaseRequestModel
@@ -21,4 +23,9 @@ class PasswordFieldCreate(BaseRequestModel):
         ...,
         description="The values of the field; their order in the list is preserved",
         min_length=1,
+    )
+    deleted_at: datetime | None = Field(
+        None,
+        description="When the field was deleted; send the existing timestamp to keep a field deleted, "
+        "or null for an active field",
     )
