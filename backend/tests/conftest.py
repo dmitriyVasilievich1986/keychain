@@ -1,10 +1,10 @@
 """Shared pytest fixtures for the keychain backend test-suite.
 
 Tests run against the Firestore emulator, never a real GCP project.
-``FIRESTORE_EMULATOR_HOST`` defaults to ``localhost:8080``; start the emulator
+``FIRESTORE_EMULATOR_HOST`` defaults to ``localhost:8081``; start the emulator
 with::
 
-    gcloud emulators firestore start --host-port=localhost:8080
+    gcloud emulators firestore start --host-port=localhost:8081
 
 Every test gets a fresh :class:`FirestoreClient` (its gRPC channel is bound to
 the test's event loop) and its own uniquely named collections, which are
@@ -29,7 +29,7 @@ TEST_PROJECT_ID = "keychain-test"
 # always set so the Firestore client can never reach a real project.
 os.environ["CONFIG_FILE_PATH"] = str(BACKEND_DIR / "configurations" / "test.yaml")
 os.environ["ENVIRONMENT"] = "test"
-os.environ.setdefault("FIRESTORE_EMULATOR_HOST", "localhost:8080")
+os.environ.setdefault("FIRESTORE_EMULATOR_HOST", "localhost:8081")
 os.environ.setdefault("CRYPTOGRAPHY__SECRET_KEY", "WcrmZ43_lZNqollPA7g_Bt8pKZq2YBr69OFSjQ0V710=")
 os.environ.setdefault("AUTH__JWT_SECRET_KEY", "test-secret")
 

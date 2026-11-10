@@ -192,8 +192,8 @@ Firestore needs no migrations: collections are created on first write.
 To develop without a GCP project, start the emulator and point the client at it:
 
 ```bash
-gcloud emulators firestore start --host-port=localhost:8080
-export FIRESTORE_EMULATOR_HOST=localhost:8080  # or add it to .env
+gcloud emulators firestore start --host-port=localhost:8081
+export FIRESTORE_EMULATOR_HOST=localhost:8081  # or add it to .env
 ```
 
 When `FIRESTORE_EMULATOR_HOST` is set, no credentials are needed and nothing reaches GCP.
@@ -407,10 +407,10 @@ ruff check --fix .
 
 ### Testing
 
-Tests run against the Firestore emulator (`FIRESTORE_EMULATOR_HOST`, default `localhost:8080`):
+Tests run against the Firestore emulator (`FIRESTORE_EMULATOR_HOST`, default `localhost:8081`):
 
 ```bash
-gcloud emulators firestore start --host-port=localhost:8080
+gcloud emulators firestore start --host-port=localhost:8081
 uv run --env-file=.env pytest
 ```
 
