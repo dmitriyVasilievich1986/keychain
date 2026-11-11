@@ -121,6 +121,42 @@ export function restoreDraft(draft: FieldDraft): FieldDraft {
 }
 
 /**
+ * Moves an active draft one place up or down among the active drafts.
+ *
+ * Deleted drafts are listed in their own section, so they are skipped: the draft swaps places with
+ * the nearest active draft in the given direction, and deleted drafts keep their place in the list.
+ * The list order is what defines each field's `position` when it is saved.
+ *
+ * @param drafts - All drafts, in position order.
+ * @param key - Key of the draft to move.
+ * @param direction - `-1` to move up, `1` to move down.
+ * @returns A new list with the draft moved, or the same list when it cannot move that way.
+ */
+export function moveDraft(drafts: FieldDraft[], key: string, direction: -1 | 1): FieldDraft[] {
+  const from = drafts.findIndex((draft) => draft.key === key);
+  if (from === -1 || drafts[from].deleted) return drafts;
+  let to = from + direction;
+  while (to >= 0 && to < drafts.length && drafts[to].deleted) to += direction;
+  if (to < 0 || to >= drafts.length) return drafts;
+  const next = [...drafts];
+  [next[from], next[to]] = [next[to], next[from]];
+  return next;
+}
+
+/**
+ * Whether the saved fields are no longer in their saved position order (i.e. a field was moved).
+ *
+ * New fields are ignored here, since they always count as changed on their own.
+ *
+ * @param drafts - All drafts, in their current order.
+ * @returns `true` when saving would change the position of a saved field.
+ */
+export function isOrderChanged(drafts: FieldDraft[]): boolean {
+  const positions = drafts.flatMap((draft) => (draft.field ? [draft.field.position] : []));
+  return positions.some((position, index) => index > 0 && position < positions[index - 1]);
+}
+
+/**
  * Builds the `fields` payload from the drafts.
  *
  * A changed value is appended to the field's value history instead of replacing the current value,
