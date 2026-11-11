@@ -25,6 +25,8 @@ import {
   deleteDraft,
   isDraftChanged,
   isDraftValid,
+  isOrderChanged,
+  moveDraft,
   restoreDraft,
   toFieldRequests,
   type FieldDraft,
@@ -37,7 +39,9 @@ const cx = classnames.bind(defaultStyle);
  * Body of the password card: header, editable fields, add-field form and the update button.
  *
  * Holds one draft per field so every edit (renames, new values, new fields, deletions) stays local
- * until the single update button sends them all in one `PATCH /api/v1/password/{id}`. A changed
+ * until the single update button sends them all in one `PATCH /api/v1/password/{id}`. Fields are
+ * shown in `position` order and active ones can be moved up or down; the list order is sent as the
+ * new positions. A changed
  * value is appended to the field's history rather than replacing the current value. Deleting a
  * field only marks it as deleted (`deletedAt`), so it keeps its history and can be restored;
  * deleted fields are listed in their own section below the active ones. The parent remounts
@@ -59,8 +63,8 @@ function PasswordCardContent(props: { password: Password }) {
   const { patchPassword } = usePasswordAPIClient();
 
   // New fields always count as changed, and only new fields are ever removed from the drafts (a
-  // removed new field leaves nothing to save), so this covers every edit.
-  const hasChanges = drafts.some(isDraftChanged);
+  // removed new field leaves nothing to save), so this plus the order check covers every edit.
+  const hasChanges = drafts.some(isDraftChanged) || isOrderChanged(drafts);
   const activeDrafts = drafts.filter((draft) => !draft.deleted);
   const deletedDrafts = drafts.filter((draft) => draft.deleted);
 
@@ -88,6 +92,14 @@ function PasswordCardContent(props: { password: Password }) {
     setDrafts((current) =>
       current.map((draft) => (draft.key === key ? restoreDraft(draft) : draft))
     );
+  };
+
+  /**
+   * Moves an active field one place up (`-1`) or down (`1`). The new order becomes the fields'
+   * positions when the update button is pressed.
+   */
+  const handleMoveField = (key: string, direction: -1 | 1) => {
+    setDrafts((current) => moveDraft(current, key, direction));
   };
 
   /** Appends an unsaved field after the existing ones. */
@@ -137,13 +149,17 @@ function PasswordCardContent(props: { password: Password }) {
         <Typography variant="h6">{password.name}</Typography>
       </Box>
       <Stack spacing={2} sx={{ marginTop: '2rem' }}>
-        {activeDrafts.map((draft) => (
+        {activeDrafts.map((draft, index) => (
           <Field
             key={draft.key}
             draft={draft}
             onChange={handleFieldChange}
             onDelete={() => handleDeleteField(draft.key)}
             onRestore={() => handleRestoreField(draft.key)}
+            onMoveUp={index > 0 ? () => handleMoveField(draft.key, -1) : undefined}
+            onMoveDown={
+              index < activeDrafts.length - 1 ? () => handleMoveField(draft.key, 1) : undefined
+            }
             showErrors={showErrors}
           />
         ))}

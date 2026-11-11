@@ -278,6 +278,54 @@ describe('PasswordCard', () => {
     vi.useRealTimers();
   });
 
+  it('moves fields and saves the new order as their positions', async () => {
+    patchPassword.mockResolvedValue({ ...password, updatedAt: '2026-05-01T00:00:00Z' });
+    usePasswordsStore.getState().setCurrentPassword(password);
+    const user = userEvent.setup();
+    renderAt(`/password/${PASSWORD_ID}`);
+
+    // First active field cannot move up, last active field cannot move down.
+    expect(screen.getByRole('button', { name: 'Move username up' })).toBeDisabled();
+    expect(screen.getByRole('button', { name: 'Move password down' })).toBeDisabled();
+    // Deleted fields have no move buttons.
+    expect(screen.queryByRole('button', { name: 'Move pin up' })).not.toBeInTheDocument();
+
+    await user.click(screen.getByRole('button', { name: 'Move password up' }));
+
+    const names = screen
+      .getAllByLabelText('Field name')
+      .map((input) => (input as HTMLInputElement).value);
+    expect(names).toEqual(['password', 'username', 'pin']);
+    expect(patchPassword).not.toHaveBeenCalled();
+    expect(getUpdateButton()).toBeEnabled();
+
+    await user.click(getUpdateButton());
+
+    expect(patchPassword).toHaveBeenCalledWith(PASSWORD_ID, {
+      fields: [
+        {
+          name: 'password',
+          values: [{ value: 'hunter2', createdAt: T1 }],
+          createdAt: T1,
+          deletedAt: null,
+        },
+        { name: 'username', values: usernameValues, createdAt: T1, deletedAt: null },
+        { name: 'pin', values: pinValues, createdAt: T1, deletedAt: '2026-01-03T00:00:00Z' },
+      ],
+    });
+  });
+
+  it('disables the update button again when a field is moved back', async () => {
+    usePasswordsStore.getState().setCurrentPassword(password);
+    const user = userEvent.setup();
+    renderAt(`/password/${PASSWORD_ID}`);
+
+    await user.click(screen.getByRole('button', { name: 'Move password up' }));
+    expect(getUpdateButton()).toBeEnabled();
+    await user.click(screen.getByRole('button', { name: 'Move password down' }));
+    expect(getUpdateButton()).toBeDisabled();
+  });
+
   it('resets the drafts to the saved password after a successful update', async () => {
     const saved: Password = {
       ...password,

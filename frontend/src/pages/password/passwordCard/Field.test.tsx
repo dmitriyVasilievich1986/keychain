@@ -156,6 +156,29 @@ describe('Field', () => {
     );
   });
 
+  it('has move buttons that are disabled without a handler', async () => {
+    const onMoveUp = vi.fn();
+    const user = userEvent.setup();
+    render(
+      <Field
+        draft={draft}
+        onChange={() => {}}
+        onDelete={() => {}}
+        onRestore={() => {}}
+        onMoveUp={onMoveUp}
+      />
+    );
+
+    expect(screen.getByRole('button', { name: 'Move username down' })).toBeDisabled();
+    await user.click(screen.getByRole('button', { name: 'Move username up' }));
+
+    expect(onMoveUp).toHaveBeenCalledTimes(1);
+    expect(screen.getByRole('button', { name: 'username history' })).toHaveAttribute(
+      'aria-expanded',
+      'false'
+    );
+  });
+
   it('shows a deleted field read-only and struck through, with a restore button', async () => {
     const onRestore = vi.fn();
     const user = userEvent.setup();

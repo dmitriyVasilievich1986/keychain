@@ -12,6 +12,8 @@ import {
   getHistoryValues,
   isDraftChanged,
   isDraftValid,
+  isOrderChanged,
+  moveDraft,
   restoreDraft,
   toFieldRequests,
   type FieldDraft,
@@ -102,6 +104,50 @@ describe('password field helpers', () => {
 
   it('restoreDraft makes a deleted field active again', () => {
     expect(restoreDraft(draftOf(deleted))).toEqual(draftOf(deleted, { deleted: false }));
+  });
+
+  const otp = makeField({ name: 'otp', position: 3 });
+  const newDraft: FieldDraft = {
+    key: 'new-0',
+    name: 'email',
+    value: 'a',
+    deleted: false,
+    field: null,
+  };
+
+  it('moveDraft swaps a draft with its neighbour', () => {
+    const drafts = createDrafts([username, secret]);
+    expect(moveDraft(drafts, 'field-1', -1).map((d) => d.name)).toEqual(['password', 'username']);
+    expect(moveDraft(drafts, 'field-0', 1).map((d) => d.name)).toEqual(['password', 'username']);
+  });
+
+  it('moveDraft skips deleted drafts, which keep their place', () => {
+    const drafts = createDrafts([username, secret, deleted, otp]);
+    expect(moveDraft(drafts, 'field-3', -1).map((d) => d.name)).toEqual([
+      'username',
+      'otp',
+      'pin',
+      'password',
+    ]);
+    expect(moveDraft(drafts, 'field-3', -1)[2]).toBe(drafts[2]);
+  });
+
+  it('moveDraft leaves the list unchanged at the edges, for deleted and for unknown drafts', () => {
+    const drafts = createDrafts([username, secret, deleted]);
+    expect(moveDraft(drafts, 'field-0', -1)).toBe(drafts);
+    expect(moveDraft(drafts, 'field-1', 1)).toBe(drafts);
+    expect(moveDraft(drafts, 'field-2', -1)).toBe(drafts);
+    expect(moveDraft(drafts, 'missing', 1)).toBe(drafts);
+  });
+
+  it('isOrderChanged detects moved saved fields and ignores new ones', () => {
+    const drafts = createDrafts([username, secret, deleted]);
+    expect(isOrderChanged(drafts)).toBe(false);
+    expect(isOrderChanged([...drafts, newDraft])).toBe(false);
+    expect(isOrderChanged([newDraft, ...drafts])).toBe(false);
+    expect(isOrderChanged(moveDraft(drafts, 'field-1', -1))).toBe(true);
+    // Moving a field back to where it was is no change.
+    expect(isOrderChanged(moveDraft(moveDraft(drafts, 'field-1', -1), 'field-1', 1))).toBe(false);
   });
 
   it('isDraftValid requires a name and a value', () => {

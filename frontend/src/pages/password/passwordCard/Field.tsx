@@ -3,6 +3,8 @@
  * It is used to render a single editable password field with its value history.
  */
 
+import ArrowDownwardIcon from '@mui/icons-material/ArrowDownward';
+import ArrowUpwardIcon from '@mui/icons-material/ArrowUpward';
 import ContentCopyIcon from '@mui/icons-material/ContentCopy';
 import DeleteOutlineIcon from '@mui/icons-material/DeleteOutlined';
 import ExpandMoreIcon from '@mui/icons-material/ExpandMore';
@@ -128,7 +130,8 @@ const DELETED_INPUT_SX = {
  * Accordion for a single password field, controlled by the password card.
  *
  * The header holds the field's name and current value as editable inputs, laid out like the
- * add-field form, plus a button to delete the field. Edits are reported through `onChange` and
+ * add-field form, plus buttons to move the field up or down and to delete it. A move button is
+ * disabled when its handler is omitted (first/last field). Edits are reported through `onChange` and
  * saved by the card's single update button; changed inputs use the secondary color. A deleted
  * field is read-only, faded and struck through, says when it was (or will be) deleted, and has a
  * restore button instead. The accordion body lists the previous values, newest first.
@@ -138,6 +141,8 @@ const DELETED_INPUT_SX = {
  * @param props.onChange - Called with the updated draft on every edit.
  * @param props.onDelete - Called when the delete button is pressed.
  * @param props.onRestore - Called when the restore button of a deleted field is pressed.
+ * @param props.onMoveUp - Moves the field one place up; omit to disable the button.
+ * @param props.onMoveDown - Moves the field one place down; omit to disable the button.
  * @param props.showErrors - Whether to highlight empty inputs (after a failed save attempt).
  * @returns The field accordion.
  */
@@ -146,6 +151,8 @@ export function Field(props: {
   onChange: (draft: FieldDraft) => void;
   onDelete: () => void;
   onRestore: () => void;
+  onMoveUp?: () => void;
+  onMoveDown?: () => void;
   showErrors?: boolean;
 }) {
   const { draft } = props;
@@ -222,6 +229,33 @@ export function Field(props: {
                 </IconButton>
               </Tooltip>
             ) : (
+              <>
+                {/* The span keeps the tooltip working while the button is disabled. */}
+                <Tooltip title="Move up">
+                  <span>
+                    <IconButton
+                      aria-label={`Move ${label} up`}
+                      onClick={props.onMoveUp}
+                      disabled={!props.onMoveUp}
+                    >
+                      <ArrowUpwardIcon />
+                    </IconButton>
+                  </span>
+                </Tooltip>
+                <Tooltip title="Move down">
+                  <span>
+                    <IconButton
+                      aria-label={`Move ${label} down`}
+                      onClick={props.onMoveDown}
+                      disabled={!props.onMoveDown}
+                    >
+                      <ArrowDownwardIcon />
+                    </IconButton>
+                  </span>
+                </Tooltip>
+              </>
+            )}
+            {!draft.deleted && (
               <Tooltip title="Delete field">
                 <IconButton aria-label={`Delete ${label}`} color="error" onClick={props.onDelete}>
                   <DeleteOutlineIcon />
