@@ -6,3 +6,10 @@ nginx/ssl/
 **/scripts/sensitive/
 /frontend/coverage/
 gcp-key.json
+
+# Terraform
+terraform/.terraform/
+terraform/*.tfstate
+terraform/*.tfstate.*
+terraform/terraform.tfvars
+terraform/*.tfplan

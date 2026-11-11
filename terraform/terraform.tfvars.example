@@ -1,0 +1,8 @@
+# Copy to terraform.tfvars and fill in. terraform.tfvars is git-ignored.
+project_id = "your-gcp-project-id"
+region     = "europe-west1"
+
+# Optional overrides
+# backend_repository_id         = "keychain"
+# keep_recent_versions          = 10
+# untagged_image_retention_days = 7
