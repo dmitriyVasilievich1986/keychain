@@ -6,4 +6,4 @@ Do not edit it manually; changes will be overwritten.
 
 __all__ = ["APPLICATION_VERSION"]
 
-APPLICATION_VERSION = "0.0.0"
+APPLICATION_VERSION = "2.4.0"
