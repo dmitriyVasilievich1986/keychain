@@ -9,9 +9,12 @@
  * A single value sent for a password field.
  *
  * @property {string} value - Plaintext value of the field.
+ * @property {string} createdAt - ISO timestamp of when the value was created; send the existing
+ * timestamp for a saved value, or the current time for a new one.
  */
 export type PasswordFieldValueRequest = {
   value: string;
+  createdAt: string;
 };
 
 /**
@@ -19,12 +22,15 @@ export type PasswordFieldValueRequest = {
  *
  * @property {string} name - Label of the field (at least 1 character).
  * @property {PasswordFieldValueRequest[]} values - Values of the field, at least one; order is preserved.
+ * @property {string} createdAt - ISO timestamp of when the field was created; send the existing
+ * timestamp for a saved field, or the current time for a new one.
  * @property {string | null} [deletedAt] - ISO timestamp of when the field was deleted; send the
  * existing timestamp to keep a field deleted, or omit/`null` for an active field.
  */
 export type PasswordFieldRequest = {
   name: string;
   values: PasswordFieldValueRequest[];
+  createdAt: string;
   deletedAt?: string | null;
 };
 

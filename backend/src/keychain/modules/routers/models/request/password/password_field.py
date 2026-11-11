@@ -2,7 +2,7 @@
 
 __all__ = ("PasswordFieldCreate", "PasswordFieldValueCreate")
 
-from datetime import datetime
+from datetime import datetime, timezone
 
 from pydantic import Field
 
@@ -13,6 +13,10 @@ class PasswordFieldValueCreate(BaseRequestModel):
     """Request model for a value created together with a password field."""
 
     value: str = Field(..., description="The value of the field")
+    created_at: datetime = Field(
+        default_factory=lambda: datetime.now(timezone.utc),
+        description="The timestamp when the field value was created.",
+    )
 
 
 class PasswordFieldCreate(BaseRequestModel):
@@ -23,6 +27,10 @@ class PasswordFieldCreate(BaseRequestModel):
         ...,
         description="The values of the field; their order in the list is preserved",
         min_length=1,
+    )
+    created_at: datetime = Field(
+        default_factory=lambda: datetime.now(timezone.utc),
+        description="The timestamp when the field was created.",
     )
     deleted_at: datetime | None = Field(
         None,

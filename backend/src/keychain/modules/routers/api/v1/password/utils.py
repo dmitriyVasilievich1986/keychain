@@ -48,8 +48,11 @@ def build_fields(fields: list[PasswordFieldCreate]) -> list[Field]:
         Field(
             name=field.name,
             position=position,
-            values=[FieldValue(value=field_value.value) for field_value in field.values],
+            values=[
+                FieldValue(value=field_value.value, created_at=field_value.created_at) for field_value in field.values
+            ],
             deleted_at=field.deleted_at,
+            created_at=field.created_at,
         )
         for position, field in enumerate(fields)
     ]

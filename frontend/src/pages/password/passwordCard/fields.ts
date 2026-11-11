@@ -126,10 +126,12 @@ export function restoreDraft(draft: FieldDraft): FieldDraft {
  * A changed value is appended to the field's value history instead of replacing the current value,
  * so the previous value is kept as history. A renamed field keeps its history. New fields are sent
  * with a single value. Deleted fields keep their saved name and values and are sent with their
- * original `deletedAt`, or `now` when they are deleted by this update.
+ * original `deletedAt`, or `now` when they are deleted by this update. Saved fields and values keep
+ * their original `createdAt`; new fields and values are created at `now`.
  *
  * @param drafts - Drafts in the desired field order.
- * @param now - Timestamp used for fields deleted by this update; defaults to the current time.
+ * @param now - Timestamp used for fields and values created or deleted by this update; defaults to
+ * the current time.
  * @returns The `fields` payload for a password patch request.
  */
 export function toFieldRequests(
@@ -138,13 +140,26 @@ export function toFieldRequests(
 ): PasswordFieldRequest[] {
   return drafts.map((draft) => {
     if (!draft.field) {
-      return { name: draft.name, values: [{ value: draft.value }], deletedAt: null };
+      return {
+        name: draft.name,
+        values: [{ value: draft.value, createdAt: now }],
+        createdAt: now,
+        deletedAt: null,
+      };
     }
-    const values = draft.field.values.map(({ value }) => ({ value }));
+    const { createdAt } = draft.field;
+    const values = draft.field.values.map(({ value, createdAt }) => ({ value, createdAt }));
     if (draft.deleted) {
-      return { name: draft.field.name, values, deletedAt: draft.field.deletedAt ?? now };
+      return {
+        name: draft.field.name,
+        values,
+        createdAt,
+        deletedAt: draft.field.deletedAt ?? now,
+      };
     }
-    if (draft.value !== getCurrentValue(draft.field)) values.push({ value: draft.value });
-    return { name: draft.name, values, deletedAt: null };
+    if (draft.value !== getCurrentValue(draft.field)) {
+      values.push({ value: draft.value, createdAt: now });
+    }
+    return { name: draft.name, values, createdAt, deletedAt: null };
   });
 }

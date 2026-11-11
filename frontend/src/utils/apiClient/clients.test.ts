@@ -42,7 +42,13 @@ const password = {
   fields: [field],
 };
 
-const fieldsRequest = [{ name: 'username', values: [{ value: 'alice' }] }];
+const fieldsRequest = [
+  {
+    name: 'username',
+    values: [{ value: 'alice', createdAt: '2026-01-01T00:00:00Z' }],
+    createdAt: '2026-01-01T00:00:00Z',
+  },
+];
 
 beforeEach(() => {
   useUserStore.setState({ user: null, isLoading: false });

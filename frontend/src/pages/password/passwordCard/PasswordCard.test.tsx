@@ -62,6 +62,13 @@ const password: Password = {
   ],
 };
 
+const T1 = '2026-01-01T00:00:00Z';
+const usernameValues = [
+  { value: 'alice-old', createdAt: T1 },
+  { value: 'alice', createdAt: '2026-01-02T00:00:00Z' },
+];
+const pinValues = [{ value: '1234', createdAt: T1 }];
+
 function renderAt(path: string) {
   return render(
     <MemoryRouter initialEntries={[path]}>
@@ -160,13 +167,14 @@ describe('PasswordCard', () => {
 
     expect(patchPassword).toHaveBeenCalledWith(PASSWORD_ID, {
       fields: [
-        { name: 'username', values: [{ value: 'alice-old' }, { value: 'alice' }], deletedAt: null },
+        { name: 'username', values: usernameValues, createdAt: T1, deletedAt: null },
         {
           name: 'password',
-          values: [{ value: 'hunter2' }],
+          values: [{ value: 'hunter2', createdAt: T1 }],
+          createdAt: T1,
           deletedAt: '2026-05-01T00:00:00.000Z',
         },
-        { name: 'pin', values: [{ value: '1234' }], deletedAt: '2026-01-03T00:00:00Z' },
+        { name: 'pin', values: pinValues, createdAt: T1, deletedAt: '2026-01-03T00:00:00Z' },
       ],
     });
     vi.useRealTimers();
@@ -186,7 +194,7 @@ describe('PasswordCard', () => {
 
     expect(patchPassword).toHaveBeenCalledWith(PASSWORD_ID, {
       fields: expect.arrayContaining([
-        { name: 'pin', values: [{ value: '1234' }], deletedAt: null },
+        { name: 'pin', values: pinValues, createdAt: T1, deletedAt: null },
       ]),
     });
   });
@@ -218,6 +226,8 @@ describe('PasswordCard', () => {
   });
 
   it('saves renames, new values and new fields in one request, appending values to history', async () => {
+    vi.useFakeTimers({ toFake: ['Date'], now: new Date('2026-05-01T00:00:00Z') });
+    const now = '2026-05-01T00:00:00.000Z';
     const saved: Password = { ...password, updatedAt: '2026-02-01T00:00:00Z' };
     patchPassword.mockResolvedValue(saved);
     usePasswordsStore.getState().setCurrentPassword(password);
@@ -243,19 +253,29 @@ describe('PasswordCard', () => {
     expect(patchPassword).toHaveBeenCalledTimes(1);
     expect(patchPassword).toHaveBeenCalledWith(PASSWORD_ID, {
       fields: [
-        { name: 'login', values: [{ value: 'alice-old' }, { value: 'alice' }], deletedAt: null },
+        { name: 'login', values: usernameValues, createdAt: T1, deletedAt: null },
         {
           name: 'password',
-          values: [{ value: 'hunter2' }, { value: 'correct-horse' }],
+          values: [
+            { value: 'hunter2', createdAt: T1 },
+            { value: 'correct-horse', createdAt: now },
+          ],
+          createdAt: T1,
           deletedAt: null,
         },
-        { name: 'pin', values: [{ value: '1234' }], deletedAt: '2026-01-03T00:00:00Z' },
-        { name: 'email', values: [{ value: 'a@example.com' }], deletedAt: null },
+        { name: 'pin', values: pinValues, createdAt: T1, deletedAt: '2026-01-03T00:00:00Z' },
+        {
+          name: 'email',
+          values: [{ value: 'a@example.com', createdAt: now }],
+          createdAt: now,
+          deletedAt: null,
+        },
       ],
     });
     await waitFor(() => {
       expect(usePasswordsStore.getState().currentPassword).toEqual(saved);
     });
+    vi.useRealTimers();
   });
 
   it('resets the drafts to the saved password after a successful update', async () => {
