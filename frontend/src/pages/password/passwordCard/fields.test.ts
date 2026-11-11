@@ -111,22 +111,35 @@ describe('password field helpers', () => {
     expect(isDraftValid(draftOf(username, { value: '', deleted: true }))).toBe(true);
   });
 
+  const T1 = '2026-01-01T00:00:00Z';
+  const usernameValues = [
+    { value: 'alice', createdAt: T1 },
+    { value: 'alice2', createdAt: '2026-02-01T00:00:00Z' },
+    { value: 'alice3', createdAt: '2026-03-01T00:00:00Z' },
+  ];
+
   it('toFieldRequests keeps unchanged fields as they are', () => {
     expect(toFieldRequests([draftOf(username), draftOf(secret)])).toEqual([
+      { name: 'username', values: usernameValues, createdAt: T1, deletedAt: null },
       {
-        name: 'username',
-        values: [{ value: 'alice' }, { value: 'alice2' }, { value: 'alice3' }],
+        name: 'password',
+        values: [{ value: 'hunter2', createdAt: T1 }],
+        createdAt: T1,
         deletedAt: null,
       },
-      { name: 'password', values: [{ value: 'hunter2' }], deletedAt: null },
     ]);
   });
 
   it('toFieldRequests appends a changed value to the history instead of replacing it', () => {
-    expect(toFieldRequests([draftOf(secret, { value: 'correct-horse' })])).toEqual([
+    const now = '2026-05-01T00:00:00.000Z';
+    expect(toFieldRequests([draftOf(secret, { value: 'correct-horse' })], now)).toEqual([
       {
         name: 'password',
-        values: [{ value: 'hunter2' }, { value: 'correct-horse' }],
+        values: [
+          { value: 'hunter2', createdAt: T1 },
+          { value: 'correct-horse', createdAt: now },
+        ],
+        createdAt: T1,
         deletedAt: null,
       },
     ]);
@@ -134,38 +147,53 @@ describe('password field helpers', () => {
 
   it('toFieldRequests renames a field while keeping its history', () => {
     expect(toFieldRequests([draftOf(username, { name: 'login' })])).toEqual([
+      { name: 'login', values: usernameValues, createdAt: T1, deletedAt: null },
+    ]);
+  });
+
+  it('toFieldRequests sends new fields with a single value created now', () => {
+    const now = '2026-05-01T00:00:00.000Z';
+    expect(
+      toFieldRequests(
+        [{ key: 'new-0', name: 'email', value: 'a@example.com', deleted: false, field: null }],
+        now
+      )
+    ).toEqual([
       {
-        name: 'login',
-        values: [{ value: 'alice' }, { value: 'alice2' }, { value: 'alice3' }],
+        name: 'email',
+        values: [{ value: 'a@example.com', createdAt: now }],
+        createdAt: now,
         deletedAt: null,
       },
     ]);
   });
 
-  it('toFieldRequests sends new fields with a single value', () => {
-    expect(
-      toFieldRequests([
-        { key: 'new-0', name: 'email', value: 'a@example.com', deleted: false, field: null },
-      ])
-    ).toEqual([{ name: 'email', values: [{ value: 'a@example.com' }], deletedAt: null }]);
-  });
-
   it('toFieldRequests keeps deleted fields with their original deletedAt', () => {
     expect(toFieldRequests([draftOf(deleted)], '2026-05-01T00:00:00.000Z')).toEqual([
-      { name: 'pin', values: [{ value: 'alice' }], deletedAt: '2026-02-01T00:00:00Z' },
+      {
+        name: 'pin',
+        values: [{ value: 'alice', createdAt: T1 }],
+        createdAt: T1,
+        deletedAt: '2026-02-01T00:00:00Z',
+      },
     ]);
   });
 
   it('toFieldRequests stamps newly deleted fields and sends their saved name and values', () => {
     const now = '2026-05-01T00:00:00.000Z';
     expect(toFieldRequests([draftOf(secret, { deleted: true, value: 'x' })], now)).toEqual([
-      { name: 'password', values: [{ value: 'hunter2' }], deletedAt: now },
+      {
+        name: 'password',
+        values: [{ value: 'hunter2', createdAt: T1 }],
+        createdAt: T1,
+        deletedAt: now,
+      },
     ]);
   });
 
   it('toFieldRequests sends restored fields as active', () => {
     expect(toFieldRequests([draftOf(deleted, { deleted: false })])).toEqual([
-      { name: 'pin', values: [{ value: 'alice' }], deletedAt: null },
+      { name: 'pin', values: [{ value: 'alice', createdAt: T1 }], createdAt: T1, deletedAt: null },
     ]);
   });
 });
