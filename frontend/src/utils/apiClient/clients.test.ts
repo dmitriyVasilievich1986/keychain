@@ -1,5 +1,5 @@
 /**
- * Tests for the resource API client hooks (auth, user, field, password): request shapes, returned
+ * Tests for the resource API client hooks (auth, user, password): request shapes, returned
  * data, and store side effects. The network layer is replaced with spies on the shared client.
  */
 
@@ -11,7 +11,6 @@ import { useUserStore } from '@store/user';
 
 import { useAuthAPIClient } from './auth';
 import { apiClientInstance } from './base';
-import { useFieldAPIClient } from './field';
 import { usePasswordAPIClient } from './password';
 import { useUserAPIClient } from './user';
 
@@ -22,21 +21,34 @@ function response<T>(data: T) {
 
 const user = { id: 'u-1', name: 'Alice', createdAt: '2026-01-01T00:00:00Z' };
 
+const PASSWORD_ID = '5f1d7c2e-8b1a-4c3d-9e2f-1a2b3c4d5e6f';
+
 const field = {
-  id: 10,
   name: 'username',
-  isDeleted: false,
-  valueDecrypted: 'alice',
+  position: 0,
+  values: [{ value: 'alice', createdAt: '2026-01-01T00:00:00Z' }],
   createdAt: '2026-01-01T00:00:00Z',
+  updatedAt: '2026-01-01T00:00:00Z',
+  deletedAt: null,
 };
 
 const password = {
-  id: 1,
+  id: PASSWORD_ID,
   name: 'GitHub',
   createdAt: '2026-01-01T00:00:00Z',
+  updatedAt: '2026-01-01T00:00:00Z',
   imageUrl: 'github.png',
+  userId: 'u-1',
   fields: [field],
 };
+
+const fieldsRequest = [
+  {
+    name: 'username',
+    values: [{ value: 'alice', createdAt: '2026-01-01T00:00:00Z' }],
+    createdAt: '2026-01-01T00:00:00Z',
+  },
+];
 
 beforeEach(() => {
   useUserStore.setState({ user: null, isLoading: false });
@@ -93,57 +105,30 @@ describe('useUserAPIClient', () => {
   });
 });
 
-describe('useFieldAPIClient', () => {
-  it('postField creates a field and returns it', async () => {
-    const request = { passwordId: 1, name: 'username', value: 'alice' };
-    const post = vi.spyOn(apiClientInstance, 'post').mockResolvedValue(response(field));
-    const { result } = renderHook(() => useFieldAPIClient());
-
-    let data: unknown;
-    await act(async () => {
-      data = await result.current.postField(request);
-    });
-
-    expect(data).toEqual(field);
-    expect(post).toHaveBeenCalledWith(expect.stringMatching(/\/api\/v1\/field$/), request);
-  });
-
-  it('putField updates the field by id and returns it', async () => {
-    const put = vi.spyOn(apiClientInstance, 'put').mockResolvedValue(response(field));
-    const { result } = renderHook(() => useFieldAPIClient());
-
-    let data: unknown;
-    await act(async () => {
-      data = await result.current.putField(10, { value: 'bob' });
-    });
-
-    expect(data).toEqual(field);
-    expect(put).toHaveBeenCalledWith(expect.stringMatching(/\/api\/v1\/field\/10$/), {
-      value: 'bob',
-    });
-  });
-});
-
 describe('usePasswordAPIClient', () => {
   it('getPassword fetches a password by id', async () => {
     const get = vi.spyOn(apiClientInstance, 'get').mockResolvedValue(response(password));
     const { result } = renderHook(() => usePasswordAPIClient());
 
-    await expect(result.current.getPassword(1)).resolves.toEqual(password);
+    await expect(result.current.getPassword(PASSWORD_ID)).resolves.toEqual(password);
 
-    expect(get).toHaveBeenCalledWith(expect.stringMatching(/\/api\/v1\/password\/1$/));
+    expect(get).toHaveBeenCalledWith(
+      expect.stringMatching(new RegExp(`/api/v1/password/${PASSWORD_ID}$`))
+    );
   });
 
   it('getPasswords sends paging, sorting and JSON-encoded filters', async () => {
     const page = {
-      data: [{ id: 1, name: 'GitHub', imageUrl: 'github.png' }],
-      metadata: { total: 1, offset: 0, limit: 10, sort_by: 'name', sort_order: 'asc' },
+      data: [{ id: PASSWORD_ID, name: 'GitHub', imageUrl: 'github.png' }],
+      metadata: { total: 1, offset: 0, limit: 10, sortBy: 'name', sortOrder: 'asc', filters: null },
     };
     const get = vi.spyOn(apiClientInstance, 'get').mockResolvedValue(response(page));
-    const filters = [{ column: 'name', operator: 'contains', value: 'Git' }];
+    const filters = [{ column: 'name', operator: 'eq', value: 'GitHub' }];
     const { result } = renderHook(() => usePasswordAPIClient());
 
-    await expect(result.current.getPasswords(10, 0, 'name', 'asc', filters)).resolves.toEqual(page);
+    await expect(result.current.getPasswords(10, 0, 'name', 'asc', filters, true)).resolves.toEqual(
+      page
+    );
 
     expect(get).toHaveBeenCalledWith(expect.stringMatching(/\/api\/v1\/password$/), {
       params: {
@@ -152,6 +137,7 @@ describe('usePasswordAPIClient', () => {
         sortBy: 'name',
         sortOrder: 'asc',
         filters: JSON.stringify(filters),
+        showDeleted: true,
       },
     });
   });
@@ -171,12 +157,13 @@ describe('usePasswordAPIClient', () => {
         sortBy: undefined,
         sortOrder: undefined,
         filters: undefined,
+        showDeleted: undefined,
       },
     });
   });
 
   it('postPassword creates a password and returns it', async () => {
-    const request = { name: 'GitHub', imageUrl: 'github.png' };
+    const request = { name: 'GitHub', imageUrl: 'github.png', fields: fieldsRequest };
     const post = vi.spyOn(apiClientInstance, 'post').mockResolvedValue(response(password));
     const { result } = renderHook(() => usePasswordAPIClient());
 
@@ -187,5 +174,52 @@ describe('usePasswordAPIClient', () => {
 
     expect(data).toEqual(password);
     expect(post).toHaveBeenCalledWith(expect.stringMatching(/\/api\/v1\/password$/), request);
+  });
+
+  it('putPassword replaces the password by id and returns it', async () => {
+    const request = { name: 'GitHub', imageUrl: null, fields: fieldsRequest };
+    const put = vi.spyOn(apiClientInstance, 'put').mockResolvedValue(response(password));
+    const { result } = renderHook(() => usePasswordAPIClient());
+
+    let data: unknown;
+    await act(async () => {
+      data = await result.current.putPassword(PASSWORD_ID, request);
+    });
+
+    expect(data).toEqual(password);
+    expect(put).toHaveBeenCalledWith(
+      expect.stringMatching(new RegExp(`/api/v1/password/${PASSWORD_ID}$`)),
+      request
+    );
+  });
+
+  it('patchPassword sends only the given properties and returns the password', async () => {
+    const request = { fields: fieldsRequest };
+    const patch = vi.spyOn(apiClientInstance, 'patch').mockResolvedValue(response(password));
+    const { result } = renderHook(() => usePasswordAPIClient());
+
+    let data: unknown;
+    await act(async () => {
+      data = await result.current.patchPassword(PASSWORD_ID, request);
+    });
+
+    expect(data).toEqual(password);
+    expect(patch).toHaveBeenCalledWith(
+      expect.stringMatching(new RegExp(`/api/v1/password/${PASSWORD_ID}$`)),
+      request
+    );
+  });
+
+  it('deletePassword deletes the password by id', async () => {
+    const del = vi.spyOn(apiClientInstance, 'delete').mockResolvedValue(response(undefined));
+    const { result } = renderHook(() => usePasswordAPIClient());
+
+    await act(async () => {
+      await result.current.deletePassword(PASSWORD_ID);
+    });
+
+    expect(del).toHaveBeenCalledWith(
+      expect.stringMatching(new RegExp(`/api/v1/password/${PASSWORD_ID}$`))
+    );
   });
 });

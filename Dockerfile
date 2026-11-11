@@ -55,11 +55,8 @@ COPY --from=build /opt/app/backend/src/keychain/application_version.py ./src/key
 # Add configurations
 COPY ./backend/configurations ./configurations
 
-# Add the startup script (migrates the database, then starts the server)
+# Add the startup script
 COPY --chmod=755 ./backend/scripts/start_app.sh ./scripts/start_app.sh
-
-# The backup folder is the only location the application writes to
-RUN mkdir -p ./backup && chown keychain:keychain ./backup
 
 # Add binaries for run inside container
 ENV PYTHONPATH="/opt/backend/src"

@@ -15,7 +15,7 @@ from abc import ABC, abstractmethod
 from argparse import Namespace
 from enum import StrEnum
 from pathlib import Path
-from typing import Any, cast, Dict, List, Tuple
+from typing import Any, cast
 
 # endregion Import libraries
 
@@ -106,7 +106,7 @@ class Version:
         """
         return f"{self.major}.{self.minor}.{self.patch}"
 
-    def _parse_version(self, line: str) -> Tuple[int, int, int]:
+    def _parse_version(self, line: str) -> tuple[int, int, int]:
         """Extract major, minor, and patch integers from a version string.
 
         Args:
@@ -208,7 +208,6 @@ class FileHandler(ABC):
             Any: Parsed or raw file data.
 
         """
-        pass
 
     @abstractmethod
     def _write_file(self, data: Any) -> None:
@@ -221,7 +220,6 @@ class FileHandler(ABC):
             None
 
         """
-        pass
 
     @abstractmethod
     def _get_version(self) -> str:
@@ -234,7 +232,6 @@ class FileHandler(ABC):
             ValueError: If the version cannot be found in the file.
 
         """
-        pass
 
     @abstractmethod
     def save(self) -> None:
@@ -244,7 +241,6 @@ class FileHandler(ABC):
             None
 
         """
-        pass
 
     def bump_version(self, version_type: VersionType) -> None:
         """Apply branch-specific bump rules to ``self.version``.
@@ -282,7 +278,7 @@ class JSONFileHandler(FileHandler):
     extension = ".json"
     name = "JSON"
 
-    def _read_file(self) -> Dict[str, Any]:
+    def _read_file(self) -> dict[str, Any]:
         """Load JSON object from ``self.file_path``.
 
         Returns:
@@ -292,7 +288,7 @@ class JSONFileHandler(FileHandler):
         with self.file_path.open("r") as f:
             return json.load(f)
 
-    def _write_file(self, data: Dict[str, Any]) -> None:
+    def _write_file(self, data: dict[str, Any]) -> None:
         """Serialize and write a JSON object to ``self.file_path``.
 
         Args:
@@ -451,7 +447,7 @@ def main():
     else:
         logger.setLevel(logging.INFO)
 
-    file_type_handlers: Dict[FileType, List[FileHandler]] = {
+    file_type_handlers: dict[FileType, list[FileHandler]] = {
         FileType.backend: [PythonFileHandler(PYTHON_FILE_PATH)],
         FileType.frontend: [
             JSONFileHandler(PACKAGE_JSON_FILE_PATH),
