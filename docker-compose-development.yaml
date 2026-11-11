@@ -1,35 +1,33 @@
 # Local development stack.
 #
-#   docker compose -f docker-compose-development.yaml up                              # db only
-#   docker compose -f docker-compose-development.yaml --profile backend up --build    # db + backend
-#   docker compose -f docker-compose-development.yaml --profile frontend run --rm frontend
+#   docker compose -f docker-compose-development.yaml up                              # Firestore emulator only
+#   docker compose -f docker-compose-development.yaml --profile backend up --build    # emulator + backend
+#   docker compose -f docker-compose-development.yaml --profile frontend run --rm --build frontend
 #
-# PostgreSQL is exposed on localhost:5432 and always starts. The backend is built
-# for the host architecture and exposed on localhost:8080; it runs only with the
-# `backend` profile. The `frontend` service only builds the bundle into ./static
-# and exits; it runs only with the `frontend` profile.
+# The Firestore emulator is exposed on localhost:8081 and always starts; point a
+# locally run backend at it with FIRESTORE_EMULATOR_HOST=localhost:8081. The
+# backend is built for the host architecture and exposed on localhost:8080; it
+# runs only with the `backend` profile and always talks to the emulator. The
+# `frontend` service is built from frontend/Dockerfile (sources are baked into
+# the image, so pass --build to pick up changes), builds the bundle into
+# ./static and exits; it runs only with the `frontend` profile.
 name: keychain-development
 
 services:
-  db:
-    image: postgres:18
-    env_file:
-      - path: ./backend/db.env
-        required: true
-    environment:
-      # Only applied when the data folder is initialised for the first time
-      POSTGRES_DB: keychain_development
+  firestore:
+    image: gcr.io/google.com/cloudsdktool/google-cloud-cli:emulators
+    command: ["gcloud", "emulators", "firestore", "start", "--host-port=0.0.0.0:8081"]
     ports:
-      - 5432:5432
-    volumes:
-      # Separate from the production stack's ./db/data
-      - ./db/data-development:/var/lib/postgresql
+      - 8081:8081
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U $${POSTGRES_USER} -d $${POSTGRES_DB}"]
-      interval: 5s
+      test: ["CMD", "curl", "-sf", "http://localhost:8081"]
+      # Every probe logs "Detected non-HTTP/2 connection", so probe rarely once
+      # healthy, but quickly during startup so the backend isn't held back.
+      interval: 2m
       timeout: 5s
-      retries: 10
-      start_period: 10s
+      retries: 3
+      start_period: 1m
+      start_interval: 2s
 
   backend:
     build:
@@ -41,21 +39,18 @@ services:
     env_file:
       - path: ./backend/.env
         required: true
-      - path: ./backend/db.env
-        required: true
     environment:
-      ENVIRONMENT: production
-      INFO__DEBUG: "true"
-      DB__POSTGRESQL__HOST: db
-      DB__POSTGRESQL__NAME: keychain_development
-      DB__ALEMBIC_INI_PATH: /opt/backend/src/keychain/services/alembic/alembic.ini
-      DB__BACKUP_FOLDER_PATH: /opt/backend/backup
+      ENVIRONMENT: local
+      FIRESTORE_EMULATOR_HOST: firestore:8081
+      GOOGLE__CREDENTIALS_PATH: /run/secrets/gcp-key.json
+    volumes:
+      - ./gcp-key.json:/run/secrets/gcp-key.json:ro
+      # local.yaml is excluded from the image (.dockerignore); mount it at runtime
+      - ./backend/configurations/local.yaml:/opt/backend/configurations/local.yaml:ro
     ports:
       - 8080:8080
-    volumes:
-      - ./backup:/opt/backend/backup
     depends_on:
-      db:
+      firestore:
         condition: service_healthy
     healthcheck:
       test: ["CMD", "curl", "-f", "http://localhost:8080/keychain/health"]
@@ -65,16 +60,18 @@ services:
       start_period: 10s
 
   frontend:
-    # Full image (not -slim): Vite+ needs the system CA certificates
-    image: node:24
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+    image: keychain-frontend:development
     profiles:
       - frontend
-    working_dir: /opt/app/frontend
-    command: ["./scripts/start.sh"]
+    # .env is excluded from the image (.dockerignore); its values override the
+    # Dockerfile's VITE_* defaults at build time of the bundle
+    env_file:
+      - path: ./frontend/.env
+        required: false
     volumes:
-      - ./frontend:/opt/app/frontend
-      # Keep Linux node_modules inside the container, separate from the host's
-      - /opt/app/frontend/node_modules
       # Vite writes the bundle to ../static (see frontend/vite.config.ts)
       - ./static:/opt/app/static
     restart: "no"

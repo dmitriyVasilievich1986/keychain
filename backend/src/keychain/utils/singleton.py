@@ -1,4 +1,4 @@
-"""Thread-safe implementation of Singleton."""
+"""Thread-safe, re-entrant implementation of Singleton."""
 
 __all__ = ("Singleton",)
 
@@ -7,11 +7,18 @@ from typing import ClassVar
 
 
 class Singleton(type):
-    """Thread-safe Singleton metaclass.
+    """Thread-safe, re-entrant Singleton metaclass.
 
     This metaclass ensures that only one instance of a class is created,
-    even when accessed from multiple threads. The implementation uses
-    a lock to prevent race conditions during instance creation.
+    even when accessed from multiple threads. Once the instance exists it is
+    returned without taking the lock.
+
+    The lock is re-entrant, so the ``__init__`` of one singleton may create
+    another singleton (e.g. a client that loads ``AppConfig`` through
+    ``SettingsStorage``) without deadlocking.
+
+    It is also safe to use from asyncio code: construction is synchronous, so
+    there is no await point between the existence check and the store.
 
     Usage:
         class MyClass(metaclass=Singleton):
@@ -35,26 +42,29 @@ class Singleton(type):
     def __call__(cls, *args, **kwargs):
         """Create or return the existing singleton instance of the class.
 
-        This method is called when the class is instantiated. It checks
-        if an instance already exists, and if not, creates one. The check
-        and creation are protected by a lock to ensure thread safety.
+        This method is called when the class is instantiated. If an instance
+        already exists it is returned immediately. Otherwise, the instance is
+        created under the lock, re-checking first so that concurrent callers
+        never create a second one.
 
         Args:
             *args: Positional arguments passed to the class constructor.
             **kwargs: Keyword arguments passed to the class constructor.
+                Both are ignored once the instance exists.
 
         Returns:
-            The singleton instance of the class. If an instance already
-            exists, it returns that instance; otherwise, it creates
-            a new one and stores it for future use.
+            The singleton instance of the class.
 
         """
-        with cls._lock:
-            if cls not in cls._instances:
-                instance = super().__call__(*args, **kwargs)
-                cls._instances[cls] = instance
+        # Fast path: no locking once the instance exists.
+        if (instance := Singleton._instances.get(cls)) is not None:
+            return instance
 
-        return cls._instances[cls]
+        with Singleton._lock:
+            if cls not in Singleton._instances:
+                Singleton._instances[cls] = super().__call__(*args, **kwargs)
+
+        return Singleton._instances[cls]
 
     def reset_singleton(cls) -> None:
         """Discard the cached instance so the next construction builds a new one.

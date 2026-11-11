@@ -28,23 +28,6 @@ services:
       retries: 3
       start_period: 10s
 
-  db:
-    image: postgres:18
-    container_name: keychain-db
-    env_file:
-      - path: ./backend/db.env
-        required: true
-    volumes:
-      - ./db/data:/var/lib/postgresql
-    networks:
-      - keychain-network
-    healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U $${POSTGRES_USER} -d $${POSTGRES_DB}"]
-      interval: 10s
-      timeout: 5s
-      retries: 5
-      start_period: 10s
-
   backend:
     # Published by .github/workflows/tag_docker_push.yml on every merge into development.
     # Run `docker compose -f docker-compose.yaml pull backend` to get the newest image.
@@ -53,12 +36,11 @@ services:
     env_file:
       - path: ./backend/.env
         required: true
-      - path: ./backend/db.env
-        required: false
     environment:
       - ENVIRONMENT=production
+      - GOOGLE__CREDENTIALS_PATH=/run/secrets/gcp-key.json
     volumes:
-      - ./backup:/opt/backend/backup
+      - ./gcp-key.json:/run/secrets/gcp-key.json:ro
     networks:
       - keychain-network
     healthcheck:

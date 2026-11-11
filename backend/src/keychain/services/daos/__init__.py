@@ -1,8 +1,6 @@
 """DAOs for all models."""
 
-__all__ = ("EncryptionKeysMissingError", "FieldDAO", "InvalidPasswordError", "PasswordDAO", "UserDAO")
+__all__ = ("EncryptionKeysMissingError", "InvalidPasswordError", "PasswordDAO", "UserDAO")
 
 from .exceptions import EncryptionKeysMissingError, InvalidPasswordError
-from .field import FieldDAO
-from .password import PasswordDAO
-from .user import UserDAO
+from .firestore import PasswordDAO, UserDAO

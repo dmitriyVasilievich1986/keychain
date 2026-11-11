@@ -3,14 +3,16 @@
 __all__ = ("user",)
 
 from typing import cast
+from uuid import UUID
 
 import asyncclick as click
 from colorama import Fore, Style
 
+from keychain.config import AppConfig
 from keychain.modules.routers.models.request.user import UserCreateRequestModel, UserUpdateRequestModel
 from keychain.modules.routers.models.response.user import UserGetResponseModel
 from keychain.services.daos import EncryptionKeysMissingError, InvalidPasswordError, UserDAO
-from keychain.services.db_client.client import DBClient
+from keychain.utils.cli.user_dek import build_password_dao, build_user_dao
 
 
 @click.group(help="CLI for managing users of the Keychain Application.")
@@ -19,19 +21,19 @@ def user(ctx: click.Context) -> None:
     """Initialize the user CLI group for the Keychain Application.
 
     This function serves as the root command group for all user CLI operations.
-    It builds the user DAO from the shared DB client and stores it on the
+    It builds the Firestore user DAO from the app config and stores it on the
     context for use by subcommands.
 
     Args:
-        ctx (click.Context): Click context object containing the DB client
-            instance and used to share the user DAO with subcommands.
+        ctx (click.Context): Click context object containing the app config
+            and used to share the user DAO with subcommands.
 
     Returns:
         None
 
     """
-    db_client: DBClient = ctx.obj["db_client_instance"]
-    ctx.obj["user_dao"] = UserDAO(db_client)
+    config: AppConfig = ctx.obj["config"]
+    ctx.obj["user_dao"] = build_user_dao(config)
 
 
 @user.command(help="Create a new user")
@@ -67,10 +69,10 @@ async def create_user(ctx: click.Context, username: str, password: str) -> None:
 
 
 @user.command(help="Get a user by ID")
-@click.option("--user-id", help="The ID of the user", required=False, type=int)
+@click.option("--user-id", help="The ID of the user", required=False, type=click.UUID)
 @click.option("--username", help="The username of the user", required=False, type=str)
 @click.pass_context
-async def get_user(ctx: click.Context, user_id: int | None, username: str | None) -> None:
+async def get_user(ctx: click.Context, user_id: UUID | None, username: str | None) -> None:
     """Retrieve a user from the database by ID or username.
 
     This command fetches a user record by ID or username and outputs the user
@@ -78,7 +80,7 @@ async def get_user(ctx: click.Context, user_id: int | None, username: str | None
 
     Args:
         ctx (click.Context): Click context object containing the user DAO.
-        user_id (int, optional): The unique identifier of the user to
+        user_id (UUID, optional): The unique identifier of the user to
             retrieve. Defaults to None.
         username (str, optional): The username of the user to retrieve.
             Defaults to None.
@@ -96,7 +98,7 @@ async def get_user(ctx: click.Context, user_id: int | None, username: str | None
 
     user_dao: UserDAO = ctx.obj["user_dao"]
     user = (
-        await user_dao.get_by_pk(user_id)
+        await user_dao.get_by_id(str(user_id))
         if user_id is not None
         else await user_dao.get_by_username(cast(str, username))
     )
@@ -105,10 +107,10 @@ async def get_user(ctx: click.Context, user_id: int | None, username: str | None
 
 
 @user.command(help="Update a user by ID")
-@click.option("--user-id", help="The ID of the user", required=True, type=int)
+@click.option("--user-id", help="The ID of the user", required=True, type=click.UUID)
 @click.option("--username", help="The new name of the user", required=True, type=str)
 @click.pass_context
-async def update_user(ctx: click.Context, user_id: int, username: str) -> None:
+async def update_user(ctx: click.Context, user_id: UUID, username: str) -> None:
     """Update a user's name in the database.
 
     This command updates the name of an existing user identified by their ID
@@ -116,7 +118,7 @@ async def update_user(ctx: click.Context, user_id: int, username: str) -> None:
 
     Args:
         ctx (click.Context): Click context object containing the user DAO.
-        user_id (int): The unique identifier of the user to update.
+        user_id (UUID): The unique identifier of the user to update.
         username (str): The new name to assign to the user.
 
     Returns:
@@ -125,15 +127,15 @@ async def update_user(ctx: click.Context, user_id: int, username: str) -> None:
     """
     user_dao: UserDAO = ctx.obj["user_dao"]
     body = UserUpdateRequestModel(name=username)
-    user = await user_dao.update(user_id, **body.model_dump())
+    user = await user_dao.update(str(user_id), **body.model_dump())
     user_response = UserGetResponseModel.model_validate(user)
     click.echo(user_response.model_dump_json(indent=2))
 
 
 @user.command(help="Delete a user by ID")
-@click.option("--user-id", help="The ID of the user", required=True, type=int)
+@click.option("--user-id", help="The ID of the user", required=True, type=click.UUID)
 @click.pass_context
-async def delete_user(ctx: click.Context, user_id: int) -> None:
+async def delete_user(ctx: click.Context, user_id: UUID) -> None:
     """Delete a user from the database by their ID.
 
     This command permanently removes a user record from the database.
@@ -141,23 +143,23 @@ async def delete_user(ctx: click.Context, user_id: int) -> None:
 
     Args:
         ctx (click.Context): Click context object containing the user DAO.
-        user_id (int): The unique identifier of the user to delete.
+        user_id (UUID): The unique identifier of the user to delete.
 
     Returns:
         None
 
     """
     user_dao: UserDAO = ctx.obj["user_dao"]
-    await user_dao.delete(user_id)
+    await user_dao.delete(str(user_id))
     click.echo(f"User with id {user_id} deleted successfully")
 
 
 @user.command(help="Verify a user's password")
-@click.option("--user-id", help="The ID of the user", required=False, type=int)
+@click.option("--user-id", help="The ID of the user", required=False, type=click.UUID)
 @click.option("--username", help="The username of the user", required=False, type=str)
 @click.option("--password", prompt="Enter the password", help="The password of the user", hide_input=True)
 @click.pass_context
-async def verify_password(ctx: click.Context, user_id: int | None, username: str | None, password: str) -> None:
+async def verify_password(ctx: click.Context, user_id: UUID | None, username: str | None, password: str) -> None:
     """Verify a user's password.
 
     This command checks if the provided password matches the stored password
@@ -166,7 +168,7 @@ async def verify_password(ctx: click.Context, user_id: int | None, username: str
 
     Args:
         ctx (click.Context): Click context object containing the user DAO.
-        user_id (int, optional): The unique identifier of the user whose
+        user_id (UUID, optional): The unique identifier of the user whose
             password to verify. Defaults to None.
         username (str, optional): The username of the user whose password to
             verify. Defaults to None.
@@ -186,7 +188,7 @@ async def verify_password(ctx: click.Context, user_id: int | None, username: str
 
     user_dao: UserDAO = ctx.obj["user_dao"]
     user = (
-        await user_dao.get_by_pk(user_id)
+        await user_dao.get_by_id(str(user_id))
         if user_id is not None
         else await user_dao.get_by_username(cast(str, username))
     )
@@ -197,7 +199,7 @@ async def verify_password(ctx: click.Context, user_id: int | None, username: str
 
 
 @user.command(help="Reset a user's password by ID")
-@click.option("--user-id", help="The ID of the user", required=True, type=int)
+@click.option("--user-id", help="The ID of the user", required=True, type=click.UUID)
 @click.option(
     "--old-password", prompt="Enter the current password", help="The current password of the user", hide_input=True
 )
@@ -209,17 +211,18 @@ async def verify_password(ctx: click.Context, user_id: int | None, username: str
     confirmation_prompt=True,
 )
 @click.pass_context
-async def reset_password(ctx: click.Context, user_id: int, old_password: str, password: str) -> None:
+async def reset_password(ctx: click.Context, user_id: UUID, old_password: str, password: str) -> None:
     """Reset a user's password.
 
     This command changes the password for an existing user identified by their
     ID and outputs the updated user information as JSON. The user's data stays
     readable because their data encryption key is re-wrapped with the new
-    password.
+    password. A warning reminding the user to log out and log in again to get
+    a new access token is printed to stderr.
 
     Args:
         ctx (click.Context): Click context object containing the user DAO.
-        user_id (int): The unique identifier of the user to reset the password
+        user_id (UUID): The unique identifier of the user to reset the password
             for.
         old_password (str): The current password of the user.
         password (str): The new password for the user.
@@ -235,7 +238,7 @@ async def reset_password(ctx: click.Context, user_id: int, old_password: str, pa
     """
     user_dao: UserDAO = ctx.obj["user_dao"]
     try:
-        user = await user_dao.reset_password(user_id, old_password, password)
+        user = await user_dao.reset_password(str(user_id), old_password, password)
     except InvalidPasswordError as e:
         raise click.BadParameter("Invalid current password", param_hint="--old-password") from e
     except EncryptionKeysMissingError as e:
@@ -243,10 +246,15 @@ async def reset_password(ctx: click.Context, user_id: int, old_password: str, pa
 
     user_response = UserGetResponseModel.model_validate(user)
     click.echo(user_response.model_dump_json(indent=2))
+    click.echo(
+        f"{Fore.YELLOW}Password changed. Log out and log in to the application again "
+        f"to get a new access token.{Style.RESET_ALL}",
+        err=True,
+    )
 
 
 @user.command(help="Reset a user's password without the current one. DELETES all of the user's fields")
-@click.option("--user-id", help="The ID of the user", required=True, type=int)
+@click.option("--user-id", help="The ID of the user", required=True, type=click.UUID)
 @click.option(
     "--password",
     prompt="Enter the new password",
@@ -259,16 +267,18 @@ async def reset_password(ctx: click.Context, user_id: int, old_password: str, pa
     "All of the user's fields will be permanently deleted. Continue?"
 )
 @click.pass_context
-async def force_reset_password(ctx: click.Context, user_id: int, password: str) -> None:
+async def force_reset_password(ctx: click.Context, user_id: UUID, password: str) -> None:
     """Reset a user's password when the current password is lost.
 
     The user's data encryption key cannot be recovered without the current
     password, so all of the user's fields are permanently deleted and a new
-    key is generated. Outputs the updated user information as JSON.
+    key is generated. Outputs the updated user information as JSON and prints
+    a warning to stderr to log out and log in again, since access tokens
+    issued earlier still hold the old key.
 
     Args:
         ctx (click.Context): Click context object containing the user DAO.
-        user_id (int): The unique identifier of the user to reset the password
+        user_id (UUID): The unique identifier of the user to reset the password
             for.
         password (str): The new password for the user.
 
@@ -277,6 +287,13 @@ async def force_reset_password(ctx: click.Context, user_id: int, password: str) 
 
     """
     user_dao: UserDAO = ctx.obj["user_dao"]
-    user = await user_dao.force_reset_password(user_id, password)
+    config: AppConfig = ctx.obj["config"]
+    user = await user_dao.force_reset_password(str(user_id), password, build_password_dao(config))
     user_response = UserGetResponseModel.model_validate(user)
     click.echo(user_response.model_dump_json(indent=2))
+    click.echo(
+        f"{Fore.YELLOW}Password reset and a new encryption key generated. Log out of the application on every "
+        f"device and log in again: values saved with an older access token use the discarded key and can "
+        f"never be decrypted.{Style.RESET_ALL}",
+        err=True,
+    )

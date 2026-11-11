@@ -15,7 +15,7 @@ from keychain.config import AppConfig
 from keychain.modules.middlewares import HTTPRequestMiddleware, lifespan
 from keychain.modules.routers.api import router as api_router
 from keychain.modules.routers.system import router as system_router
-from keychain.utils import configure_logging
+from keychain.utils import configure_logging, log_docs_urls
 
 logger = structlog.stdlib.get_logger(__name__)
 
@@ -66,5 +66,7 @@ def get_app(config: AppConfig | None = None) -> FastAPI:
     app_router.include_router(system_router)
 
     app.include_router(app_router)
+
+    log_docs_urls(app, port=config.info.port)
 
     return app

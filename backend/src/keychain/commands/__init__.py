@@ -1,6 +1,6 @@
 """Application commands."""
 
-__all__ = ("BackupDBCommand", "MigrateFieldsEncryptionCommand", "RestoreDBCommand")
+__all__ = ("BaseCommand", "MigrateFieldsEncryptionCommand")
 
-from .backup_db import BackupDBCommand, RestoreDBCommand
+from .base import BaseCommand
 from .migrate_fields_encryption import MigrateFieldsEncryptionCommand

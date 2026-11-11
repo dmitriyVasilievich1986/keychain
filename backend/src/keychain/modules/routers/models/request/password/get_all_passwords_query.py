@@ -4,6 +4,8 @@ __all__ = ("GetAllPasswordsQuery",)
 
 from typing import Literal
 
+from pydantic import Field
+
 from keychain.modules.routers.models.base.metadata import PaginationWithFiltersQuery
 
 
@@ -12,4 +14,4 @@ class GetAllPasswordsQuery(
 ):
     """Query parameters for getting all passwords."""
 
-    pass
+    show_deleted: bool = Field(default=False, description="Whether to include passwords marked as deleted")

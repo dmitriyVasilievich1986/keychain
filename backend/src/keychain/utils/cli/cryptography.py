@@ -2,13 +2,14 @@
 
 __all__ = ("cryptography",)
 
+from uuid import UUID
+
 import asyncclick as click
 
 from keychain.config import AppConfig
 from keychain.services.cryptography.client import CryptographyClient
-from keychain.services.db_client.client import DBClient
 
-from .user_dek import load_user_dek
+from .user_dek import build_user_dao, load_user_dek
 
 
 @click.group(help="CLI for managing the cryptography of the Keychain Application.")
@@ -25,12 +26,12 @@ def cryptography(ctx: click.Context) -> None:
     ctx.obj["cryptography_client"] = cryptography_client
 
 
-async def _resolve_dek(ctx: click.Context, user_id: int, user_password: str) -> bytes:
+async def _resolve_dek(ctx: click.Context, user_id: UUID, user_password: str) -> bytes:
     """Verify a user's password and return their data encryption key.
 
     Args:
         ctx (click.Context): Click context object containing the app config.
-        user_id (int): The unique identifier of the user.
+        user_id (UUID): The unique identifier of the user.
         user_password (str): The user's plaintext password.
 
     Returns:
@@ -38,19 +39,15 @@ async def _resolve_dek(ctx: click.Context, user_id: int, user_password: str) -> 
 
     """
     config: AppConfig = ctx.obj["config"]
-    db_client = DBClient(config.db.postgresql, config.info.debug)
-    try:
-        return await load_user_dek(db_client, user_id, user_password)
-    finally:
-        await db_client.close()
+    return await load_user_dek(build_user_dao(config), str(user_id), user_password)
 
 
 @cryptography.command(help="Encrypt a string with a user's data encryption key")
 @click.option("--string", help="The string to encrypt", type=str, required=True)
-@click.option("--user-id", help="The ID of the user whose key is used", type=int, required=True)
+@click.option("--user-id", help="The ID of the user whose key is used", type=click.UUID, required=True)
 @click.option("--user-password", prompt="Enter the user password", help="The password of the user", hide_input=True)
 @click.pass_context
-async def encrypt(ctx: click.Context, string: str, user_id: int, user_password: str) -> None:
+async def encrypt(ctx: click.Context, string: str, user_id: UUID, user_password: str) -> None:
     """Encrypt a string using a user's data encryption key.
 
     This command verifies the user's password, resolves their data encryption
@@ -59,7 +56,7 @@ async def encrypt(ctx: click.Context, string: str, user_id: int, user_password: 
     Args:
         ctx (click.Context): Click context object containing the cryptography client.
         string (str): The string to encrypt.
-        user_id (int): The unique identifier of the user.
+        user_id (UUID): The unique identifier of the user.
         user_password (str): The user's password.
 
     """
@@ -71,10 +68,10 @@ async def encrypt(ctx: click.Context, string: str, user_id: int, user_password: 
 
 @cryptography.command(help="Decrypt a string with a user's data encryption key")
 @click.option("--string", help="The string to decrypt", type=str, required=True)
-@click.option("--user-id", help="The ID of the user whose key is used", type=int, required=True)
+@click.option("--user-id", help="The ID of the user whose key is used", type=click.UUID, required=True)
 @click.option("--user-password", prompt="Enter the user password", help="The password of the user", hide_input=True)
 @click.pass_context
-async def decrypt(ctx: click.Context, string: str, user_id: int, user_password: str) -> None:
+async def decrypt(ctx: click.Context, string: str, user_id: UUID, user_password: str) -> None:
     """Decrypt a string using a user's data encryption key.
 
     This command verifies the user's password, resolves their data encryption
@@ -83,7 +80,7 @@ async def decrypt(ctx: click.Context, string: str, user_id: int, user_password: 
     Args:
         ctx (click.Context): Click context object containing the cryptography client.
         string (str): The string to decrypt.
-        user_id (int): The unique identifier of the user.
+        user_id (UUID): The unique identifier of the user.
         user_password (str): The user's password.
 
     """

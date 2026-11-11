@@ -1,5 +1,5 @@
 /**
- * Credential exchange helpers for `POST /api/login`.
+ * Credential exchange helpers for `POST /api/v1/user/login`.
  *
  * Uses a dedicated `axios.post` rather than `apiClientInstance`: the shared client requires an
  * `accessToken` cookie and would redirect to `/login` before an unauthenticated call could complete.
@@ -21,12 +21,12 @@ export const useAuthAPIClient = () => {
   const { wrapper } = useApiClientWrapper();
   return {
     /**
-     * Sends credentials to `/api/login` and returns parsed JSON on success (errors propagate after
+     * Sends credentials to `/api/v1/user/login` and returns parsed JSON on success (errors propagate after
      * the wrapper logs and resets loading).
      *
      * @param username - Value passed to the backend login handler.
      * @param password - Plain-text secret; rely on HTTPS in deployment for transport protection.
-     * @returns A promise that resolves with the login response payload (`access_token`, etc.).
+     * @returns A promise that resolves with the login response payload (`accessToken`, `expiresAt`).
      */
     login: async (username: string, password: string) => {
       return wrapper(async () => {
