@@ -92,6 +92,26 @@ class FirestoreClient(metaclass=Singleton):
         return self._client.collection(self._collection_name)
 
     @property
+    def db_name(self) -> str:
+        """Return the ID of the Firestore database this client talks to.
+
+        Returns:
+            str: The database ID, e.g. ``(default)``.
+
+        """
+        return self._db_name
+
+    @property
+    def collection_name(self) -> str:
+        """Return the name of the configured collection.
+
+        Returns:
+            str: The collection name.
+
+        """
+        return self._collection_name
+
+    @property
     def database_path(self) -> str:
         """Return the resource path of the database this client talks to.
 
