@@ -48,3 +48,21 @@ variable "github_repository" {
   type        = string
   default     = "dmitriyVasilievich1986/keychain"
 }
+
+variable "backend_image_tag" {
+  description = "Tag of the keychain-backend image Cloud Run deploys."
+  type        = string
+  default     = "latest"
+}
+
+variable "backend_min_instances" {
+  description = "Minimum Cloud Run instances of the backend. 0 scales to zero when idle."
+  type        = number
+  default     = 0
+}
+
+variable "backend_max_instances" {
+  description = "Maximum Cloud Run instances of the backend."
+  type        = number
+  default     = 2
+}

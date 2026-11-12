@@ -27,3 +27,13 @@ output "github_service_account" {
   description = "GitHub repository variable GCP_SERVICE_ACCOUNT."
   value       = module.github_actions.service_account_email
 }
+
+output "backend_url" {
+  description = "Public HTTPS URL of the backend Cloud Run service (API under /keychain)."
+  value       = module.cloud_run.url
+}
+
+output "backend_secret_ids" {
+  description = "Secret Manager secrets that need a value before the backend can start."
+  value       = values(module.secrets.secret_ids)
+}

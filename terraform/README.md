@@ -19,7 +19,9 @@ terraform/
 └── modules/
     ├── artifact_registry/              # Docker repository + cleanup policies
     ├── firestore/                      # Firestore database (password + users collections)
-    └── github_actions/                 # Workload Identity Federation for GitHub Actions
+    ├── github_actions/                 # Workload Identity Federation for GitHub Actions
+    ├── secrets/                        # Secret Manager secrets (values added outside Terraform)
+    └── cloud_run/                      # Cloud Run service + runtime service account
 ```
 
 Each piece of infrastructure lives in its own module under `modules/`; the root
@@ -73,3 +75,34 @@ variables (Settings -> Secrets and variables -> Actions -> Variables):
 
 The `push-images` stage of `tag_docker_push.yml` then pushes every release to
 Artifact Registry as well as ghcr.io. Leave `GCP_BACKEND_IMAGE` unset to skip it.
+
+## Cloud Run (backend)
+
+The `cloud_run` module runs `keychain-backend:<backend_image_tag>` (default `latest`)
+from Artifact Registry as a public Cloud Run service with its own runtime service
+account (Firestore read/write, access to the backend secrets). Settings from
+`backend/configurations/production.yaml` are overridden with environment variables;
+`CRYPTOGRAPHY__SECRET_KEY` and `AUTH__JWT_SECRET_KEY` come from Secret Manager.
+
+Secret values are never stored in Terraform. The first deployment therefore takes
+two steps:
+
+```bash
+# 1. Create the (empty) secrets first
+terraform apply -target=module.secrets
+
+# 2. Add the values (reuse the ones from backend/.env to keep existing data readable)
+printf '%s' "<fernet key>" | gcloud secrets versions add keychain-cryptography-secret-key --data-file=-
+printf '%s' "<jwt secret>" | gcloud secrets versions add keychain-jwt-secret-key --data-file=-
+
+# 3. Deploy the rest
+terraform apply
+terraform output backend_url
+```
+
+Cloud Run resolves `latest` to an image digest at deploy time; pushing a new
+`latest` does not update the running service. Roll out a new image with:
+
+```bash
+gcloud run deploy keychain-backend --region <region> --image <backend_image>:latest
+```
