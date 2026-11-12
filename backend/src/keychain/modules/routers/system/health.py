@@ -49,8 +49,14 @@ async def health_check(
     """
     users_up, passwords_up = await asyncio.gather(users_db.healthcheck(), password_db.healthcheck())
     services = [
-        ServiceHealth(name="users-db", status="UP" if users_up else "DOWN"),
-        ServiceHealth(name="passwords-db", status="UP" if passwords_up else "DOWN"),
+        ServiceHealth(
+            name="firestore", status="UP" if users_up else "DOWN", extra={"db": "keychain", "collection": "users"}
+        ),
+        ServiceHealth(
+            name="firestore",
+            status="UP" if passwords_up else "DOWN",
+            extra={"db": "keychain", "collection": "passwords"},
+        ),
     ]
     is_down = any(service.status == "DOWN" for service in services)
 
