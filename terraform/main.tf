@@ -9,3 +9,13 @@ module "artifact_registry" {
   keep_recent_versions          = var.keep_recent_versions
   untagged_image_retention_days = var.untagged_image_retention_days
 }
+
+module "firestore" {
+  source = "./modules/firestore"
+
+  project_id    = var.project_id
+  location      = var.region
+  database_name = var.firestore_database_name
+  env           = var.env
+  collections   = ["password", "users"]
+}
