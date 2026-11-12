@@ -42,3 +42,9 @@ variable "firestore_database_name" {
   type        = string
   default     = "(default)"
 }
+
+variable "github_repository" {
+  description = "GitHub repository whose workflows may push images, as \"owner/name\" (case-sensitive)."
+  type        = string
+  default     = "dmitriyVasilievich1986/keychain"
+}

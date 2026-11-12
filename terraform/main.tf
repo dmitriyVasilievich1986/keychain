@@ -19,3 +19,13 @@ module "firestore" {
   env           = var.env
   collections   = ["password", "users"]
 }
+
+module "github_actions" {
+  source = "./modules/github_actions"
+
+  project_id                      = var.project_id
+  env                             = var.env
+  github_repository               = var.github_repository
+  artifact_registry_location      = var.region
+  artifact_registry_repository_id = module.artifact_registry.repository_id
+}

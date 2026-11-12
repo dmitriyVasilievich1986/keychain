@@ -9,4 +9,5 @@ env = ""
 # backend_repository_id         = "keychain"
 # keep_recent_versions          = 10
 # untagged_image_retention_days = 7
+# github_repository             = "dmitriyVasilievich1986/keychain"
 # firestore_database_name       = "(default)"   # use e.g. "keychain" together with a non-empty env

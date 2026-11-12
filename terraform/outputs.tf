@@ -17,3 +17,13 @@ output "firestore_collections" {
   description = "Firestore collection names for the backend config (db.*.collection_name)."
   value       = module.firestore.collections
 }
+
+output "github_workload_identity_provider" {
+  description = "GitHub repository variable GCP_WORKLOAD_IDENTITY_PROVIDER."
+  value       = module.github_actions.workload_identity_provider
+}
+
+output "github_service_account" {
+  description = "GitHub repository variable GCP_SERVICE_ACCOUNT."
+  value       = module.github_actions.service_account_email
+}

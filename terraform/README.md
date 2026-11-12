@@ -18,7 +18,8 @@ terraform/
 ├── providers.tf, versions.tf
 └── modules/
     ├── artifact_registry/              # Docker repository + cleanup policies
-    └── firestore/                      # Firestore database (password + users collections)
+    ├── firestore/                      # Firestore database (password + users collections)
+    └── github_actions/                 # Workload Identity Federation for GitHub Actions
 ```
 
 Each piece of infrastructure lives in its own module under `modules/`; the root
@@ -56,3 +57,19 @@ docker push "$IMAGE:latest"
 
 State is stored locally (`terraform.tfstate`, git-ignored). Move it to a GCS
 backend before sharing the setup or running it from CI.
+
+## GitHub Actions
+
+The `github_actions` module lets workflows of `github_repository` sign in to GCP
+through Workload Identity Federation (no service account key) and push to the
+Artifact Registry repository. After `terraform apply`, set these repository
+variables (Settings -> Secrets and variables -> Actions -> Variables):
+
+| Variable | Value |
+| --- | --- |
+| `GCP_WORKLOAD_IDENTITY_PROVIDER` | `terraform output -raw github_workload_identity_provider` |
+| `GCP_SERVICE_ACCOUNT` | `terraform output -raw github_service_account` |
+| `GCP_BACKEND_IMAGE` | `terraform output -raw backend_image` |
+
+The `push-images` stage of `tag_docker_push.yml` then pushes every release to
+Artifact Registry as well as ghcr.io. Leave `GCP_BACKEND_IMAGE` unset to skip it.
