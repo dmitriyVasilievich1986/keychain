@@ -12,5 +12,5 @@ env = ""
 # github_repository             = "dmitriyVasilievich1986/keychain"
 # backend_image_tag             = "latest"
 # backend_min_instances         = 0
-# backend_max_instances         = 2
+# backend_max_instances         = 1
 # firestore_database_name       = "(default)"   # use e.g. "keychain" together with a non-empty env

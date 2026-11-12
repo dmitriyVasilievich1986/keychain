@@ -64,5 +64,5 @@ variable "backend_min_instances" {
 variable "backend_max_instances" {
   description = "Maximum Cloud Run instances of the backend."
   type        = number
-  default     = 2
+  default     = 1
 }
