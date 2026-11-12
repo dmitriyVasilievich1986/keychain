@@ -1,0 +1,16 @@
+# Copy to terraform.tfvars and fill in. terraform.tfvars is git-ignored.
+project_id = "your-gcp-project-id"
+region     = "europe-west1"
+
+# Environment suffix for resource names, e.g. "-dev" or "-prod". Empty for none.
+env = ""
+
+# Optional overrides
+# backend_repository_id         = "keychain"
+# keep_recent_versions          = 10
+# untagged_image_retention_days = 7
+# github_repository             = "dmitriyVasilievich1986/keychain"
+# backend_image_tag             = "latest"
+# backend_min_instances         = 0
+# backend_max_instances         = 1
+# firestore_database_name       = "(default)"   # use e.g. "keychain" together with a non-empty env

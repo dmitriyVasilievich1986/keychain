@@ -47,10 +47,15 @@ async def health_check(
         Response: 200 if every service is up, otherwise 503.
 
     """
-    users_up, passwords_up = await asyncio.gather(users_db.healthcheck(), password_db.healthcheck())
+    clients = (users_db, password_db)
+    results = await asyncio.gather(*(client.healthcheck() for client in clients))
     services = [
-        ServiceHealth(name="users-db", status="UP" if users_up else "DOWN"),
-        ServiceHealth(name="passwords-db", status="UP" if passwords_up else "DOWN"),
+        ServiceHealth(
+            name="firestore",
+            status="UP" if is_up else "DOWN",
+            extra={"db": client.db_name, "collection": client.collection_name},
+        )
+        for client, is_up in zip(clients, results, strict=True)
     ]
     is_down = any(service.status == "DOWN" for service in services)
 

@@ -103,6 +103,8 @@ jobs:
     permissions:
       contents: read
       packages: write
+      # GitHub OIDC token for pushing to Google Artifact Registry.
+      id-token: write
     # Same build as the "build" stage, now pushed; its layers come from that
     # stage's cache.
     uses: ./.github/workflows/build_docker.yml
